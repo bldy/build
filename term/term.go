@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // package term handles terminal display statuses
-package term // import "sevki.org/term"
+package term // import "sevki.org/build/term"
 
 import (
 	"fmt"

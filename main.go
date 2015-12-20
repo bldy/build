@@ -85,7 +85,7 @@ func execute(t string) {
 	for i := 0; i < count; i++ {
 		select {
 		case <-c.Done:
-			//			doneMessage(done.GetName())
+
 		case err := <-c.Error:
 			<-done
 			log.Fatal(err)
@@ -98,6 +98,4 @@ func execute(t string) {
 	term.Exit()
 	<-done
 	os.Exit(1)
-	//	bar.FinishPrint("The End!")
-
 }

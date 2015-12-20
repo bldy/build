@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package harvey // import "sevki.org/build/harvey"
+package harvey // import "sevki.org/build/targets/harvey"
 
 import (
 	"log"
