@@ -1,0 +1,97 @@
+// Copyright 2015 Sevki <s@sevki.org>. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+package cc // import "sevki.org/build/targets/cc"
+
+import (
+	"bytes"
+	"crypto/sha1"
+	"io"
+
+	"log"
+
+	"strings"
+
+	"fmt"
+
+	"sevki.org/build/util"
+
+	"path/filepath"
+)
+
+type CLib struct {
+	Name            string        `cxx_library:"name" cc_library:"name"`
+	Sources         Sources       `cxx_library:"srcs" cc_library:"srcs" build:"path"`
+	Dependencies    []string      `cxx_library:"deps" cc_library:"deps"`
+	Includes        Includes      `cxx_library:"headers" cc_library:"includes" build:"path"`
+	Headers         []string      `cxx_library:"exported_headers" cc_library:"hdrs" build:"path"`
+	CompilerOptions CompilerFlags `cxx_library:"compiler_flags" cc_library:"copts"`
+	LinkerOptions   []string      `cxx_library:"linker_flags" cc_library:"linkopts"`
+	LinkShared      bool
+	LinkStatic      bool
+	Source          string
+	buf             bytes.Buffer
+}
+
+func (cl *CLib) Hash() []byte {
+	h := sha1.New()
+	io.WriteString(h, CCVersion)
+	io.WriteString(h, cl.Name)
+	util.HashFiles(h, cl.Includes)
+	util.HashFiles(h, []string(cl.Sources))
+	util.HashStrings(h, cl.CompilerOptions)
+	util.HashStrings(h, cl.LinkerOptions)
+	if cl.LinkShared {
+		io.WriteString(h, "shared")
+	}
+	if cl.LinkStatic {
+		io.WriteString(h, "static")
+	}
+	return h.Sum(nil)
+}
+
+func (cl *CLib) Build() error {
+
+	logger := log.New(&cl.buf, "", log.Lmicroseconds)
+
+	params := []string{}
+	params = append(params, cl.CompilerOptions...)
+	params = append(params, cl.Sources...)
+	params = append(params, cl.Includes.Includes()...)
+
+	logger.Println(strings.Join(append([]string{compiler()}, params...), " "))
+
+	if err := util.Exec(&cl.buf, &cl.buf, compiler(), nil, params); err != nil {
+		logger.Print(err.Error())
+		return fmt.Errorf(cl.buf.String())
+	}
+
+	objects, _ := filepath.Glob("*.o")
+
+	params = []string{"-rs", fmt.Sprintf("%s.a", cl.Name)}
+
+	params = append(params, objects...)
+
+	logger.Println(strings.Join(append([]string{"ar"}, params...), " "))
+	if err := util.Exec(&cl.buf, &cl.buf, "x86_64-elf-ar", nil, params); err != nil {
+		logger.Print(err.Error())
+		return fmt.Errorf(cl.buf.String())
+	}
+	return nil
+}
+
+func (cl *CLib) GetName() string {
+	return cl.Name
+}
+
+func (cl *CLib) GetDependencies() []string {
+	return cl.Dependencies
+}
+func (cl *CLib) GetSource() string {
+	return cl.Source
+}
+
+func (cl *CLib) Reader() io.Reader {
+	return &cl.buf
+}
