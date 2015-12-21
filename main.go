@@ -29,6 +29,9 @@ All the targets are relative to the git project.
 If you are in a subfoler we will traverse the parent folders until we hit a .git file.
 `
 )
+var (
+	verbose = false
+)
 
 func main() {
 	if len(os.Args) < 2 {
@@ -41,6 +44,9 @@ func main() {
 	case "version":
 		version()
 		return
+	case "-v":
+		verbose = true
+		execute(os.Args[2])
 	default:
 		execute(target)
 	}
@@ -78,14 +84,16 @@ func execute(t string) {
 
 	done := make(chan bool)
 
-	go term.Listen(c.Updates, cpus, false)
+	go term.Listen(c.Updates, cpus, verbose)
 	go term.Run(done)
 
 	go c.Execute(time.Second, cpus)
 	for i := 0; i < count; i++ {
 		select {
-		case <-c.Done:
-
+		case done := <-c.Done:
+			if verbose {
+				doneMessage(done.GetName())
+			}
 		case err := <-c.Error:
 			<-done
 			log.Fatal(err)
