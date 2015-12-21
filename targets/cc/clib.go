@@ -74,7 +74,7 @@ func (cl *CLib) Build() error {
 	params = append(params, objects...)
 
 	logger.Println(strings.Join(append([]string{"ar"}, params...), " "))
-	if err := util.Exec(&cl.buf, &cl.buf, "x86_64-elf-ar", nil, params); err != nil {
+	if err := util.Exec(&cl.buf, &cl.buf, ar(), nil, params); err != nil {
 		logger.Print(err.Error())
 		return fmt.Errorf(cl.buf.String())
 	}
