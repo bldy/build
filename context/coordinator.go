@@ -66,6 +66,9 @@ func build(n *Node) (err error) {
 			errString, _ := ioutil.ReadAll(file)
 			return fmt.Errorf("%s", errString)
 		} else if _, err := os.Lstat(filepath.Join(outDir, "success")); err == nil {
+			if err := n.Target.Install(); err != nil {
+				return err
+			}
 			return nil
 		}
 	}
@@ -78,6 +81,8 @@ func build(n *Node) (err error) {
 	logName := "failed"
 	if buildErr == nil {
 		logName = "success"
+
+		n.Target.Install()
 	}
 	if logFile, err := os.Create(filepath.Join(outDir, logName)); err != nil {
 		log.Fatal(err)

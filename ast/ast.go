@@ -44,6 +44,7 @@ type Func struct {
 // Target is for implementing different build targets.
 type Target interface {
 	Build() error
+	Install() error
 	GetName() string
 	GetDependencies() []string
 	GetSource() string

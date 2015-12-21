@@ -19,9 +19,6 @@ import (
 var CCVersion = ""
 var cc = ""
 
-func compiler() string {
-	return cc
-}
 func init() {
 
 	if cc = os.Getenv("CC"); cc == "" {
@@ -38,6 +35,23 @@ func init() {
 	}
 	if err := ast.Register("cxx_library", CLib{}); err != nil {
 		log.Fatal(err)
+	}
+	os.MkdirAll("/tmp/build/lib", 0777)
+	os.MkdirAll("/tmp/build/inc", 0777)
+}
+
+func compiler() string {
+	if tpfx := os.Getenv("TOOLPREFIX"); tpfx == "" {
+		return cc
+	} else {
+		return fmt.Sprintf("%s%s", tpfx, cc)
+	}
+}
+func ar() string {
+	if tpfx := os.Getenv("TOOLPREFIX"); tpfx == "" {
+		return "ar"
+	} else {
+		return fmt.Sprintf("%s%s", tpfx, "ar")
 	}
 }
 

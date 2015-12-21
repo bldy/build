@@ -83,20 +83,24 @@ func (cl *MkSys) Hash() []byte {
 	return h.Sum(nil)
 }
 
-func (cl *MkSys) Reader() io.Reader {
-	return &cl.buf
+func (mkSys *MkSys) Reader() io.Reader {
+	return &mkSys.buf
 }
 
-func (cl *MkSys) GetSource() string {
-	return cl.Source
+func (mkSys *MkSys) Install() error {
+	return nil
 }
 
-func (cl *MkSys) GetName() string {
-	return cl.Name
+func (mkSys *MkSys) GetSource() string {
+	return mkSys.Source
 }
 
-func (cl *MkSys) GetDependencies() []string {
-	return cl.Dependencies
+func (mkSys *MkSys) GetName() string {
+	return mkSys.Name
+}
+
+func (mkSys *MkSys) GetDependencies() []string {
+	return mkSys.Dependencies
 }
 
 func (mkSys *MkSys) Build() error {
