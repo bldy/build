@@ -32,6 +32,9 @@ type PreProcessor struct {
 
 func (pp *PreProcessor) Process(d *ast.BuildFile) map[string]ast.Target {
 	pp.targs = make(map[string]ast.Target)
+	if d == nil {
+		log.Fatal("should not be null")
+	}
 	pp.wd = d.Path
 	pp.document = d
 	for _, f := range d.Funcs {

@@ -44,7 +44,10 @@ func (c *Context) getTarget(name string) ast.Target {
 		return t
 	} else {
 		url := parser.NewTargetURLFromString(name)
-		doc, _ := parser.ReadBuildFile(url, c.Wd)
+		doc, err := parser.ReadBuildFile(url, c.Wd)
+		if err != nil {
+			log.Fatalf("getting target %s failed:%s", name, err.Error())
+		}
 
 		var x ast.Target
 		var pp parser.PreProcessor
