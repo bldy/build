@@ -14,6 +14,8 @@ import (
 
 	"github.com/fatih/color"
 
+	"flag"
+
 	"sevki.org/build/context"
 	_ "sevki.org/build/targets/cc"
 	_ "sevki.org/build/targets/harvey"
@@ -30,23 +32,22 @@ If you are in a subfoler we will traverse the parent folders until we hit a .git
 `
 )
 var (
-	verbose = false
+	verbose = flag.Bool("v", false, "more verbose output")
 )
 
 func main() {
+	flag.Parse()
+
 	if len(os.Args) < 2 {
 		printUsage()
 	}
-	target := os.Args[1]
+	target := flag.Args()[0]
 	switch target {
 	case "server":
 		server()
 	case "version":
 		version()
 		return
-	case "-v":
-		verbose = true
-		execute(os.Args[2])
 	default:
 		execute(target)
 	}
@@ -84,14 +85,14 @@ func execute(t string) {
 
 	done := make(chan bool)
 
-	go term.Listen(c.Updates, cpus, verbose)
+	go term.Listen(c.Updates, cpus, *verbose)
 	go term.Run(done)
 
 	go c.Execute(time.Second, cpus)
 	for i := 0; i < count; i++ {
 		select {
 		case done := <-c.Done:
-			if verbose {
+			if *verbose {
 				doneMessage(done.GetName())
 			}
 		case err := <-c.Error:
