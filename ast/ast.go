@@ -7,7 +7,6 @@ package ast // import "sevki.org/build/ast"
 
 import (
 	"fmt"
-	"io"
 
 	"reflect"
 )
@@ -21,17 +20,17 @@ func init() {
 
 }
 
-type BuildInfo struct {
+type Info struct {
 	BuildDir string
 	OutDir   string
 }
 
-type BuildFile struct {
+type File struct {
 	Path  string
 	Funcs []*Func
 	Vars  map[string]interface{}
 }
-type Varuable struct {
+type Variable struct {
 	Value string
 }
 type Func struct {
@@ -39,17 +38,6 @@ type Func struct {
 	Params     map[string]interface{}
 	AnonParams []interface{}
 	Parent     *Func `json:"-"`
-}
-
-// Target is for implementing different build targets.
-type Target interface {
-	Build() error
-	Install() error
-	GetName() string
-	GetDependencies() []string
-	GetSource() string
-	Reader() io.Reader
-	Hash() []byte
 }
 
 type Path string

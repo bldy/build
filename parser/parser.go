@@ -23,7 +23,7 @@ type Parser struct {
 	curTok   token.Token
 	line     int
 	Error    error
-	Document *ast.BuildFile
+	Document *ast.File
 	ptr      *ast.Func
 	payload  map[string]interface{}
 	typeName string
@@ -59,7 +59,7 @@ func New(name, path string, r io.Reader) *Parser {
 		path:  path,
 		line:  0,
 		lexer: lexer.New(name, r),
-		Document: &ast.BuildFile{
+		Document: &ast.File{
 			Path: path,
 		},
 	}
@@ -188,7 +188,7 @@ func parseParams(p *Parser) stateFn {
 				return nil
 			}
 		case token.String:
-			p.ptr.Params[name] = ast.Varuable{Value: p.next().String()}
+			p.ptr.Params[name] = ast.Variable{Value: p.next().String()}
 		default:
 			return nil
 		}
@@ -220,7 +220,7 @@ func (p *Parser) parseSlice() []interface{} {
 
 // Decode decodes a bazel/buck ast.
 func (p *Parser) Decode(i interface{}) (err error) {
-	p.Document = (i.(*ast.BuildFile))
+	p.Document = (i.(*ast.File))
 	p.Document.Path = p.path
 	p.run()
 	if p.curTok.Type == token.Error {

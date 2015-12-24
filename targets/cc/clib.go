@@ -9,8 +9,6 @@ import (
 	"crypto/sha1"
 	"io"
 
-	"log"
-
 	"strings"
 
 	"fmt"
@@ -18,6 +16,8 @@ import (
 	"sevki.org/build/util"
 
 	"path/filepath"
+
+	"sevki.org/build/build"
 )
 
 type CLib struct {
@@ -39,6 +39,7 @@ func (cl *CLib) Hash() []byte {
 	io.WriteString(h, CCVersion)
 	io.WriteString(h, cl.Name)
 	util.HashFiles(h, cl.Includes)
+	io.WriteString(h, "clib")
 	util.HashFiles(h, []string(cl.Sources))
 	util.HashStrings(h, cl.CompilerOptions)
 	util.HashStrings(h, cl.LinkerOptions)
@@ -51,39 +52,39 @@ func (cl *CLib) Hash() []byte {
 	return h.Sum(nil)
 }
 
-func (cl *CLib) Build() error {
-
-	logger := log.New(&cl.buf, "", log.Lmicroseconds)
+func (cl *CLib) Build(c *build.Context) error {
 
 	params := []string{}
 	params = append(params, cl.CompilerOptions...)
+	params = append(params, cl.LinkerOptions...)
 	params = append(params, cl.Sources...)
 	params = append(params, cl.Includes.Includes()...)
 
-	logger.Println(strings.Join(append([]string{compiler()}, params...), " "))
+	c.Println(strings.Join(append([]string{compiler()}, params...), " "))
 
-	if err := util.Exec(&cl.buf, &cl.buf, compiler(), nil, params); err != nil {
-		logger.Print(err.Error())
+	if err := c.Exec(compiler(), nil, params); err != nil {
+		c.Println(err.Error())
 		return fmt.Errorf(cl.buf.String())
 	}
 
 	objects, _ := filepath.Glob("*.o")
-	libName := fmt.Sprintf("../lib/%s.a", cl.Name)
+	libName := fmt.Sprintf("%s.a", cl.Name)
 	params = []string{"-rs", libName}
 
 	params = append(params, objects...)
 
-	logger.Println(strings.Join(append([]string{"ar"}, params...), " "))
-	if err := util.Exec(&cl.buf, &cl.buf, ar(), nil, params); err != nil {
-		logger.Print(err.Error())
+	c.Println(strings.Join(append([]string{"ar"}, params...), " "))
+	if err := c.Exec(ar(), nil, params); err != nil {
+		c.Println(err.Error())
 		return fmt.Errorf(cl.buf.String())
 	}
 
 	return nil
 }
-func (cl *CLib) Install() error {
-
-	return nil
+func (cl *CLib) Installs() map[string]string {
+	exports := make(map[string]string)
+	exports[fmt.Sprintf("%s.a", cl.Name)] = "lib"
+	return exports
 }
 func (cl *CLib) GetName() string {
 	return cl.Name

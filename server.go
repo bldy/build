@@ -13,7 +13,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"sevki.org/build/context"
+	"sevki.org/build/builder"
 	"sevki.org/lib/prettyprint"
 )
 
@@ -42,7 +42,7 @@ func static(w http.ResponseWriter, r *http.Request) {
 	io.Copy(w, f)
 }
 func graph(w http.ResponseWriter, r *http.Request) {
-	c := context.New()
+	c := builder.New()
 
 	if c.ProjectPath == "" {
 		fmt.Fprintf(os.Stderr, "You need to be in a git project.\n\n")

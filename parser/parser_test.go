@@ -89,7 +89,7 @@ import (
 
 func TestPreProcessor(t *testing.T) {
 
-	var doc ast.BuildFile
+	var doc ast.File
 	ks, _ := os.Open("../tests/libxstring/BUILD")
 	ts, _ := filepath.Abs(ks.Name())
 	dir := strings.Split(ts, "/")

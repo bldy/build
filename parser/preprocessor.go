@@ -21,17 +21,18 @@ import (
 	"strings"
 
 	"sevki.org/build/ast"
+	"sevki.org/build/build"
 	"sevki.org/build/util"
 )
 
 type PreProcessor struct {
 	wd       string
-	targs    map[string]ast.Target
-	document *ast.BuildFile
+	targs    map[string]build.Target
+	document *ast.File
 }
 
-func (pp *PreProcessor) Process(d *ast.BuildFile) map[string]ast.Target {
-	pp.targs = make(map[string]ast.Target)
+func (pp *PreProcessor) Process(d *ast.File) map[string]build.Target {
+	pp.targs = make(map[string]build.Target)
 	if d == nil {
 		log.Fatal("should not be null")
 	}
@@ -120,7 +121,7 @@ func (pp *PreProcessor) absPath(s string) string {
 	}
 }
 
-func (pp *PreProcessor) makeTarget(f *ast.Func) (ast.Target, error) {
+func (pp *PreProcessor) makeTarget(f *ast.Func) (build.Target, error) {
 
 	ttype := ast.Get(f.Name)
 	payload := make(map[string]interface{})
@@ -137,8 +138,8 @@ func (pp *PreProcessor) makeTarget(f *ast.Func) (ast.Target, error) {
 		case *ast.Func:
 			x := fn.(*ast.Func)
 			i = pp.funcReturns(x)
-		case ast.Varuable:
-			i = pp.document.Vars[fn.(ast.Varuable).Value]
+		case ast.Variable:
+			i = pp.document.Vars[fn.(ast.Variable).Value]
 		default:
 			i = fn
 		}
@@ -184,7 +185,7 @@ func (pp *PreProcessor) makeTarget(f *ast.Func) (ast.Target, error) {
 	t := reflect.New(ttype).Interface()
 	dec := json.NewDecoder(buf)
 	dec.Decode(t)
-	return t.(ast.Target), nil
+	return t.(build.Target), nil
 }
 
 func (pp *PreProcessor) funcReturns(f *ast.Func) interface{} {

@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package context // import "sevki.org/build/context"
+package builder // import "sevki.org/build/builder"
 
 import (
 	"log"
@@ -28,7 +28,7 @@ func TestBuild(t *testing.T) {
 	c := Context{
 		Wd:          "/" + filepath.Join(wds...),
 		ProjectPath: "/" + filepath.Join(wds...),
-		Targets:     make(map[string]ast.Target),
+		Targets:     make(map[string]build.Target),
 	}
 
 	c.Parse("test")

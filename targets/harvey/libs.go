@@ -31,6 +31,6 @@ func (g *Group) GetSource() string {
 func (g *Group) Reader() io.Reader {
 	return bytes.NewBufferString("")
 }
-func (g *Group) Install() error {
+func (g *Group) Installs() map[string]string {
 	return nil
 }

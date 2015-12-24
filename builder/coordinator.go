@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package context // import "sevki.org/build/context"
+package builder // import "sevki.org/build/builder"
 
 import (
 	"crypto/sha1"
@@ -16,15 +16,15 @@ import (
 
 	"io/ioutil"
 
-	"sevki.org/build/ast"
+	"sevki.org/build/build"
 )
 
-func (c *Context) Execute(d time.Duration, r int) {
+func (b *Builder) Execute(d time.Duration, r int) {
 
 	for i := 0; i < r; i++ {
 
-		go c.work(c.BuildQueue, i)
-		c.Updates <- Update{
+		go b.work(b.BuildQueue, i)
+		b.Updates <- Update{
 			Worker:    i,
 			TimeStamp: time.Now(),
 			Status:    Pending,
@@ -34,23 +34,16 @@ func (c *Context) Execute(d time.Duration, r int) {
 	go func() {
 		if d > 0 {
 			time.Sleep(d)
-			c.Timeout <- true
+			b.Timeout <- true
 		}
 	}()
-	if c.Root == nil {
+	if b.Root == nil {
 		log.Fatal("Couldn't find the root node.")
 	}
-	c.visit(c.Root)
+	b.visit(b.Root)
 }
-func build(n *Node) (err error) {
+func (b *Builder) build(n *Node) (err error) {
 	var buildErr error
-
-	// check failed builds.
-	for _, e := range n.Edges {
-		if e.Status == Fail {
-			buildErr = fmt.Errorf("dependency %s failed to build", e.Target.GetName())
-		}
-	}
 
 	nodeHash := fmt.Sprintf("%s-%x", n.Target.GetName(), n.hashNode())
 
@@ -66,62 +59,87 @@ func build(n *Node) (err error) {
 			errString, _ := ioutil.ReadAll(file)
 			return fmt.Errorf("%s", errString)
 		} else if _, err := os.Lstat(filepath.Join(outDir, "success")); err == nil {
-			if err := n.Target.Install(); err != nil {
-				return err
-			}
 			return nil
 		}
 	}
 
 	os.MkdirAll(outDir, os.ModeDir|os.ModePerm)
 
-	os.Chdir(outDir)
+	// check failed builds.
+	for _, e := range n.Edges {
+		if e.Status == Fail {
+			buildErr = fmt.Errorf("dependency %s failed to build", e.Target.GetName())
+		} else {
+			for file, folder := range e.Target.Installs() {
+				if folder != "" {
+					if err := os.MkdirAll(folder, 0777); err != nil {
+						log.Fatalf("installing dependency %s for %s: %s", e.Target.GetName(), n.Target.GetName(), err.Error())
+					}
+				}
+				os.Symlink(
+					filepath.Join(
+						"/tmp",
+						"build",
+						fmt.Sprintf("%s-%x", e.Target.GetName(), e.hashNode()),
+						file,
+					),
+					filepath.Join(
+						"/tmp",
+						"build",
+						fmt.Sprintf("%s-%x", n.Target.GetName(), e.hashNode()),
+						folder,
+						file),
+				)
 
-	buildErr = n.Target.Build()
+			}
+		}
+	}
+
+	context := build.NewContext(outDir)
+	buildErr = n.Target.Build(context)
+
 	logName := "failed"
 	if buildErr == nil {
 		logName = "success"
-
-		n.Target.Install()
 	}
 	if logFile, err := os.Create(filepath.Join(outDir, logName)); err != nil {
-		log.Fatal(err)
+		log.Fatalf("error creating log for %s:", n.Target.GetName(), err.Error())
 	} else {
-		_, err := io.Copy(logFile, n.Target.Reader())
+		_, err := io.Copy(logFile, context.Stdout())
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalf("error writing log for %s:", n.Target.GetName(), err.Error())
 		}
 	}
 
 	return buildErr
 }
 
-func (c *Context) work(jq chan *Node, workerNumber int) {
+func (b *Builder) work(jq chan *Node, workerNumber int) {
 
 	for {
 		select {
 		case job := <-jq:
-			c.Updates <- Update{
+			b.Updates <- Update{
 				Worker:    workerNumber,
 				TimeStamp: time.Now(),
 				Target:    job.Target.GetName(),
 				Status:    Started,
 			}
 
-			buildErr := build(job)
+			buildErr := b.build(job)
 
 			if buildErr != nil {
-				c.Updates <- Update{
+				b.Updates <- Update{
 					Worker:    workerNumber,
 					TimeStamp: time.Now(),
 					Target:    job.Target.GetName(),
 					Status:    Fail,
 				}
 
-				c.Error <- buildErr
+				b.Error <- buildErr
 				job.Status = Fail
 			} else {
-				c.Updates <- Update{
+				b.Updates <- Update{
 					Worker:    workerNumber,
 					TimeStamp: time.Now(),
 					Target:    job.Target.GetName(),
@@ -131,12 +149,12 @@ func (c *Context) work(jq chan *Node, workerNumber int) {
 				job.Status = Success
 			}
 
-			c.Done <- job.Target
+			b.Done <- job.Target
 
 			if job.parentWg != nil {
 				job.parentWg.Done()
 			} else {
-				close(c.Done)
+				close(b.Done)
 
 				return
 			}
@@ -159,7 +177,7 @@ const (
 )
 
 type Node struct {
-	Target   ast.Target
+	Target   build.Target
 	Edges    Edges
 	wg       sync.WaitGroup
 	parentWg *sync.WaitGroup
@@ -176,7 +194,7 @@ func (n *Node) hashNode() []byte {
 	return h.Sum(nil)
 }
 
-func (c *Context) visit(n *Node) {
+func (b *Builder) visit(n *Node) {
 
 	// This is not an airplane so let's make sure children get their masks on before the parents.
 	for _, child := range n.Edges {
@@ -184,10 +202,10 @@ func (c *Context) visit(n *Node) {
 		n.wg.Add(1)
 
 		// Visit children first
-		go c.visit(child)
+		go b.visit(child)
 	}
 
 	n.wg.Wait()
 
-	c.BuildQueue <- n
+	b.BuildQueue <- n
 }

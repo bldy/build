@@ -16,9 +16,10 @@ import (
 
 	"flag"
 
-	"sevki.org/build/context"
+	"sevki.org/build/builder"
 	_ "sevki.org/build/targets/cc"
 	_ "sevki.org/build/targets/harvey"
+	_ "sevki.org/build/targets/yacc"
 	"sevki.org/build/term"
 )
 
@@ -38,13 +39,12 @@ var (
 func main() {
 	flag.Parse()
 
-	if len(os.Args) < 2 {
+	target := flag.Args()[0]
+	if len(flag.Args()) < 1 {
+		flag.Usage()
 		printUsage()
 	}
-	target := flag.Args()[0]
 	switch target {
-	case "server":
-		server()
 	case "version":
 		version()
 		return
@@ -72,7 +72,7 @@ func failMessage(s string) {
 
 }
 func execute(t string) {
-	c := context.New()
+	c := builder.New()
 
 	if c.ProjectPath == "" {
 		fmt.Fprintf(os.Stderr, "You need to be in a git project.\n\n")

@@ -103,7 +103,7 @@ func (p *Parser) panic(message string) {
 		p.lexer.Pos(),
 	)
 }
-func ReadBuildFile(url TargetURL, wd string) (i *ast.BuildFile, err error) {
+func ReadBuildFile(url TargetURL, wd string) (i *ast.File, err error) {
 
 	BUILDPATH := filepath.Join(url.BuildDir(wd, util.GetProjectPath()), "BUILD")
 	BUCKPATH := filepath.Join(url.BuildDir(wd, util.GetProjectPath()), "BUCK")
@@ -118,7 +118,7 @@ func ReadBuildFile(url TargetURL, wd string) (i *ast.BuildFile, err error) {
 		return nil, err
 	}
 
-	i = &ast.BuildFile{}
+	i = &ast.File{}
 	ks, _ := os.Open(FILEPATH)
 	if err := New("BUILD", url.BuildDir(wd, util.GetProjectPath()), ks).Decode(i); err != nil {
 		return nil, err
@@ -126,8 +126,8 @@ func ReadBuildFile(url TargetURL, wd string) (i *ast.BuildFile, err error) {
 	return i, nil
 }
 
-func ReadFile(path string) (i *ast.BuildFile, err error) {
-	i = &ast.BuildFile{}
+func ReadFile(path string) (i *ast.File, err error) {
+	i = &ast.File{}
 
 	ks, err := os.Open(path)
 

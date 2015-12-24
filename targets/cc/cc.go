@@ -36,8 +36,9 @@ func init() {
 	if err := ast.Register("cxx_library", CLib{}); err != nil {
 		log.Fatal(err)
 	}
-	os.MkdirAll("/tmp/build/lib", 0777)
-	os.MkdirAll("/tmp/build/inc", 0777)
+	if err := ast.Register("cc_binary", CBin{}); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func compiler() string {
@@ -52,6 +53,13 @@ func ar() string {
 		return "ar"
 	} else {
 		return fmt.Sprintf("%s%s", tpfx, "ar")
+	}
+}
+func ld() string {
+	if tpfx := os.Getenv("TOOLPREFIX"); tpfx == "" {
+		return "ld"
+	} else {
+		return fmt.Sprintf("%s%s", tpfx, "ld")
 	}
 }
 

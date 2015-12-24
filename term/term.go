@@ -11,12 +11,12 @@ import (
 
 	tm "github.com/buger/goterm"
 	"github.com/fatih/color"
-	"sevki.org/build/context"
+	"sevki.org/build/builder"
 	nstime "sevki.org/lib/time"
 )
 
 var (
-	statuses    map[int]context.Update
+	statuses    map[int]builder.Update
 	worderCount int
 	stated      time.Time
 	verbose     bool
@@ -30,14 +30,14 @@ func init() {
 func Exit() {
 	exit = true
 }
-func Listen(updates chan context.Update, i int, v bool) {
+func Listen(updates chan builder.Update, i int, v bool) {
 	worderCount = i
 	verbose = v
-	statuses = make(map[int]context.Update)
+	statuses = make(map[int]builder.Update)
 	for k := 0; k < i; k++ {
-		statuses[k] = context.Update{
+		statuses[k] = builder.Update{
 			TimeStamp: time.Now(),
-			Status:    context.Pending,
+			Status:    builder.Pending,
 		}
 	}
 	for {
@@ -63,7 +63,7 @@ func Run(done chan bool) {
 	}
 
 	failed := false
-	var failedUpdate context.Update
+	var failedUpdate builder.Update
 
 	for {
 		time.Sleep(time.Millisecond)
@@ -81,9 +81,9 @@ func Run(done chan bool) {
 			}
 
 			switch update.Status {
-			case context.Pending:
+			case builder.Pending:
 				termPrintln("[ IDLE ]")
-			case context.Started:
+			case builder.Started:
 				ts := time.Since(update.TimeStamp)
 				pbr := ">"
 
@@ -93,12 +93,12 @@ func Run(done chan bool) {
 					nstime.NsReadable(ts.Nanoseconds()),
 				))
 				termPrintln(s)
-			case context.Fail:
+			case builder.Fail:
 				termPrintln("[ IDLE ]")
 				exit = true
 				failed = true
 				failedUpdate = update
-			case context.Success:
+			case builder.Success:
 				termPrintln("[ IDLE ]")
 				break
 			}

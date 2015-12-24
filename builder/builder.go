@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // package context defines and helps create a context for the build graph
-package context // import "sevki.org/build/context"
+package builder // import "sevki.org/build/builder"
 
 import (
 	"fmt"
@@ -13,7 +13,7 @@ import (
 
 	"sync"
 
-	"sevki.org/build/ast"
+	"sevki.org/build/build"
 	"sevki.org/build/parser"
 	"sevki.org/build/util"
 )
@@ -24,13 +24,13 @@ type Update struct {
 	Status    STATUS
 	Worker    int
 }
-type Context struct {
+type Builder struct {
 	Origin      string
 	Wd          string
 	ProjectPath string
-	Targets     map[string]ast.Target
+	Targets     map[string]build.Target
 	Total       int
-	Done        chan ast.Target
+	Done        chan build.Target
 	Error       chan error
 	Timeout     chan bool
 	Updates     chan Update
@@ -38,7 +38,7 @@ type Context struct {
 	BuildQueue  chan *Node
 }
 
-func (c *Context) getTarget(name string) ast.Target {
+func (c *Builder) getTarget(name string) build.Target {
 
 	if t, ok := c.Targets[name]; ok {
 		return t
@@ -49,7 +49,7 @@ func (c *Context) getTarget(name string) ast.Target {
 			log.Fatalf("getting target %s failed:%s", name, err.Error())
 		}
 
-		var x ast.Target
+		var x build.Target
 		var pp parser.PreProcessor
 
 		for name, t := range pp.Process(doc) {
@@ -63,16 +63,16 @@ func (c *Context) getTarget(name string) ast.Target {
 	}
 
 }
-func (c *Context) Parse(t string) {
+func (c *Builder) Parse(t string) {
 	if x := c.getTarget(t); x != nil {
 		c.add(x)
 	}
 }
 
-func New() (c Context) {
-	c.Targets = make(map[string]ast.Target)
+func New() (c Builder) {
+	c.Targets = make(map[string]build.Target)
 	c.Error = make(chan error)
-	c.Done = make(chan ast.Target)
+	c.Done = make(chan build.Target)
 	c.BuildQueue = make(chan *Node)
 	c.Updates = make(chan Update)
 	var err error
@@ -85,7 +85,7 @@ func New() (c Context) {
 	return
 }
 
-func (c *Context) add(t ast.Target) {
+func (c *Builder) add(t build.Target) {
 	c.Total++
 	curNode := Node{
 		Target: t,
