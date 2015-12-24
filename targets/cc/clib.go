@@ -53,7 +53,6 @@ func (cl *CLib) Hash() []byte {
 }
 
 func (cl *CLib) Build(c *build.Context) error {
-
 	params := []string{}
 	params = append(params, cl.CompilerOptions...)
 	params = append(params, cl.LinkerOptions...)
@@ -67,11 +66,18 @@ func (cl *CLib) Build(c *build.Context) error {
 		return fmt.Errorf(cl.buf.String())
 	}
 
-	objects, _ := filepath.Glob("*.o")
 	libName := fmt.Sprintf("%s.a", cl.Name)
 	params = []string{"-rs", libName}
 
-	params = append(params, objects...)
+	// This is done under the assumption that each src file put in this thing
+	// here will comeout as a .o file
+	for _, f := range cl.Sources {
+
+		_, filename := filepath.Split(f)
+
+		params = append(params, fmt.Sprintf("%s.o", filename[:strings.LastIndex(filename, ".")]))
+
+	}
 
 	c.Println(strings.Join(append([]string{"ar"}, params...), " "))
 	if err := c.Exec(ar(), nil, params); err != nil {

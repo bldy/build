@@ -6,8 +6,9 @@ import (
 	"fmt"
 
 	"io"
-	"path/filepath"
 	"strings"
+
+	"path/filepath"
 
 	"sevki.org/build/build"
 	"sevki.org/build/util"
@@ -74,11 +75,16 @@ func (cb *CBin) Build(c *build.Context) error {
 		return fmt.Errorf(cb.buf.String())
 	}
 
-	objects, _ := filepath.Glob("*.o")
-	libName := fmt.Sprintf("%s", cb.Name)
-	params = []string{"-rs", libName}
+	params = []string{"-rs", cb.Name}
 
-	params = append(params, objects...)
+	// This is done under the assumption that each src file put in this thing
+	// here will comeout as a .o file
+	for _, f := range cb.Sources {
+		_, filename := filepath.Split(f)
+		ext := filepath.Ext(filename)
+		params = append(params, fmt.Sprintf("%s.o", strings.TrimRight(filename, ext)))
+	}
+	params = append(params, "-L", "lib")
 	params = append(params, cb.LinkerOptions...)
 
 	c.Println(strings.Join(append([]string{ld()}, params...), " "))
