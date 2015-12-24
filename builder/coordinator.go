@@ -72,7 +72,13 @@ func (b *Builder) build(n *Node) (err error) {
 		} else {
 			for file, folder := range e.Target.Installs() {
 				if folder != "" {
-					if err := os.MkdirAll(folder, 0777); err != nil {
+					if err := os.MkdirAll(
+						filepath.Join(
+							outDir,
+							folder,
+						),
+						os.ModeDir|os.ModePerm,
+					); err != nil {
 						log.Fatalf("installing dependency %s for %s: %s", e.Target.GetName(), n.Target.GetName(), err.Error())
 					}
 				}
@@ -84,9 +90,7 @@ func (b *Builder) build(n *Node) (err error) {
 						file,
 					),
 					filepath.Join(
-						"/tmp",
-						"build",
-						fmt.Sprintf("%s-%x", n.Target.GetName(), e.hashNode()),
+						outDir,
 						folder,
 						file),
 				)
