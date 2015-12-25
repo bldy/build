@@ -72,11 +72,8 @@ func (cl *CLib) Build(c *build.Context) error {
 	// This is done under the assumption that each src file put in this thing
 	// here will comeout as a .o file
 	for _, f := range cl.Sources {
-
 		_, filename := filepath.Split(f)
-
 		params = append(params, fmt.Sprintf("%s.o", filename[:strings.LastIndex(filename, ".")]))
-
 	}
 
 	c.Println(strings.Join(append([]string{"ar"}, params...), " "))
