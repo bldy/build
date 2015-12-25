@@ -11,10 +11,13 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sort"
 	"sync"
 	"time"
 
 	"io/ioutil"
+
+	"strings"
 
 	"sevki.org/build/build"
 )
@@ -189,10 +192,24 @@ type Node struct {
 	Output   string
 }
 
+type ByName []*Node
+
+func (a ByName) Len() int      { return len(a) }
+func (a ByName) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a ByName) Less(i, j int) bool {
+	return strings.Compare(a[i].Target.GetName(), a[j].Target.GetName()) > 0
+}
+
 func (n *Node) hashNode() []byte {
 	h := sha1.New()
 	h.Write(n.Target.Hash())
+	var bn ByName
 	for _, e := range n.Edges {
+		bn = append(bn, e)
+
+	}
+	sort.Sort(bn)
+	for _, e := range bn {
 		h.Write(e.hashNode())
 	}
 	return h.Sum(nil)
