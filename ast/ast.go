@@ -7,6 +7,7 @@ package ast // import "sevki.org/build/ast"
 
 import (
 	"fmt"
+	"log"
 
 	"reflect"
 )
@@ -55,6 +56,7 @@ func Get(name string) reflect.Type {
 	if t, ok := targets[name]; ok {
 		return t
 	} else {
+		log.Fatalf("unregistered target type %s", name)
 		return nil
 	}
 }

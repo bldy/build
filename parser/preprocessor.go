@@ -185,6 +185,12 @@ func (pp *PreProcessor) makeTarget(f *ast.Func) (build.Target, error) {
 	t := reflect.New(ttype).Interface()
 	dec := json.NewDecoder(buf)
 	dec.Decode(t)
+	switch t.(type) {
+	case build.Target:
+		break
+	default:
+		log.Fatalf("type %s doesn't implement the build.Target interface, check sevki.co/2LLRfc for more information", ttype.String())
+	}
 	return t.(build.Target), nil
 }
 
