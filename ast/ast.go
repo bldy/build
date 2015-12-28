@@ -34,10 +34,12 @@ type Variable struct {
 	Value string
 }
 type Func struct {
-	Name       string
-	Params     map[string]interface{}
-	AnonParams []interface{}
-	Parent     *Func `json:"-"`
+	Name           string
+	Params         map[string]interface{}
+	AnonParams     []interface{}
+	Parent         *Func `json:"-"`
+	File           string
+	Line, Position int
 }
 
 type Path string

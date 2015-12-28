@@ -39,25 +39,36 @@ type Builder struct {
 }
 
 func (c *Builder) getTarget(name string) build.Target {
+	url := parser.NewTargetURLFromString(name)
 
-	if t, ok := c.Targets[name]; ok {
+	if t, ok := c.Targets[url.String()]; ok {
 		return t
 	} else {
-		url := parser.NewTargetURLFromString(name)
+
 		doc, err := parser.ReadBuildFile(url, c.Wd)
 		if err != nil {
-			log.Fatalf("getting target %s failed:%s", name, err.Error())
+			log.Fatalf("getting target %s failed :%s", name, err.Error())
 		}
 
 		var x build.Target
 		var pp parser.PreProcessor
 
 		for name, t := range pp.Process(doc) {
-			c.Targets[name] = t
+			xu := parser.TargetURL{
+				Package: url.Package,
+				Target:  name,
+			}
+
+			c.Targets[xu.String()] = t
 			if t.GetName() == url.Target {
 				x = t
 			}
 		}
+
+		if x == nil {
+			log.Fatal("we couldn't find the your dependency")
+		}
+
 		return x
 
 	}
@@ -99,6 +110,7 @@ func (c *Builder) add(t build.Target) {
 
 	if c.ptr != nil {
 		edgeName := fmt.Sprintf("%s:%s", c.ptr.Target.GetName(), t.GetName())
+		log.Println(edgeName)
 		c.ptr.Edges[edgeName] = &curNode
 		curNode.parentWg = &c.ptr.wg
 	}

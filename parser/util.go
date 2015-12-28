@@ -8,6 +8,7 @@ import (
 	"crypto/sha1"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -157,7 +158,7 @@ func split(s string, c string, cutc bool) (string, string) {
 }
 
 func (u TargetURL) String() string {
-	return fmt.Sprintf("%s:%s", u.Package, u.Target)
+	return fmt.Sprintf("//%s:%s", u.Package, u.Target)
 }
 func (u TargetURL) BuildDir(wd, pp string) string {
 	if u.Package == "" {
@@ -167,7 +168,33 @@ func (u TargetURL) BuildDir(wd, pp string) string {
 	}
 }
 func NewTargetURLFromString(u string) (tu TargetURL) {
+
+	switch {
+	case u[:2] == "//":
+		u = u[2:]
+		break
+	case u[0] == ':':
+		if wd, err := os.Getwd(); err == nil {
+			rel, err := filepath.Rel(util.GetProjectPath(), wd)
+			if err == nil {
+				tu.Package = rel
+			} else {
+				log.Fatal(err)
+			}
+
+		} else {
+			log.Fatal(err)
+		}
+
+		break
+	default:
+		errorf := `'%s' is not a valid target.
+a target url can only start with a '//' or a ':' for relative targets.`
+
+		log.Fatalf(errorf, u)
+	}
 	tu.Package, tu.Target = split(u, ":", true)
+
 	return
 }
 
