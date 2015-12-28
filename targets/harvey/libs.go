@@ -1,7 +1,11 @@
 package harvey
 
-import "io"
-import "bytes"
+import (
+	"bytes"
+	"io"
+
+	"sevki.org/build/build"
+)
 
 type Group struct {
 	Name         string   `group:"name"`
@@ -13,7 +17,7 @@ func (g *Group) Hash() []byte {
 	return []byte{}
 }
 
-func (g *Group) Build() error {
+func (g *Group) Build(c *build.Context) error {
 	return nil
 }
 
