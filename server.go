@@ -11,13 +11,17 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"time"
 
 	"sevki.org/build/builder"
 	"sevki.org/lib/prettyprint"
 )
 
-func server() {
+var (
+	targetName string
+)
+
+func server(t string) {
+	targetName = t
 
 	http.HandleFunc("/static/", static)
 	http.HandleFunc("/graph/", graph)
@@ -48,20 +52,7 @@ func graph(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(os.Stderr, "You need to be in a git project.\n\n")
 		printUsage()
 	}
-	c.Parse("//:harvey")
-
-	count := c.Total
-
-	go c.Execute(time.Minute*45, 0)
-	for i := 0; i < count; i++ {
-		select {
-		case done := <-c.Done:
-			doneMessage(done.GetName())
-
-		case <-c.Error:
-			continue
-		}
-	}
+	c.Parse(targetName)
 
 	w.Write([]byte(prettyprint.AsJSON(c.Root)))
 

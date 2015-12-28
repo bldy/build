@@ -48,6 +48,9 @@ func main() {
 	case "version":
 		version()
 		return
+	case "serve":
+		target = flag.Args()[1]
+		server(target)
 	default:
 		execute(target)
 	}
