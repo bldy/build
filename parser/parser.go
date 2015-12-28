@@ -120,7 +120,10 @@ func parseFunc(p *Parser) stateFn {
 		return nil
 	}
 	f := &ast.Func{
-		Name: t.String(),
+		Name:     t.String(),
+		File:     p.name,
+		Line:     t.Line,
+		Position: t.Start,
 	}
 
 	if p.ptr == nil {

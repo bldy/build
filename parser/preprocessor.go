@@ -124,15 +124,16 @@ func (pp *PreProcessor) absPath(s string) string {
 func (pp *PreProcessor) makeTarget(f *ast.Func) (build.Target, error) {
 
 	ttype := ast.Get(f.Name)
+
 	payload := make(map[string]interface{})
 
 	for key, fn := range f.Params {
 
 		field, err := ast.GetFieldByTag(f.Name, key, ttype)
-
 		if err != nil {
 			return nil, err
 		}
+
 		var i interface{}
 		switch fn.(type) {
 		case *ast.Func:
@@ -143,11 +144,38 @@ func (pp *PreProcessor) makeTarget(f *ast.Func) (build.Target, error) {
 		default:
 			i = fn
 		}
+
 		if field.Type != reflect.TypeOf(i) {
 			// return nil, fmt.Errorf("%s is of type %s not %s.", key, reflect.TypeOf(i).String(), field.Type.String())
 		}
 
 		btag := field.Tag.Get("build")
+
+		if field.Name == "Dependencies" {
+			var deps []string
+			for _, d := range i.([]interface{}) {
+				ds := d.(string)
+
+				switch {
+				case ds[:2] == "//":
+					deps = append(deps, ds)
+					break
+				case ds[0] == ':':
+					r, _ := filepath.Rel(util.GetProjectPath(), pp.wd)
+					deps = append(deps,
+						fmt.Sprintf("//%s%s", r, ds),
+					)
+					break
+				default:
+					errorf := `dependency '%s' in %s is not a valid URL for a target.
+a target url can only start with a '//' or a ':' for relative targets.`
+
+					log.Fatalf(errorf, ds, f.Params["name"])
+				}
+			}
+			i = deps
+			goto SKIP
+		}
 
 		if btag == "path" {
 			var files []string
@@ -168,9 +196,8 @@ func (pp *PreProcessor) makeTarget(f *ast.Func) (build.Target, error) {
 				files[n] = pp.absPath(x)
 			}
 			i = files
-		SKIP:
 		}
-
+	SKIP:
 		payload[field.Name] = i
 
 	}
