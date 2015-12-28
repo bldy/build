@@ -23,7 +23,7 @@ import (
 )
 
 func (b *Builder) Execute(d time.Duration, r int) {
-	log.Fatal(b.Root)
+
 	for i := 0; i < r; i++ {
 
 		go b.work(b.BuildQueue, i)

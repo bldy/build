@@ -66,7 +66,7 @@ func (c *Builder) getTarget(name string) build.Target {
 		}
 
 		if x == nil {
-			log.Fatal("we couldn't find the your dependency")
+			log.Fatalf("we couldn't find %s", name)
 		}
 
 		return x
@@ -110,7 +110,7 @@ func (c *Builder) add(t build.Target) {
 
 	if c.ptr != nil {
 		edgeName := fmt.Sprintf("%s:%s", c.ptr.Target.GetName(), t.GetName())
-		log.Println(edgeName)
+
 		c.ptr.Edges[edgeName] = &curNode
 		curNode.parentWg = &c.ptr.wg
 	}
