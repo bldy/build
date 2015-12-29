@@ -52,7 +52,7 @@ func graph(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(os.Stderr, "You need to be in a git project.\n\n")
 		printUsage()
 	}
-	c.Parse(targetName)
+	c.Add(targetName)
 
 	w.Write([]byte(prettyprint.AsJSON(c.Root)))
 

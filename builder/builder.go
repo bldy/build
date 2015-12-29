@@ -38,6 +38,22 @@ type Builder struct {
 	BuildQueue  chan *Node
 }
 
+func New() (c Builder) {
+	c.Targets = make(map[string]build.Target)
+	c.Error = make(chan error)
+	c.Done = make(chan build.Target)
+	c.BuildQueue = make(chan *Node)
+	c.Updates = make(chan Update)
+	var err error
+	c.Wd, err = os.Getwd()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	c.ProjectPath = util.GetProjectPath()
+	return
+}
+
 func (c *Builder) getTarget(name string) build.Target {
 	url := parser.NewTargetURLFromString(name)
 
@@ -74,32 +90,16 @@ func (c *Builder) getTarget(name string) build.Target {
 	}
 
 }
-func (c *Builder) Parse(t string) {
-	if x := c.getTarget(t); x != nil {
-		c.add(x)
+
+func (c *Builder) Add(t string) {
+	x := c.getTarget(t)
+	if x == nil {
+		log.Fatal("builder/Add: we coudln't find %s", t)
+		return
 	}
-}
-
-func New() (c Builder) {
-	c.Targets = make(map[string]build.Target)
-	c.Error = make(chan error)
-	c.Done = make(chan build.Target)
-	c.BuildQueue = make(chan *Node)
-	c.Updates = make(chan Update)
-	var err error
-	c.Wd, err = os.Getwd()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	c.ProjectPath = util.GetProjectPath()
-	return
-}
-
-func (c *Builder) add(t build.Target) {
 	c.Total++
 	curNode := Node{
-		Target: t,
+		Target: x,
 		Edges:  make(Edges),
 		wg:     sync.WaitGroup{},
 		Status: Pending,
@@ -109,7 +109,7 @@ func (c *Builder) add(t build.Target) {
 	}
 
 	if c.ptr != nil {
-		edgeName := fmt.Sprintf("%s:%s", c.ptr.Target.GetName(), t.GetName())
+		edgeName := fmt.Sprintf("%s:%s", c.ptr.Target.GetName(), x.GetName())
 
 		c.ptr.Edges[edgeName] = &curNode
 		curNode.parentWg = &c.ptr.wg
@@ -118,8 +118,8 @@ func (c *Builder) add(t build.Target) {
 	tmp := c.ptr
 	c.ptr = &curNode
 
-	for _, d := range t.GetDependencies() {
-		c.Parse(d)
+	for _, d := range x.GetDependencies() {
+		c.Add(d)
 	}
 
 	c.ptr = tmp

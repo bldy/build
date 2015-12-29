@@ -81,7 +81,7 @@ func execute(t string) {
 		fmt.Fprintf(os.Stderr, "You need to be in a git project.\n\n")
 		printUsage()
 	}
-	c.Parse(t)
+	c.Add(t)
 
 	count := c.Total
 	cpus := runtime.NumCPU()
