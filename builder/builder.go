@@ -6,7 +6,6 @@
 package builder // import "sevki.org/build/builder"
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"time"
@@ -28,7 +27,7 @@ type Builder struct {
 	Origin      string
 	Wd          string
 	ProjectPath string
-	Targets     map[string]build.Target
+	Nodes       map[string]*Node
 	Total       int
 	Done        chan build.Target
 	Error       chan error
@@ -39,7 +38,7 @@ type Builder struct {
 }
 
 func New() (c Builder) {
-	c.Targets = make(map[string]build.Target)
+	c.Nodes = make(map[string]*Node)
 	c.Error = make(chan error)
 	c.Done = make(chan build.Target)
 	c.BuildQueue = make(chan *Node)
@@ -54,11 +53,24 @@ func New() (c Builder) {
 	return
 }
 
-func (c *Builder) getTarget(name string) build.Target {
+type Edges map[string]*Node
+
+type Node struct {
+	Target   build.Target
+	Children Edges
+	Parents  Edges `json:"-"`
+	wg       sync.WaitGroup
+	Status   STATUS
+	Output   string
+	once     sync.Once
+	sync.RWMutex
+}
+
+func (c *Builder) getTarget(name string) (n *Node) {
 	url := parser.NewTargetURLFromString(name)
 
-	if t, ok := c.Targets[url.String()]; ok {
-		return t
+	if gnode, ok := c.Nodes[url.String()]; ok {
+		return gnode
 	} else {
 
 		doc, err := parser.ReadBuildFile(url, c.Wd)
@@ -66,7 +78,6 @@ func (c *Builder) getTarget(name string) build.Target {
 			log.Fatalf("getting target %s failed :%s", name, err.Error())
 		}
 
-		var x build.Target
 		var pp parser.PreProcessor
 
 		for name, t := range pp.Process(doc) {
@@ -75,52 +86,44 @@ func (c *Builder) getTarget(name string) build.Target {
 				Target:  name,
 			}
 
-			c.Targets[xu.String()] = t
-			if t.GetName() == url.Target {
-				x = t
+			node := Node{
+				Target:   t,
+				Children: make(Edges),
+				Parents:  make(Edges),
+				once:     sync.Once{},
+				wg:       sync.WaitGroup{},
+				Status:   Pending,
 			}
+			node.wg.Add(len(t.GetDependencies()))
+			c.Nodes[xu.String()] = &node
+			if t.GetName() == url.Target {
+				n = &node
+			}
+
 		}
 
-		if x == nil {
+		if n == nil {
 			log.Fatalf("we couldn't find %s", name)
 		}
-
-		return x
-
+		return n
 	}
 
 }
 
-func (c *Builder) Add(t string) {
-	x := c.getTarget(t)
+func (b *Builder) Add(t string) *Node {
+	x := b.getTarget(t)
 	if x == nil {
 		log.Fatal("builder/Add: we coudln't find %s", t)
-		return
+		return nil
 	}
-	c.Total++
-	curNode := Node{
-		Target: x,
-		Edges:  make(Edges),
-		wg:     sync.WaitGroup{},
-		Status: Pending,
+	b.Total += 1
+	for _, d := range x.Target.GetDependencies() {
+		n := b.Add(d)
+		if n == nil {
+			return nil
+		}
+		x.Children[n.Target.GetName()] = n
+		n.Parents[x.Target.GetName()] = x
 	}
-	if c.Root == nil {
-		c.Root = &curNode
-	}
-
-	if c.ptr != nil {
-		edgeName := fmt.Sprintf("%s:%s", c.ptr.Target.GetName(), x.GetName())
-
-		c.ptr.Edges[edgeName] = &curNode
-		curNode.parentWg = &c.ptr.wg
-	}
-
-	tmp := c.ptr
-	c.ptr = &curNode
-
-	for _, d := range x.GetDependencies() {
-		c.Add(d)
-	}
-
-	c.ptr = tmp
+	return x
 }

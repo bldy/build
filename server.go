@@ -54,6 +54,6 @@ func graph(w http.ResponseWriter, r *http.Request) {
 	}
 	c.Add(targetName)
 
-	w.Write([]byte(prettyprint.AsJSON(c.Root)))
+	w.Write([]byte(prettyprint.AsJSON(c.Nodes[targetName])))
 
 }

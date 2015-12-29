@@ -76,7 +76,7 @@ func (cl *CLib) Build(c *build.Context) error {
 		params = append(params, fmt.Sprintf("%s.o", filename[:strings.LastIndex(filename, ".")]))
 	}
 
-	c.Println(strings.Join(append([]string{"ar"}, params...), " "))
+	c.Println(strings.Join(append([]string{ar()}, params...), " "))
 	if err := c.Exec(ar(), nil, params); err != nil {
 		c.Println(err.Error())
 		return fmt.Errorf(cl.buf.String())

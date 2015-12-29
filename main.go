@@ -81,8 +81,10 @@ func execute(t string) {
 		fmt.Fprintf(os.Stderr, "You need to be in a git project.\n\n")
 		printUsage()
 	}
-	c.Add(t)
-
+	c.Root = c.Add(t)
+	if c.Root == nil {
+		log.Fatal("We couldn't find the root")
+	}
 	count := c.Total
 	cpus := runtime.NumCPU()
 
@@ -103,6 +105,7 @@ func execute(t string) {
 			log.Fatal(err)
 			os.Exit(1)
 		case <-c.Timeout:
+
 			log.Println("your build has timed out")
 		}
 

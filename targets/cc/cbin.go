@@ -65,7 +65,7 @@ func (cb *CBin) Build(c *build.Context) error {
 		_, fname := filepath.Split(f)
 		params = append(params, fmt.Sprintf("%s.o", fname[:strings.LastIndex(fname, ".")]))
 	}
-	params = append(params, "-L", "lib")
+	cb.LinkerOptions = append(cb.LinkerOptions, "-L", "lib")
 	for _, dep := range cb.Dependencies {
 		d := split(dep, ":")
 
@@ -73,7 +73,9 @@ func (cb *CBin) Build(c *build.Context) error {
 			cb.LinkerOptions = append(cb.LinkerOptions, fmt.Sprintf("-l%s", d[3:]))
 		}
 	}
+
 	params = append(params, cb.LinkerOptions...)
+
 	c.Println(strings.Join(append([]string{ld()}, params...), " "))
 	if err := c.Exec(ld(), nil, params); err != nil {
 

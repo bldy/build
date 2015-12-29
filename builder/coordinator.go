@@ -12,7 +12,6 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
-	"sync"
 	"time"
 
 	"io/ioutil"
@@ -46,6 +45,7 @@ func (b *Builder) Execute(d time.Duration, r int) {
 	b.visit(b.Root)
 }
 func (b *Builder) build(n *Node) (err error) {
+
 	var buildErr error
 
 	nodeHash := fmt.Sprintf("%s-%x", n.Target.GetName(), n.hashNode())
@@ -55,13 +55,21 @@ func (b *Builder) build(n *Node) (err error) {
 		"build",
 		nodeHash,
 	)
+	n.Lock()
 
+	defer n.Unlock()
+	if n.Status != Pending {
+		return nil
+	}
+	n.Status = Building
 	// check if this node was build before
 	if _, err := os.Lstat(outDir); !os.IsNotExist(err) {
 		if file, err := os.Open(filepath.Join(outDir, "failed")); err == nil {
 			errString, _ := ioutil.ReadAll(file)
+			n.Status = Fail
 			return fmt.Errorf("%s", errString)
 		} else if _, err := os.Lstat(filepath.Join(outDir, "success")); err == nil {
+			n.Status = Success
 			return nil
 		}
 	}
@@ -69,7 +77,7 @@ func (b *Builder) build(n *Node) (err error) {
 	os.MkdirAll(outDir, os.ModeDir|os.ModePerm)
 
 	// check failed builds.
-	for _, e := range n.Edges {
+	for _, e := range n.Children {
 		if e.Status == Fail {
 			buildErr = fmt.Errorf("dependency %s failed to build", e.Target.GetName())
 		} else {
@@ -106,8 +114,10 @@ func (b *Builder) build(n *Node) (err error) {
 	buildErr = n.Target.Build(context)
 
 	logName := "failed"
+	n.Status = Fail
 	if buildErr == nil {
 		logName = "success"
+		n.Status = Success
 	}
 	if logFile, err := os.Create(filepath.Join(outDir, logName)); err != nil {
 		log.Fatalf("error creating log for %s:", n.Target.GetName(), err.Error())
@@ -124,15 +134,18 @@ func (b *Builder) build(n *Node) (err error) {
 func (b *Builder) work(jq chan *Node, workerNumber int) {
 
 	for {
+	NEXT:
 		select {
 		case job := <-jq:
+			if job.Status != Pending {
+				goto NEXT
+			}
 			b.Updates <- Update{
 				Worker:    workerNumber,
 				TimeStamp: time.Now(),
 				Target:    job.Target.GetName(),
 				Status:    Started,
 			}
-
 			buildErr := b.build(job)
 
 			if buildErr != nil {
@@ -157,9 +170,14 @@ func (b *Builder) work(jq chan *Node, workerNumber int) {
 			}
 
 			b.Done <- job.Target
+			if len(job.Parents) > 0 {
 
-			if job.parentWg != nil {
-				job.parentWg.Done()
+				job.once.Do(func() {
+					for _, parent := range job.Parents {
+						parent.wg.Done()
+					}
+				})
+
 			} else {
 				close(b.Done)
 
@@ -171,8 +189,6 @@ func (b *Builder) work(jq chan *Node, workerNumber int) {
 
 }
 
-type Edges map[string]*Node
-
 type STATUS int
 
 const (
@@ -181,16 +197,8 @@ const (
 	Pending
 	Started
 	Fatal
+	Building
 )
-
-type Node struct {
-	Target   build.Target
-	Edges    Edges
-	wg       sync.WaitGroup
-	parentWg *sync.WaitGroup
-	Status   STATUS
-	Output   string
-}
 
 type ByName []*Node
 
@@ -204,7 +212,7 @@ func (n *Node) hashNode() []byte {
 	h := sha1.New()
 	h.Write(n.Target.Hash())
 	var bn ByName
-	for _, e := range n.Edges {
+	for _, e := range n.Children {
 		bn = append(bn, e)
 
 	}
@@ -218,10 +226,7 @@ func (n *Node) hashNode() []byte {
 func (b *Builder) visit(n *Node) {
 
 	// This is not an airplane so let's make sure children get their masks on before the parents.
-	for _, child := range n.Edges {
-		// Make sure we block this routine until all the children are done
-		n.wg.Add(1)
-
+	for _, child := range n.Children {
 		// Visit children first
 		go b.visit(child)
 	}
