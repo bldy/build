@@ -1,6 +1,3 @@
 [submodule "libxstring"]
 	   path = tests/libxstring
 	   url = https://github.com/sevki/libxstring
-[submodule "tests/libxstring"]
-	path = tests/libxstring
-	url = https://github.com/sevki/libxstring
