@@ -16,6 +16,8 @@ import (
 
 	"io/ioutil"
 
+	"sevki.org/build/util"
+
 	"strings"
 
 	"sevki.org/build/build"
@@ -209,6 +211,7 @@ func (a ByName) Less(i, j int) bool {
 func (n *Node) hashNode() []byte {
 	h := sha1.New()
 	h.Write(n.Target.Hash())
+	util.HashStrings(h, n.Target.GetDependencies())
 	var bn ByName
 	for _, e := range n.Children {
 		bn = append(bn, e)
