@@ -21,6 +21,11 @@ import (
 	"sevki.org/build/build"
 )
 
+const (
+	SCSSLOG = "success"
+	FAILLOG = "fail"
+)
+
 func (b *Builder) Execute(d time.Duration, r int) {
 
 	for i := 0; i < r; i++ {
@@ -55,21 +60,12 @@ func (b *Builder) build(n *Node) (err error) {
 		"build",
 		nodeHash,
 	)
-	n.Lock()
-
-	defer n.Unlock()
-	if n.Status != Pending {
-		return nil
-	}
-	n.Status = Building
 	// check if this node was build before
 	if _, err := os.Lstat(outDir); !os.IsNotExist(err) {
-		if file, err := os.Open(filepath.Join(outDir, "failed")); err == nil {
+		if file, err := os.Open(filepath.Join(outDir, FAILLOG)); err == nil {
 			errString, _ := ioutil.ReadAll(file)
-			n.Status = Fail
 			return fmt.Errorf("%s", errString)
-		} else if _, err := os.Lstat(filepath.Join(outDir, "success")); err == nil {
-			n.Status = Success
+		} else if _, err := os.Lstat(filepath.Join(outDir, SCSSLOG)); err == nil {
 			return nil
 		}
 	}
@@ -113,11 +109,9 @@ func (b *Builder) build(n *Node) (err error) {
 	context := build.NewContext(outDir)
 	buildErr = n.Target.Build(context)
 
-	logName := "failed"
-	n.Status = Fail
+	logName := FAILLOG
 	if buildErr == nil {
-		logName = "success"
-		n.Status = Success
+		logName = SCSSLOG
 	}
 	if logFile, err := os.Create(filepath.Join(outDir, logName)); err != nil {
 		log.Fatalf("error creating log for %s:", n.Target.GetName(), err.Error())
@@ -134,12 +128,15 @@ func (b *Builder) build(n *Node) (err error) {
 func (b *Builder) work(jq chan *Node, workerNumber int) {
 
 	for {
-	NEXT:
 		select {
 		case job := <-jq:
 			if job.Status != Pending {
-				goto NEXT
+				continue
 			}
+			job.Lock()
+			defer job.Unlock()
+			job.Status = Building
+
 			b.Updates <- Update{
 				Worker:    workerNumber,
 				TimeStamp: time.Now(),
@@ -149,6 +146,7 @@ func (b *Builder) work(jq chan *Node, workerNumber int) {
 			buildErr := b.build(job)
 
 			if buildErr != nil {
+				job.Status = Fail
 				b.Updates <- Update{
 					Worker:    workerNumber,
 					TimeStamp: time.Now(),
@@ -157,16 +155,16 @@ func (b *Builder) work(jq chan *Node, workerNumber int) {
 				}
 
 				b.Error <- buildErr
-				job.Status = Fail
+
 			} else {
+				job.Status = Success
+
 				b.Updates <- Update{
 					Worker:    workerNumber,
 					TimeStamp: time.Now(),
 					Target:    job.Target.GetName(),
 					Status:    Success,
 				}
-
-				job.Status = Success
 			}
 
 			b.Done <- job.Target

@@ -1,11 +1,6 @@
 package harvey
 
-import (
-	"bytes"
-	"io"
-
-	"sevki.org/build/build"
-)
+import "sevki.org/build/build"
 
 type Group struct {
 	Name         string   `group:"name"`
@@ -18,6 +13,7 @@ func (g *Group) Hash() []byte {
 }
 
 func (g *Group) Build(c *build.Context) error {
+
 	return nil
 }
 
@@ -27,13 +23,6 @@ func (g *Group) GetName() string {
 
 func (g *Group) GetDependencies() []string {
 	return g.Dependencies
-}
-func (g *Group) GetSource() string {
-	return ""
-}
-
-func (g *Group) Reader() io.Reader {
-	return bytes.NewBufferString("")
 }
 func (g *Group) Installs() map[string]string {
 	return nil

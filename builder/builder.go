@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// package context defines and helps create a context for the build graph
+// Package builder parses build graphs and coordinates builds
 package builder // import "sevki.org/build/builder"
 
 import (

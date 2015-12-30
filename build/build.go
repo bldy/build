@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Package build defines build target and build context structures
 package build // import "sevki.org/build/build"
 import (
 	"bytes"
@@ -17,7 +18,6 @@ type Target interface {
 	Installs() map[string]string
 	GetName() string
 	GetDependencies() []string
-	GetSource() string
 	Hash() []byte
 }
 
