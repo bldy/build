@@ -12,8 +12,6 @@ import (
 
 	"runtime"
 
-	"github.com/fatih/color"
-
 	"flag"
 
 	"sevki.org/build/builder"
@@ -68,10 +66,10 @@ func version() {
 	os.Exit(0)
 }
 func doneMessage(s string) {
-	fmt.Printf("[%s] %s\n", color.GreenString(" OK "), s)
+	fmt.Printf("[%s] %s\n", " OK ", s)
 }
 func failMessage(s string) {
-	fmt.Printf("[ %s ] %s\n", color.RedString("FAIL"), s)
+	fmt.Printf("[ %s ] %s\n", "FAIL", s)
 
 }
 func execute(t string) {

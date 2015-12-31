@@ -56,8 +56,6 @@ func failMessage(s string) {
 
 func Run(done chan bool) {
 
-	hiwhite := color.New(color.FgHiWhite).SprintFunc()
-
 	if !verbose {
 		tm.Clear() // Clear current screen
 	}
@@ -69,9 +67,9 @@ func Run(done chan bool) {
 		time.Sleep(time.Millisecond)
 		if !verbose {
 			tm.MoveCursor(1, 1)
-			header := hiwhite(fmt.Sprintf("Building (%s)",
+			header := fmt.Sprintf("Building (%s)",
 				nstime.NsReadable(time.Since(stated).Nanoseconds()),
-			))
+			)
 			termPrintln(header)
 		}
 
@@ -87,11 +85,11 @@ func Run(done chan bool) {
 				ts := time.Since(update.TimeStamp)
 				pbr := ">"
 
-				s := hiwhite(fmt.Sprintf("%s %s (%s)",
+				s := fmt.Sprintf("%s %s (%s)",
 					pbr,
 					update.Target,
 					nstime.NsReadable(ts.Nanoseconds()),
-				))
+				)
 				termPrintln(s)
 			case builder.Fail:
 				termPrintln("[ IDLE ]")

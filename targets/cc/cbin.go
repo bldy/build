@@ -87,7 +87,7 @@ func (cb *CBin) Build(c *build.Context) error {
 
 func (cb *CBin) Installs() map[string]string {
 	exports := make(map[string]string)
-	exports[cb.Name] = ""
+	exports[cb.Name] = "bin"
 	return exports
 }
 
