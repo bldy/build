@@ -18,8 +18,8 @@ import (
 
 	"fmt"
 
+	"sevki.org/build"
 	"sevki.org/build/ast"
-	"sevki.org/build/build"
 	"sevki.org/build/util"
 )
 

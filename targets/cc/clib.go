@@ -17,7 +17,7 @@ import (
 
 	"path/filepath"
 
-	"sevki.org/build/build"
+	"sevki.org/build"
 )
 
 type CLib struct {

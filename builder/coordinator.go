@@ -20,7 +20,7 @@ import (
 
 	"strings"
 
-	"sevki.org/build/build"
+	"sevki.org/build"
 )
 
 const (

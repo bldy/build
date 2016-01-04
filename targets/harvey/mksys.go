@@ -21,7 +21,7 @@ import (
 	"strings"
 	"text/template"
 
-	"sevki.org/build/build"
+	"sevki.org/build"
 	"sevki.org/build/util"
 	"sevki.org/lib/prettyprint"
 )

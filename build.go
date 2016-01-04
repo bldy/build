@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Package build defines build target and build context structures
-package build // import "sevki.org/build/build"
+package build // import "sevki.org/build"
 import (
 	"bytes"
 	"io"

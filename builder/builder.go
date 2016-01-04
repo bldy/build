@@ -12,7 +12,7 @@ import (
 
 	"sync"
 
-	"sevki.org/build/build"
+	"sevki.org/build"
 	"sevki.org/build/parser"
 	"sevki.org/build/util"
 )

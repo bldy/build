@@ -1,6 +1,6 @@
 package harvey
 
-import "sevki.org/build/build"
+import "sevki.org/build"
 
 type Group struct {
 	Name         string   `group:"name"`

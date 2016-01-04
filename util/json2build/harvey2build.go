@@ -82,7 +82,7 @@ func (c CLib) String() string {
 
 	}
 
-	t := `cc_library(
+	t := `cc_binary(
 	name = "%s",
         copts = %s,
         includes=[

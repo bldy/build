@@ -17,4 +17,7 @@ func init() {
 	if err := ast.Register("group", Group{}); err != nil {
 		log.Fatal(err)
 	}
+	if err := ast.Register("man_page", ManPage{}); err != nil {
+		log.Fatal(err)
+	}
 }

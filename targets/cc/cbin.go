@@ -9,7 +9,7 @@ import (
 
 	"path/filepath"
 
-	"sevki.org/build/build"
+	"sevki.org/build"
 	"sevki.org/build/util"
 )
 
