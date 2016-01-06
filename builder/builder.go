@@ -14,6 +14,7 @@ import (
 
 	"sevki.org/build"
 	"sevki.org/build/parser"
+	"sevki.org/build/postprocessor"
 	"sevki.org/build/util"
 )
 
@@ -66,21 +67,20 @@ type Node struct {
 	sync.RWMutex
 }
 
-func (c *Builder) getTarget(name string) (n *Node) {
-	url := parser.NewTargetURLFromString(name)
+func (b *Builder) getTarget(url parser.TargetURL) (n *Node) {
 
-	if gnode, ok := c.Nodes[url.String()]; ok {
+	if gnode, ok := b.Nodes[url.String()]; ok {
 		return gnode
 	} else {
 
-		doc, err := parser.ReadBuildFile(url, c.Wd)
+		doc, err := parser.ReadBuildFile(url, b.Wd)
 		if err != nil {
-			log.Fatalf("getting target %s failed :%s", name, err.Error())
+			log.Fatalf("getting target %s failed :%s", url.String(), err.Error())
 		}
 
 		var pp parser.PreProcessor
 
-		for name, t := range pp.Process(doc) {
+		for name, t := range pp.PreProcess(doc) {
 			xu := parser.TargetURL{
 				Package: url.Package,
 				Target:  name,
@@ -94,16 +94,33 @@ func (c *Builder) getTarget(name string) (n *Node) {
 				wg:       sync.WaitGroup{},
 				Status:   Pending,
 			}
+
+			post := postprocessor.New(url.Package)
+
+			post.ProcessDependencies(node.Target)
+
 			node.wg.Add(len(t.GetDependencies()))
-			c.Nodes[xu.String()] = &node
+			b.Total += len(t.GetDependencies())
+			var deps []build.Target
+
+			for _, d := range node.Target.GetDependencies() {
+				c := b.Add(d)
+				deps = append(deps, c.Target)
+				node.Children[c.Target.GetName()] = c
+				c.Parents[node.Target.GetName()] = &node
+
+			}
+
+			post.ProcessPaths(t, deps)
+
+			b.Nodes[xu.String()] = &node
 			if t.GetName() == url.Target {
 				n = &node
 			}
 
 		}
-
 		if n == nil {
-			log.Fatalf("we couldn't find %s", name)
+			log.Fatalf("we couldn't find %s", url.String())
 		}
 		return n
 	}
@@ -111,19 +128,5 @@ func (c *Builder) getTarget(name string) (n *Node) {
 }
 
 func (b *Builder) Add(t string) *Node {
-	x := b.getTarget(t)
-	if x == nil {
-		log.Fatal("builder/Add: we coudln't find %s", t)
-		return nil
-	}
-	b.Total += 1
-	for _, d := range x.Target.GetDependencies() {
-		n := b.Add(d)
-		if n == nil {
-			return nil
-		}
-		x.Children[n.Target.GetName()] = n
-		n.Parents[x.Target.GetName()] = x
-	}
-	return x
+	return b.getTarget(parser.NewTargetURLFromString(t))
 }

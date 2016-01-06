@@ -31,7 +31,7 @@ type PreProcessor struct {
 	document *ast.File
 }
 
-func (pp *PreProcessor) Process(d *ast.File) map[string]build.Target {
+func (pp *PreProcessor) PreProcess(d *ast.File) map[string]build.Target {
 	pp.targs = make(map[string]build.Target)
 	if d == nil {
 		log.Fatal("should not be null")
@@ -96,6 +96,7 @@ func (pp *PreProcessor) runFunc(f *ast.Func) {
 		}
 
 		for _, v := range varsToImport {
+
 			if val, ok := document.Vars[v]; ok {
 				pp.document.Vars[v] = val
 			} else {
@@ -149,55 +150,6 @@ func (pp *PreProcessor) makeTarget(f *ast.Func) (build.Target, error) {
 			// return nil, fmt.Errorf("%s is of type %s not %s.", key, reflect.TypeOf(i).String(), field.Type.String())
 		}
 
-		btag := field.Tag.Get("build")
-
-		if field.Name == "Dependencies" {
-			var deps []string
-			for _, d := range i.([]interface{}) {
-				ds := d.(string)
-
-				switch {
-				case ds[:2] == "//":
-					deps = append(deps, ds)
-					break
-				case ds[0] == ':':
-					r, _ := filepath.Rel(util.GetProjectPath(), pp.wd)
-					deps = append(deps,
-						fmt.Sprintf("//%s%s", r, ds),
-					)
-					break
-				default:
-					errorf := `dependency '%s' in %s is not a valid URL for a target.
-a target url can only start with a '//' or a ':' for relative targets.`
-
-					log.Fatalf(errorf, ds, f.Params["name"])
-				}
-			}
-			i = deps
-			goto SKIP
-		}
-
-		if btag == "path" {
-			var files []string
-			switch i.(type) {
-			case []interface{}:
-				for _, s := range i.([]interface{}) {
-					absPath, _ := s.(string)
-					files = append(files, absPath)
-				}
-			case []string:
-				files = i.([]string)
-			case string:
-				i = pp.absPath(i.(string))
-				goto SKIP
-			}
-
-			for n, x := range files {
-				files[n] = pp.absPath(x)
-			}
-			i = files
-		}
-	SKIP:
 		payload[field.Name] = i
 
 	}

@@ -63,15 +63,9 @@ func ld() string {
 	}
 }
 
-type Sources []string
-
 type CompilerFlags []string
 
 type Includes []string
-
-func (s Sources) String() string {
-	return strings.Join(s, " ")
-}
 
 func (s Includes) Includes() (incs []string) {
 	for _, i := range s {

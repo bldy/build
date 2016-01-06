@@ -28,7 +28,6 @@ var YaccVersion = ""
 type Yacc struct {
 	Name         string   `yacc:"name"`
 	Sources      []string `yacc:"srcs" build:"path"`
-	Dir          string   `yacc:"dir" build:"path"`
 	Exports      []string `yacc:"exports"`
 	Dependencies []string `yacc:"deps"`
 	YaccOptions  []string `yacc:"yaccopts"`
@@ -69,17 +68,15 @@ func (y *Yacc) Build(c *build.Context) error {
 		return fmt.Errorf(y.buf.String())
 	}
 
-	for _, export := range y.Exports {
-		c.Println(strings.Join([]string{"cp", export, filepath.Join(y.Dir, export)}, " "))
-		if err := c.Exec("cp", nil, []string{export, filepath.Join(y.Dir, export)}); err != nil {
-			c.Println(err.Error())
-			return fmt.Errorf(y.buf.String())
-		}
-	}
 	return nil
 }
 func (y *Yacc) Installs() map[string]string {
-	return nil
+	installs := make(map[string]string)
+	for _, e := range y.Exports {
+		dir, file := filepath.Split(e)
+		installs[file] = dir
+	}
+	return installs
 }
 func (y *Yacc) GetName() string {
 	return y.Name

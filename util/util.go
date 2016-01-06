@@ -29,15 +29,24 @@ func RelPPath(p string) string {
 	return rel
 }
 
+// HashFiles will hash files collecetion represented as a string array,
+// If the string in the array is directory it will the directory contents to the array
+// if the string isn't an absolute path, it will assume that it's a export from a dependency
+// and skip that.
 func HashFiles(h io.Writer, files []string) {
 	fsm := files
 RESTART:
 	for i, file := range fsm {
+		if !filepath.IsAbs(file) {
+			continue
+		}
+
 		f, err := os.Open(file)
 
 		if err != nil {
-			log.Fatalf("%s error\n", filepath.Join(pp, file))
+			log.Fatalf("hash files: %s\n", err.Error())
 		}
+
 		stat, _ := f.Stat()
 		if stat.IsDir() {
 			fsm = append([]string{}, fsm[i+1:]...)
