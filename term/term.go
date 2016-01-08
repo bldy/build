@@ -12,7 +12,6 @@ import (
 	"time"
 
 	tm "github.com/buger/goterm"
-	"github.com/fatih/color"
 	"sevki.org/build/builder"
 	nstime "sevki.org/lib/time"
 )
@@ -52,7 +51,7 @@ func Listen(updates chan builder.Update, i int, v bool) {
 }
 
 func failMessage(s string) {
-	termPrintln(fmt.Sprintf("[ %s ] %s\n", color.RedString("FAIL"), s))
+	termPrintln(fmt.Sprintf("[ FAIL ] %s\n", s))
 
 }
 

@@ -65,6 +65,7 @@ func (c *Context) Exec(cmd string, env, params []string) error {
 
 	x := exec.Command(cmd, params...)
 	x.Dir = c.wd
+	x.Env = env
 	stdErr, err := x.StderrPipe()
 	if err != nil {
 		return err

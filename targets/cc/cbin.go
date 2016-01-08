@@ -46,14 +46,15 @@ func (cb *CBin) Hash() []byte {
 
 func (cb *CBin) Build(c *build.Context) error {
 
-	params := []string{}
+	params := []string{"-v"}
 	params = append(params, cb.CompilerOptions...)
 	params = append(params, cb.Sources...)
+
 	params = append(params, cb.Includes.Includes()...)
 
 	c.Println(strings.Join(append([]string{compiler()}, params...), " "))
 
-	if err := c.Exec(compiler(), nil, params); err != nil {
+	if err := c.Exec(compiler(), CCENV, params); err != nil {
 		return fmt.Errorf(err.Error())
 	}
 
@@ -66,6 +67,7 @@ func (cb *CBin) Build(c *build.Context) error {
 		params = append(params, fmt.Sprintf("%s.o", fname[:strings.LastIndex(fname, ".")]))
 	}
 	cb.LinkerOptions = append(cb.LinkerOptions, "-L", "lib")
+
 	for _, dep := range cb.Dependencies {
 		d := split(dep, ":")
 
@@ -76,8 +78,9 @@ func (cb *CBin) Build(c *build.Context) error {
 
 	params = append(params, cb.LinkerOptions...)
 
+	c.Println(CCENV)
 	c.Println(strings.Join(append([]string{ld()}, params...), " "))
-	if err := c.Exec(ld(), nil, params); err != nil {
+	if err := c.Exec(ld(), CCENV, params); err != nil {
 
 		return fmt.Errorf(err.Error())
 	}

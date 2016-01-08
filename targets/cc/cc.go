@@ -16,10 +16,16 @@ import (
 	"sevki.org/build/ast"
 )
 
-var CCVersion = ""
-var cc = ""
+var (
+	CCVersion = ""
+	cc        = ""
+	CCENV     = os.Environ()
+)
 
 func init() {
+
+	CCENV = append(CCENV, fmt.Sprintf("%s=%s", "C_INCLUDE_PATH", "include"))
+	CCENV = append(CCENV, fmt.Sprintf("%s=%s", "LIBRARY_PATH", "lib"))
 
 	if cc = os.Getenv("CC"); cc == "" {
 		cc = "CC"
