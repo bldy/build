@@ -5,6 +5,8 @@
 // package term handles terminal display statuses
 package term // import "sevki.org/build/term"
 
+// BUG(sevki): this needs a complete rewrite with the drawterm
+
 import (
 	"fmt"
 	"time"
@@ -92,6 +94,7 @@ func Run(done chan bool) {
 				)
 				termPrintln(s)
 			case builder.Fail:
+
 				termPrintln("[ IDLE ]")
 				exit = true
 				failed = true

@@ -9,7 +9,7 @@ type Group struct {
 
 func (g *Group) Hash() []byte {
 
-	return []byte{}
+	return []byte(g.Name)
 }
 
 func (g *Group) Build(c *build.Context) error {

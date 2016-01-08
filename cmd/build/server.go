@@ -30,7 +30,7 @@ func server(t string) {
 
 }
 func index(w http.ResponseWriter, r *http.Request) {
-	wd := "/Users/sevki/Code/go/src/sevki.org/build"
+	wd := os.Getenv("GOPATH") + "sevki.org/build"
 	f, err := os.Open(filepath.Join(wd, "graph/index.html"))
 	if err != nil {
 		http.Error(w, err.Error()+":\n"+filepath.Join(wd, "graph/index.html"), http.StatusNotFound)
@@ -38,7 +38,7 @@ func index(w http.ResponseWriter, r *http.Request) {
 	io.Copy(w, f)
 }
 func static(w http.ResponseWriter, r *http.Request) {
-	wd := "/Users/sevki/Code/go/src/sevki.org/build"
+	wd := os.Getenv("GOPATH") + "sevki.org/build"
 	f, err := os.Open(filepath.Join(wd, "graph", r.URL.Path[1:]))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)

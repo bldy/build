@@ -137,6 +137,7 @@ func (b *Builder) work(jq chan *Node, workerNumber int) {
 			}
 			job.Lock()
 			defer job.Unlock()
+
 			job.Status = Building
 
 			b.Updates <- Update{
@@ -169,8 +170,8 @@ func (b *Builder) work(jq chan *Node, workerNumber int) {
 				}
 			}
 
-			b.Done <- job.Target
-			if len(job.Parents) > 0 {
+			b.Done <- job
+			if !job.IsRoot {
 
 				job.once.Do(func() {
 					for _, parent := range job.Parents {
@@ -179,6 +180,7 @@ func (b *Builder) work(jq chan *Node, workerNumber int) {
 				})
 
 			} else {
+
 				close(b.Done)
 
 				return

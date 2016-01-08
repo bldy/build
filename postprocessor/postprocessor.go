@@ -6,6 +6,7 @@
 package postprocessor // import "sevki.org/build/postprocessor"
 import (
 	"fmt"
+	"log"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -34,7 +35,12 @@ func (pp *PostProcessor) ProcessDependencies(t build.Target) error {
 
 	deps := v.Elem().FieldByName("Dependencies").Interface().([]string)
 
+	seen := make(map[string]bool)
+
 	for i, d := range deps {
+		if _, ok := seen[d]; ok {
+			log.Fatalf("post process dependencies: %s is duplicated", d)
+		}
 		switch {
 		case d[:2] == "//":
 			continue
@@ -47,7 +53,10 @@ func (pp *PostProcessor) ProcessDependencies(t build.Target) error {
 
 			return fmt.Errorf(errorf, d, t.GetName())
 		}
+
+		seen[d] = true
 	}
+
 	v.Elem().FieldByName("Dependencies").Set(reflect.ValueOf(deps))
 	return nil
 }

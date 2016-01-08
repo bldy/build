@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/signal"
 	"time"
 
 	"runtime"
@@ -17,8 +18,10 @@ import (
 	"sevki.org/build/builder"
 	_ "sevki.org/build/targets/cc"
 	_ "sevki.org/build/targets/harvey"
+	_ "sevki.org/build/targets/java"
 	_ "sevki.org/build/targets/yacc"
 	"sevki.org/build/term"
+	"sevki.org/lib/prettyprint"
 )
 
 var (
@@ -73,6 +76,7 @@ func failMessage(s string) {
 
 }
 func execute(t string) {
+
 	c := builder.New()
 
 	if c.ProjectPath == "" {
@@ -80,35 +84,61 @@ func execute(t string) {
 		printUsage()
 	}
 	c.Root = c.Add(t)
+	c.Root.IsRoot = true
 	if c.Root == nil {
 		log.Fatal("We couldn't find the root")
 	}
-	count := c.Total
-	cpus := runtime.NumCPU()
+
+	cpus := int(float32(runtime.NumCPU()) * 1.25)
 
 	done := make(chan bool)
+
+	// If the app hangs, there is a log.
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, os.Interrupt)
+	go func() {
+		<-sigs
+		f, _ := os.Create("/tmp/build-crash-log.json")
+		fmt.Fprintf(f, prettyprint.AsJSON(c.Root))
+		os.Exit(1)
+	}()
 
 	go term.Listen(c.Updates, cpus, *verbose)
 	go term.Run(done)
 
 	go c.Execute(time.Second, cpus)
-	for i := 0; i < count; i++ {
+	for {
 		select {
 		case done := <-c.Done:
 			if *verbose {
-				doneMessage(done.GetName())
+				doneMessage(done.Target.GetName())
+			}
+			if done.IsRoot {
+				goto FIN
 			}
 		case err := <-c.Error:
 			<-done
 			log.Fatal(err)
 			os.Exit(1)
 		case <-c.Timeout:
-
 			log.Println("your build has timed out")
 		}
 
 	}
+FIN:
 	term.Exit()
 	<-done
-	os.Exit(1)
+	os.Exit(0)
+}
+
+func compare(a, b []byte) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i, c := range a {
+		if c != b[i] {
+			return false
+		}
+	}
+	return true
 }

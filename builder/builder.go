@@ -30,7 +30,7 @@ type Builder struct {
 	ProjectPath string
 	Nodes       map[string]*Node
 	Total       int
-	Done        chan build.Target
+	Done        chan *Node
 	Error       chan error
 	Timeout     chan bool
 	Updates     chan Update
@@ -41,7 +41,7 @@ type Builder struct {
 func New() (c Builder) {
 	c.Nodes = make(map[string]*Node)
 	c.Error = make(chan error)
-	c.Done = make(chan build.Target)
+	c.Done = make(chan *Node)
 	c.BuildQueue = make(chan *Node)
 	c.Updates = make(chan Update)
 	var err error
@@ -54,17 +54,39 @@ func New() (c Builder) {
 	return
 }
 
-type Edges map[string]*Node
+type WorkGroupPublic struct {
+	Waiters int
+	wg      sync.WaitGroup
+	sync.Mutex
+}
+
+func (wg *WorkGroupPublic) Add(i int) {
+	wg.Lock()
+	defer wg.Unlock()
+	wg.Waiters += i
+	wg.wg.Add(i)
+
+}
+
+func (wg *WorkGroupPublic) Wait() {
+	wg.wg.Wait()
+}
+func (wg *WorkGroupPublic) Done() {
+	wg.Lock()
+	defer wg.Unlock()
+	wg.Waiters = wg.Waiters - 1
+}
 
 type Node struct {
+	IsRoot   bool
 	Target   build.Target
-	Children Edges
-	Parents  Edges `json:"-"`
+	Children map[string]*Node
+	Parents  map[string]*Node `json:"-"`
 	wg       sync.WaitGroup
 	Status   STATUS
 	Output   string
 	once     sync.Once
-	sync.RWMutex
+	sync.Mutex
 }
 
 func (b *Builder) getTarget(url parser.TargetURL) (n *Node) {
@@ -81,6 +103,9 @@ func (b *Builder) getTarget(url parser.TargetURL) (n *Node) {
 		var pp parser.PreProcessor
 
 		for name, t := range pp.PreProcess(doc) {
+			if t.GetName() != url.Target {
+				continue
+			}
 			xu := parser.TargetURL{
 				Package: url.Package,
 				Target:  name,
@@ -88,8 +113,8 @@ func (b *Builder) getTarget(url parser.TargetURL) (n *Node) {
 
 			node := Node{
 				Target:   t,
-				Children: make(Edges),
-				Parents:  make(Edges),
+				Children: make(map[string]*Node),
+				Parents:  make(map[string]*Node),
 				once:     sync.Once{},
 				wg:       sync.WaitGroup{},
 				Status:   Pending,
@@ -99,13 +124,15 @@ func (b *Builder) getTarget(url parser.TargetURL) (n *Node) {
 
 			post.ProcessDependencies(node.Target)
 
-			node.wg.Add(len(t.GetDependencies()))
-			b.Total += len(t.GetDependencies())
 			var deps []build.Target
 
 			for _, d := range node.Target.GetDependencies() {
 				c := b.Add(d)
+
+				node.wg.Add(1)
+
 				deps = append(deps, c.Target)
+
 				node.Children[c.Target.GetName()] = c
 				c.Parents[node.Target.GetName()] = &node
 

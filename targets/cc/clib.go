@@ -75,9 +75,13 @@ func (cl *CLib) Build(c *build.Context) error {
 		_, filename := filepath.Split(f)
 		params = append(params, fmt.Sprintf("%s.o", filename[:strings.LastIndex(filename, ".")]))
 	}
-
+	ENV := []string{
+		"CPATH=include",
+		"LIBRARY_PATH=lib",
+	}
+	c.Println(ENV)
 	c.Println(strings.Join(append([]string{ar()}, params...), " "))
-	if err := c.Exec(ar(), nil, params); err != nil {
+	if err := c.Exec(ar(), ENV, params); err != nil {
 		c.Println(err.Error())
 		return fmt.Errorf(cl.buf.String())
 	}
@@ -85,6 +89,7 @@ func (cl *CLib) Build(c *build.Context) error {
 	return nil
 }
 func (cl *CLib) Installs() map[string]string {
+
 	exports := make(map[string]string)
 	exports[fmt.Sprintf("%s.a", cl.Name)] = "lib"
 	return exports
