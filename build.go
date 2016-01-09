@@ -12,13 +12,14 @@ import (
 	"sync"
 )
 
-// Target is for implementing different build targets.
+// Target defines the interface that rules must implement for becoming build targets.
 type Target interface {
-	Build(*Context) error
-	Installs() map[string]string
 	GetName() string
 	GetDependencies() []string
+
 	Hash() []byte
+	Build(*Context) error
+	Installs() map[string]string
 }
 
 // Context defines the context in which a target will be built, it

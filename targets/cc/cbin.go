@@ -81,7 +81,6 @@ func (cb *CBin) Build(c *build.Context) error {
 	c.Println(CCENV)
 	c.Println(strings.Join(append([]string{ld()}, params...), " "))
 	if err := c.Exec(ld(), CCENV, params); err != nil {
-
 		return fmt.Errorf(err.Error())
 	}
 

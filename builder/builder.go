@@ -15,6 +15,7 @@ import (
 	"sevki.org/build"
 	"sevki.org/build/parser"
 	"sevki.org/build/postprocessor"
+	"sevki.org/build/preprocessor"
 	"sevki.org/build/processor"
 	"sevki.org/build/util"
 )
@@ -101,9 +102,13 @@ func (b *Builder) getTarget(url parser.TargetURL) (n *Node) {
 			log.Fatalf("getting target %s failed :%s", url.String(), err.Error())
 		}
 
-		var pp processor.Processor
+		if err := preprocessor.Process(doc); err != nil {
+			log.Fatalf("error processing document: %s", err.Error())
+		}
 
-		for name, t := range pp.Process(doc) {
+		var p processor.Processor
+
+		for name, t := range p.Process(doc) {
 			if t.GetName() != url.Target {
 				continue
 			}
