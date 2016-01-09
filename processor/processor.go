@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package parser // import "sevki.org/build/parser"
+package processor // import "sevki.org/build/processor"
 
 import (
 	"bytes"
@@ -22,29 +22,30 @@ import (
 
 	"sevki.org/build"
 	"sevki.org/build/ast"
+	"sevki.org/build/parser"
 	"sevki.org/build/util"
 )
 
-type PreProcessor struct {
+type Processor struct {
 	wd       string
 	targs    map[string]build.Target
 	document *ast.File
 }
 
-func (pp *PreProcessor) PreProcess(d *ast.File) map[string]build.Target {
-	pp.targs = make(map[string]build.Target)
+func (p *Processor) Process(d *ast.File) map[string]build.Target {
+	p.targs = make(map[string]build.Target)
 	if d == nil {
 		log.Fatal("should not be null")
 	}
-	pp.wd = d.Path
-	pp.document = d
+	p.wd = d.Path
+	p.document = d
 	for _, f := range d.Funcs {
-		pp.runFunc(f)
+		p.runFunc(f)
 	}
 
-	return pp.targs
+	return p.targs
 }
-func (pp *PreProcessor) runFunc(f *ast.Func) {
+func (p *Processor) runFunc(f *ast.Func) {
 	switch f.Name {
 	case "include_defs":
 		// takes only one parameter
@@ -57,15 +58,15 @@ func (pp *PreProcessor) runFunc(f *ast.Func) {
 			log.Fatal("include_defs takes a string as an argument")
 		}
 
-		document, err := ReadBuildFile(TargetURL{Package: packagePath}, pp.wd)
+		document, err := parser.ReadBuildFile(parser.TargetURL{Package: packagePath}, p.wd)
 		if err != nil {
 			log.Fatal(err)
 		}
-		if pp.document.Vars == nil {
-			pp.document.Vars = make(map[string]interface{})
+		if p.document.Vars == nil {
+			p.document.Vars = make(map[string]interface{})
 		}
 		for k, v := range document.Vars {
-			pp.document.Vars[k] = v
+			p.document.Vars[k] = v
 		}
 	case "load":
 
@@ -86,43 +87,43 @@ func (pp *PreProcessor) runFunc(f *ast.Func) {
 			}
 		}
 
-		document, err := ReadFile(pp.absPath(filePath))
+		document, err := parser.ReadFile(p.absPath(filePath))
 
 		if err != nil {
 			log.Fatal(err)
 		}
-		if pp.document.Vars == nil {
-			pp.document.Vars = make(map[string]interface{})
+		if p.document.Vars == nil {
+			p.document.Vars = make(map[string]interface{})
 		}
 
 		for _, v := range varsToImport {
 
 			if val, ok := document.Vars[v]; ok {
-				pp.document.Vars[v] = val
+				p.document.Vars[v] = val
 			} else {
 				log.Fatalf("%s is not present at %s. Please check the file and try again.", v, filePath)
 			}
 		}
 	case "select":
 	default:
-		targ, err := pp.makeTarget(f)
+		targ, err := p.makeTarget(f)
 		if err != nil {
 			log.Fatal(err)
 			return
 		}
-		pp.targs[targ.GetName()] = targ
+		p.targs[targ.GetName()] = targ
 	}
 }
 
-func (pp *PreProcessor) absPath(s string) string {
+func (p *Processor) absPath(s string) string {
 	if strings.TrimLeft(s, "//") != s {
 		return filepath.Join(util.GetProjectPath(), strings.Trim(s, "//"))
 	} else {
-		return filepath.Join(pp.document.Path, s)
+		return filepath.Join(p.document.Path, s)
 	}
 }
 
-func (pp *PreProcessor) makeTarget(f *ast.Func) (build.Target, error) {
+func (p *Processor) makeTarget(f *ast.Func) (build.Target, error) {
 
 	ttype := ast.Get(f.Name)
 
@@ -139,9 +140,9 @@ func (pp *PreProcessor) makeTarget(f *ast.Func) (build.Target, error) {
 		switch fn.(type) {
 		case *ast.Func:
 			x := fn.(*ast.Func)
-			i = pp.funcReturns(x)
+			i = p.funcReturns(x)
 		case ast.Variable:
-			i = pp.document.Vars[fn.(ast.Variable).Value]
+			i = p.document.Vars[fn.(ast.Variable).Value]
 		default:
 			i = fn
 		}
@@ -173,19 +174,19 @@ func (pp *PreProcessor) makeTarget(f *ast.Func) (build.Target, error) {
 	return t.(build.Target), nil
 }
 
-func (pp *PreProcessor) funcReturns(f *ast.Func) interface{} {
+func (p *Processor) funcReturns(f *ast.Func) interface{} {
 	switch f.Name {
 	case "glob":
-		return pp.glob(f)
+		return p.glob(f)
 	case "version":
-		return pp.version(f)
+		return p.version(f)
 	}
 	return ""
 }
 
-func (pp *PreProcessor) glob(f *ast.Func) []string {
-	if !filepath.IsAbs(pp.wd) {
-		return []string{fmt.Sprintf("Error parsing glob: %s is not an absolute path.", pp.wd)}
+func (p *Processor) glob(f *ast.Func) []string {
+	if !filepath.IsAbs(p.wd) {
+		return []string{fmt.Sprintf("Error parsing glob: %s is not an absolute path.", p.wd)}
 	}
 
 	var files []string
@@ -209,7 +210,7 @@ func (pp *PreProcessor) glob(f *ast.Func) []string {
 
 		switch s.(type) {
 		case string:
-			globPtrn = filepath.Join(pp.wd, s.(string))
+			globPtrn = filepath.Join(p.wd, s.(string))
 		default:
 			return nil
 		}
@@ -222,7 +223,7 @@ func (pp *PreProcessor) glob(f *ast.Func) []string {
 	DONE:
 		for i, f := range globFiles {
 
-			t, _ := filepath.Rel(pp.document.Path, f)
+			t, _ := filepath.Rel(p.document.Path, f)
 
 			for _, x := range excludes {
 				if x.Match([]byte(t)) {
@@ -238,17 +239,17 @@ func (pp *PreProcessor) glob(f *ast.Func) []string {
 	return files
 }
 
-func (pp *PreProcessor) env(f *ast.Func) string {
+func (p *Processor) env(f *ast.Func) string {
 	if len(f.AnonParams) != 1 {
 		return ""
 	}
 	return os.Getenv(f.AnonParams[0].(string))
 }
 
-func (pp *PreProcessor) version(f *ast.Func) string {
+func (p *Processor) version(f *ast.Func) string {
 
 	if out, err := exec.Command("git",
-		"--git-dir="+util.GetGitDir(pp.wd)+".git",
+		"--git-dir="+util.GetGitDir(p.wd)+".git",
 		"describe",
 		"--always").Output(); err != nil {
 		return err.Error()

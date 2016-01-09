@@ -100,9 +100,9 @@ func TestPreProcessor(t *testing.T) {
 		}
 
 	} else {
-		var pp PreProcessor
+		var p Processor
 
-		log.Printf(prettyprint.AsJSON(pp.Process(&doc)))
+		log.Printf(prettyprint.AsJSON(p.Process(&doc)))
 	}
 
 }

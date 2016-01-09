@@ -160,11 +160,11 @@ func split(s string, c string, cutc bool) (string, string) {
 func (u TargetURL) String() string {
 	return fmt.Sprintf("//%s:%s", u.Package, u.Target)
 }
-func (u TargetURL) BuildDir(wd, pp string) string {
+func (u TargetURL) BuildDir(wd, p string) string {
 	if u.Package == "" {
 		return wd
 	} else {
-		return filepath.Join(pp, u.Package)
+		return filepath.Join(p, u.Package)
 	}
 }
 func NewTargetURLFromString(u string) (tu TargetURL) {

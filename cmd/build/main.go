@@ -18,7 +18,6 @@ import (
 	"sevki.org/build/builder"
 	_ "sevki.org/build/targets/cc"
 	_ "sevki.org/build/targets/harvey"
-	_ "sevki.org/build/targets/java"
 	_ "sevki.org/build/targets/yacc"
 	"sevki.org/build/term"
 	"sevki.org/lib/prettyprint"
