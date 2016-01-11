@@ -52,7 +52,6 @@ func (b *Builder) Execute(d time.Duration, r int) {
 	b.visit(b.Root)
 }
 func (b *Builder) build(n *Node) (err error) {
-
 	var buildErr error
 
 	nodeHash := fmt.Sprintf("%s-%x", n.Target.GetName(), n.hashNode())
@@ -79,12 +78,15 @@ func (b *Builder) build(n *Node) (err error) {
 		if e.Status == Fail {
 			buildErr = fmt.Errorf("dependency %s failed to build", e.Target.GetName())
 		} else {
-			for file, folder := range e.Target.Installs() {
-				if folder != "" {
+			for dst, src := range e.Target.Installs() {
+				target := filepath.Base(dst)
+				targetDir := strings.TrimRight(dst, target)
+
+				if targetDir != "" {
 					if err := os.MkdirAll(
 						filepath.Join(
 							outDir,
-							folder,
+							targetDir,
 						),
 						os.ModeDir|os.ModePerm,
 					); err != nil {
@@ -96,12 +98,12 @@ func (b *Builder) build(n *Node) (err error) {
 						"/tmp",
 						"build",
 						fmt.Sprintf("%s-%x", e.Target.GetName(), e.hashNode()),
-						file,
+						src,
 					),
 					filepath.Join(
 						outDir,
-						folder,
-						file),
+						targetDir,
+						target),
 				)
 
 			}

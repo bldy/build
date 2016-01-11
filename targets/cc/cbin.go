@@ -46,7 +46,7 @@ func (cb *CBin) Hash() []byte {
 
 func (cb *CBin) Build(c *build.Context) error {
 
-	params := []string{"-v"}
+	params := []string{}
 	params = append(params, cb.CompilerOptions...)
 	params = append(params, cb.Sources...)
 
@@ -89,7 +89,9 @@ func (cb *CBin) Build(c *build.Context) error {
 
 func (cb *CBin) Installs() map[string]string {
 	exports := make(map[string]string)
-	exports[cb.Name] = "bin"
+
+	exports[filepath.Join("bin", cb.Name)] = cb.Name
+
 	return exports
 }
 

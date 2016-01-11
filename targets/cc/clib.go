@@ -85,9 +85,11 @@ func (cl *CLib) Build(c *build.Context) error {
 	return nil
 }
 func (cl *CLib) Installs() map[string]string {
-
 	exports := make(map[string]string)
-	exports[fmt.Sprintf("%s.a", cl.Name)] = "lib"
+	libName := fmt.Sprintf("%s.a", cl.Name)
+
+	exports[filepath.Join("lib", libName)] = libName
+
 	return exports
 }
 func (cl *CLib) GetName() string {

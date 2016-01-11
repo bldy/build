@@ -43,6 +43,7 @@ func NewContext(dir string) *Context {
 		buf:    &buf,
 	}
 }
+
 func (c *Context) Stdout() io.Reader {
 	return c.buf
 }

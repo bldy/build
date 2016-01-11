@@ -81,8 +81,7 @@ func (pp *PostProcessor) ProcessPaths(t build.Target, deps []build.Target) error
 
 		isExported := func(s string) bool {
 			for _, d := range deps {
-				dir, file := filepath.Split(s)
-				if exportDir, ok := d.Installs()[file]; ok && exportDir == dir {
+				if _, ok := d.Installs()[s]; ok {
 					return true
 				}
 			}

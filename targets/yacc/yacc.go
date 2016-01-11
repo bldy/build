@@ -26,13 +26,14 @@ import (
 var YaccVersion = ""
 
 type Yacc struct {
-	Name         string   `yacc:"name"`
-	Sources      []string `yacc:"srcs" build:"path"`
-	Exports      []string `yacc:"exports"`
-	Dependencies []string `yacc:"deps"`
-	YaccOptions  []string `yacc:"yaccopts"`
-	Source       string
-	buf          bytes.Buffer
+	Name           string   `yacc:"name"`
+	Sources        []string `yacc:"srcs" build:"path"`
+	Exports        []string `yacc:"exports"`
+	ExporedHeaders []string `yacc:"hdrs"`
+	Dependencies   []string `yacc:"deps"`
+	YaccOptions    []string `yacc:"yaccopts"`
+	Source         string
+	buf            bytes.Buffer
 }
 
 func init() {
@@ -73,8 +74,10 @@ func (y *Yacc) Build(c *build.Context) error {
 func (y *Yacc) Installs() map[string]string {
 	installs := make(map[string]string)
 	for _, e := range y.Exports {
-		dir, file := filepath.Split(e)
-		installs[file] = dir
+		installs[e] = e
+	}
+	for _, e := range y.ExporedHeaders {
+		installs[filepath.Join("include", e)] = e
 	}
 	return installs
 }
