@@ -8,7 +8,10 @@ import (
 	"bytes"
 	"io"
 	"log"
+	"os"
 	"os/exec"
+	"path/filepath"
+	"strings"
 	"sync"
 )
 
@@ -62,6 +65,7 @@ func (c *Context) Println(v ...interface{}) {
 
 // Exec executes a command writing it's outputs to the context
 func (c *Context) Exec(cmd string, env, params []string) error {
+	c.Println(strings.Join(append([]string{cmd}, params...), "\n"))
 	var stdOut, stdErr io.ReadCloser
 	var wg sync.WaitGroup
 
@@ -95,4 +99,14 @@ func (c *Context) Exec(cmd string, env, params []string) error {
 
 	wg.Wait()
 	return nil
+}
+
+// Create creates and returns a new file with the given name in the context
+func (c *Context) Create(name string) (*os.File, error) {
+	return os.Create(filepath.Join(c.wd, name))
+}
+
+// Create creates and returns a new file with the given name in the context
+func (c *Context) Open(name string) (*os.File, error) {
+	return os.Open(filepath.Join(c.wd, name))
 }
