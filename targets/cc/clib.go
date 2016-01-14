@@ -53,13 +53,11 @@ func (cl *CLib) Hash() []byte {
 }
 
 func (cl *CLib) Build(c *build.Context) error {
-	params := []string{}
+	params := []string{"-c"}
 	params = append(params, cl.CompilerOptions...)
 	params = append(params, cl.LinkerOptions...)
 	params = append(params, cl.Sources...)
 	params = append(params, cl.Includes.Includes()...)
-
-	c.Println(strings.Join(append([]string{compiler()}, params...), " "))
 
 	if err := c.Exec(compiler(), CCENV, params); err != nil {
 		c.Println(err.Error())
@@ -76,7 +74,6 @@ func (cl *CLib) Build(c *build.Context) error {
 		params = append(params, fmt.Sprintf("%s.o", filename[:strings.LastIndex(filename, ".")]))
 	}
 
-	c.Println(strings.Join(append([]string{ar()}, params...), " "))
 	if err := c.Exec(ar(), CCENV, params); err != nil {
 		c.Println(err.Error())
 		return fmt.Errorf(cl.buf.String())

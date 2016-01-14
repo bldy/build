@@ -52,35 +52,31 @@ func (cb *CBin) Build(c *build.Context) error {
 
 	params = append(params, cb.Includes.Includes()...)
 
-	c.Println(strings.Join(append([]string{compiler()}, params...), " "))
-
 	if err := c.Exec(compiler(), CCENV, params); err != nil {
 		return fmt.Errorf(err.Error())
 	}
 
-	params = []string{"-o", cb.Name}
+	ldparams := []string{"-o", cb.Name}
+	ldparams = append(ldparams, cb.LinkerOptions...)
 
 	// This is done under the assumption that each src file put in this thing
 	// here will comeout as a .o file
 	for _, f := range cb.Sources {
 		_, fname := filepath.Split(f)
-		params = append(params, fmt.Sprintf("%s.o", fname[:strings.LastIndex(fname, ".")]))
+		ldparams = append(ldparams, fmt.Sprintf("%s.o", fname[:strings.LastIndex(fname, ".")]))
 	}
-	cb.LinkerOptions = append(cb.LinkerOptions, "-L", "lib")
+
+	ldparams = append(ldparams, "-L", "lib")
 
 	for _, dep := range cb.Dependencies {
 		d := split(dep, ":")
 
 		if strings.TrimLeft(d, "lib") != d {
-			cb.LinkerOptions = append(cb.LinkerOptions, fmt.Sprintf("-l%s", d[3:]))
+			ldparams = append(ldparams, fmt.Sprintf("-l%s", d[3:]))
 		}
 	}
 
-	params = append(params, cb.LinkerOptions...)
-
-	c.Println(CCENV)
-	c.Println(strings.Join(append([]string{ld()}, params...), " "))
-	if err := c.Exec(ld(), CCENV, params); err != nil {
+	if err := c.Exec(ld(), CCENV, ldparams); err != nil {
 		return fmt.Errorf(err.Error())
 	}
 
@@ -100,8 +96,4 @@ func (cb *CBin) GetName() string {
 }
 func (cb *CBin) GetDependencies() []string {
 	return cb.Dependencies
-}
-
-func (cb *CBin) GetSource() string {
-	return cb.Source
 }
