@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package harvey // import "sevki.org/build/targets/harvey"
+package build // import "sevki.org/build/targets/build"
 
 import (
 	"log"
@@ -11,11 +11,10 @@ import (
 )
 
 func init() {
-	if err := ast.Register("mk_sys", MkSys{}); err != nil {
+	if err := ast.Register("gen_rule", GenRule{}); err != nil {
 		log.Fatal(err)
 	}
-
-	if err := ast.Register("elf_to_c", ElfToC{}); err != nil {
+	if err := ast.Register("group", Group{}); err != nil {
 		log.Fatal(err)
 	}
 }

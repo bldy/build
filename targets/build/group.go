@@ -1,4 +1,8 @@
-package harvey
+// Copyright 2015-2016 Sevki <s@sevki.org>. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+package build // import "sevki.org/build/targets/build"
 
 import "sevki.org/build"
 
