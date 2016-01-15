@@ -18,4 +18,8 @@ func init() {
 	if err := ast.Register("elf_to_c", ElfToC{}); err != nil {
 		log.Fatal(err)
 	}
+
+	if err := ast.Register("data_to_c", DataToC{}); err != nil {
+		log.Fatal(err)
+	}
 }

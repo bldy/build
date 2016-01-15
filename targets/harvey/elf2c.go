@@ -13,9 +13,9 @@ import (
 )
 
 type ElfToC struct {
-	Name         string   `elf_to_c:"name" `
+	Name         string   `elf_to_c:"name"`
 	Dependencies []string `elf_to_c:"deps"`
-	Elf          string   `elf_to_c:"elf" `
+	Elf          string   `elf_to_c:"elf"`
 }
 
 func (etc *ElfToC) GetName() string {
