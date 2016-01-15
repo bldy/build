@@ -1,0 +1,1 @@
+XSTRING_SRCS = glob(["*.c"])

@@ -43,6 +43,8 @@ type Func struct {
 	Line, Position int
 }
 
+type FuncPointer int
+
 type Path string
 
 func Register(name string, t interface{}) error {

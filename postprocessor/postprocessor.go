@@ -94,6 +94,9 @@ func (pp *PostProcessor) ProcessPaths(t build.Target, deps []build.Target) error
 			if isExported(s) {
 				continue
 			}
+			if s == "" {
+				continue
+			}
 			n.SetString(pp.absPath(s))
 		case reflect.Slice:
 			switch n.Type().Elem().Kind() {
@@ -115,6 +118,9 @@ func (pp *PostProcessor) ProcessPaths(t build.Target, deps []build.Target) error
 }
 
 func (pp *PostProcessor) absPath(s string) string {
+	if len(s) < 2 {
+		log.Fatalf("%s is invalid", s)
+	}
 	switch {
 	case s[:2] == "//":
 		return filepath.Join(pp.projectPath, strings.Trim(s, "//"))

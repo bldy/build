@@ -24,6 +24,7 @@ import (
 	"sevki.org/build/ast"
 	"sevki.org/build/parser"
 	"sevki.org/build/util"
+	"sevki.org/lib/prettyprint"
 )
 
 type Processor struct {
@@ -39,6 +40,14 @@ func (p *Processor) Process(d *ast.File) map[string]build.Target {
 	}
 	p.wd = d.Path
 	p.document = d
+
+	for k, v := range d.Vars {
+		switch v.(type) {
+		case *ast.Func:
+			d.Vars[k] = p.funcReturns(v.(*ast.Func))
+		}
+	}
+	log.Fatal(prettyprint.AsJSON(d.Vars))
 	for _, f := range d.Funcs {
 		p.runFunc(f)
 	}
@@ -180,8 +189,23 @@ func (p *Processor) funcReturns(f *ast.Func) interface{} {
 		return p.glob(f)
 	case "version":
 		return p.version(f)
+	case "addition":
+		return p.combineArrays(f)
 	}
 	return ""
+}
+
+func (p *Processor) combineArrays(f *ast.Func) interface{} {
+	var t []string
+
+	for _, v := range f.AnonParams {
+		switch v.(type) {
+		case []string:
+			t = append(t, v.([]string)...)
+		}
+	}
+
+	return t
 }
 
 func (p *Processor) glob(f *ast.Func) []string {
@@ -210,7 +234,8 @@ func (p *Processor) glob(f *ast.Func) []string {
 
 		switch s.(type) {
 		case string:
-			globPtrn = filepath.Join(p.wd, s.(string))
+			globPtrn = filepath.Clean(filepath.Join(p.wd, s.(string)))
+			log.Println(globPtrn)
 		default:
 			return nil
 		}
@@ -220,15 +245,14 @@ func (p *Processor) glob(f *ast.Func) []string {
 		if err != nil {
 			return []string{"Error parsing glob: %s"}
 		}
-	DONE:
+	RESIZED:
 		for i, f := range globFiles {
-
-			t, _ := filepath.Rel(p.document.Path, f)
-
+			t, _ := filepath.Rel(util.GetProjectPath(), f)
+			t = fmt.Sprintf("//%s", t)
 			for _, x := range excludes {
 				if x.Match([]byte(t)) {
 					globFiles = append(globFiles[:i], globFiles[i+1:]...)
-					goto DONE
+					goto RESIZED
 				}
 			}
 			globFiles[i] = t

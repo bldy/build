@@ -21,7 +21,7 @@ type CBin struct {
 	Headers         []string      `cxx_binary:"exported_headers" cc_binary:"hdrs" build:"path"`
 	CompilerOptions CompilerFlags `cxx_binary:"compiler_flags" cc_binary:"copts"`
 	LinkerOptions   []string      `cxx_binary:"linker_flags" cc_binary:"linkopts"`
-	Source          string
+	LinkerFile      string        `cxx_binary:"ld" cc_binary:"ld" build:"path"`
 }
 
 func split(s string, c string) string {
@@ -70,10 +70,16 @@ func (cb *CBin) Build(c *build.Context) error {
 
 	for _, dep := range cb.Dependencies {
 		d := split(dep, ":")
-
-		if strings.TrimLeft(d, "lib") != d {
+		if len(d) < 3 {
+			continue
+		}
+		if d[:3] == "lib" {
 			ldparams = append(ldparams, fmt.Sprintf("-l%s", d[3:]))
 		}
+	}
+
+	if cb.LinkerFile != "" {
+		ldparams = append(ldparams, fmt.Sprintf("-%s", cb.LinkerFile))
 	}
 
 	if err := c.Exec(ld(), CCENV, ldparams); err != nil {

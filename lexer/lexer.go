@@ -197,8 +197,11 @@ func lexAny(l *Lexer) stateFn {
 			return lexAny
 		case r == '.':
 			return lexPeriodOrElipsis
+		case r == '+':
+			l.emit(token.Plus)
+			return lexAny
 		case r == ',':
-			l.ignore()
+			l.emit(token.Comma)
 			return lexAny
 		case r == '=':
 			l.emit(token.Equal)
@@ -279,7 +282,16 @@ func lexAlphaNumeric(l *Lexer) stateFn {
 		l.emit(token.Func)
 		return lexAny
 	default:
-		l.emit(token.String)
+		switch l.input[l.start:l.pos] {
+		case "true":
+			l.emit(token.True)
+			break
+		case "false":
+			l.emit(token.False)
+			break
+		default:
+			l.emit(token.String)
+		}
 	}
 	return lexAny
 }

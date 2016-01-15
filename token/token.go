@@ -38,6 +38,7 @@ const (
 	Semicolon
 	Period
 	Comment
+	Plus
 	Pipe
 	Elipsis
 	True

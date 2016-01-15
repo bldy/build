@@ -78,7 +78,9 @@ func (b *Builder) build(n *Node) (err error) {
 		if e.Status == Fail {
 			buildErr = fmt.Errorf("dependency %s failed to build", e.Target.GetName())
 		} else {
+
 			for dst, src := range e.Target.Installs() {
+
 				target := filepath.Base(dst)
 				targetDir := strings.TrimRight(dst, target)
 
@@ -174,7 +176,6 @@ func (b *Builder) work(jq chan *Node, workerNumber int) {
 
 			b.Done <- job
 			if !job.IsRoot {
-
 				job.once.Do(func() {
 					for _, parent := range job.Parents {
 						parent.wg.Done()
@@ -182,9 +183,7 @@ func (b *Builder) work(jq chan *Node, workerNumber int) {
 				})
 
 			} else {
-
 				close(b.Done)
-
 				return
 			}
 

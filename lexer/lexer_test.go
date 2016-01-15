@@ -12,8 +12,8 @@ import (
 	"sevki.org/build/token"
 )
 
-func TestC(t *testing.T) {
-	ks, _ := os.Open("../tests/libxstring/BUILD")
+func TestMap(t *testing.T) {
+	ks, _ := os.Open("map.BUILD")
 	l := New("sq", ks)
 	for {
 		tok := <-l.Tokens

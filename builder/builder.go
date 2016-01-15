@@ -144,7 +144,9 @@ func (b *Builder) getTarget(url parser.TargetURL) (n *Node) {
 
 			}
 
-			post.ProcessPaths(t, deps)
+			if err := post.ProcessPaths(t, deps); err != nil {
+				log.Fatalf("path processing: %s", err.Error())
+			}
 
 			b.Nodes[xu.String()] = &node
 			if t.GetName() == url.Target {

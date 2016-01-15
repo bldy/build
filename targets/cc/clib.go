@@ -36,6 +36,7 @@ type CLib struct {
 
 func (cl *CLib) Hash() []byte {
 	h := sha1.New()
+
 	io.WriteString(h, CCVersion)
 	io.WriteString(h, cl.Name)
 	util.HashFiles(h, cl.Includes)

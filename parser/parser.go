@@ -106,13 +106,64 @@ func parseVar(p *Parser) stateFn {
 	switch p.peek().Type {
 	case token.LeftBrac:
 		p.Document.Vars[t.String()] = p.parseSlice()
-		return parseDecl
 	case token.String:
-		p.Document.Vars[t.String()] = p.next()
+		p.Document.Vars[t.String()] = ast.Variable{Value: p.next().String()}
+	case token.Quote:
+		p.Document.Vars[t.String()] = p.next().String()
+	case token.True:
+		p.Document.Vars[t.String()] = true
 		return parseDecl
+	case token.False:
+		p.Document.Vars[t.String()] = false
+		return parseDecl
+	case token.Func:
+		f := &ast.Func{
+			Name: p.next().String(),
+		}
+		p.Document.Vars[t.String()] = f
+		// that func is a named param
+		f.Parent = nil
+
+		p.ptr = f
+
+		// parse the funkies
+		t := p.next()
+		if !p.isExpected(t, token.LeftParen) {
+			return nil
+		}
+		return parseParams
+	}
+	if p.peek().Type == token.Plus {
+		f := &ast.Func{
+			Name:     "addition",
+			File:     p.name,
+			Line:     t.Line,
+			Position: t.Start,
+		}
+		f.AnonParams = []interface{}{p.Document.Vars[t.String()]}
+
+		p.Document.Vars[t.String()] = f
+
+		for p.peek().Type == token.Plus {
+			p.next()
+			switch p.peek().Type {
+			case token.String:
+				f.AnonParams = append(
+					f.AnonParams,
+					ast.Variable{Value: p.next().String()},
+				)
+			case token.Quote:
+				f.AnonParams = append(
+					f.AnonParams,
+					p.next().String(),
+				)
+			}
+
+		}
+
 	}
 
-	return nil
+	return parseDecl
 }
 func parseFunc(p *Parser) stateFn {
 	t := p.next()
@@ -141,6 +192,7 @@ func parseFunc(p *Parser) stateFn {
 }
 
 func parseFuncEnd(p *Parser) stateFn {
+
 	f := p.ptr
 	p.ptr = f.Parent
 
@@ -152,13 +204,36 @@ func parseFuncEnd(p *Parser) stateFn {
 		return parseParams
 	}
 }
-func parseParams(p *Parser) stateFn {
 
+func parseParamEnd(p *Parser) stateFn {
+
+	switch p.peek().Type {
+	case token.RightParen:
+		return parseFuncEnd
+	}
+	if !p.isExpected(p.next(), token.Comma) {
+		return nil
+	}
+	return parseParams
+}
+func parseAnonParams(p *Parser) stateFn {
 	switch p.peek().Type {
 	case token.Quote:
 		p.ptr.AnonParams = append(p.ptr.AnonParams, p.next().String())
 	case token.LeftBrac:
 		p.ptr.AnonParams = append(p.ptr.AnonParams, p.parseSlice())
+	}
+
+	return parseParams
+}
+func parseParams(p *Parser) stateFn {
+
+	switch p.peek().Type {
+	case token.Quote, token.LeftBrac:
+		return parseAnonParams
+	case token.Comma:
+		p.next()
+		return parseParams
 	case token.String:
 		name := p.next().String()
 
@@ -170,6 +245,8 @@ func parseParams(p *Parser) stateFn {
 		}
 		// named param magicication
 		switch p.peek().Type {
+		case token.String:
+			p.ptr.Params[name] = ast.Variable{Value: p.next().String()}
 		case token.Quote:
 			p.ptr.Params[name] = p.next().String()
 		case token.LeftBrac:
@@ -190,24 +267,22 @@ func parseParams(p *Parser) stateFn {
 			if !p.isExpected(t, token.LeftParen) {
 				return nil
 			}
-		case token.String:
-			p.ptr.Params[name] = ast.Variable{Value: p.next().String()}
+			return parseParams
 		default:
 			return nil
 		}
-		return parseParams
 	case token.Func:
 		return parseFunc
 	case token.RightParen:
+
 		return parseFuncEnd
 	default:
 		return nil
 	}
-	return parseParams
+	return parseParamEnd
 }
 
 func (p *Parser) parseSlice() []interface{} {
-	//	fmt.Println(caller())
 	if !p.isExpected(p.next(), token.LeftBrac) {
 		return nil
 	}
@@ -215,9 +290,16 @@ func (p *Parser) parseSlice() []interface{} {
 
 	for p.peek().Type != token.RightBrac {
 		slc = append(slc, p.next().String())
+		if p.peek().Type == token.Comma {
+			p.next()
+		} else if !p.isExpected(p.peek(), token.RightBrac) {
+			return nil
+		}
 	}
+
 	// advance ]
 	p.next()
+
 	return slc
 }
 
