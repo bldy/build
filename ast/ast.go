@@ -31,16 +31,22 @@ type File struct {
 	Funcs []*Func
 	Vars  map[string]interface{}
 }
-type Variable struct {
-	Value string
-}
-type Func struct {
-	Name           string
-	Params         map[string]interface{}
-	AnonParams     []interface{}
-	Parent         *Func `json:"-"`
+
+type Node struct {
 	File           string
 	Line, Position int
+}
+
+type Variable struct {
+	Key string
+	Node
+}
+type Func struct {
+	Name       string
+	Params     map[string]interface{}
+	AnonParams []interface{}
+	Parent     *Func `json:"-"`
+	Node
 }
 
 type FuncPointer int

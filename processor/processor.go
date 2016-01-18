@@ -24,7 +24,6 @@ import (
 	"sevki.org/build/ast"
 	"sevki.org/build/parser"
 	"sevki.org/build/util"
-	"sevki.org/lib/prettyprint"
 )
 
 type Processor struct {
@@ -47,7 +46,7 @@ func (p *Processor) Process(d *ast.File) map[string]build.Target {
 			d.Vars[k] = p.funcReturns(v.(*ast.Func))
 		}
 	}
-	log.Fatal(prettyprint.AsJSON(d.Vars))
+
 	for _, f := range d.Funcs {
 		p.runFunc(f)
 	}
@@ -151,7 +150,7 @@ func (p *Processor) makeTarget(f *ast.Func) (build.Target, error) {
 			x := fn.(*ast.Func)
 			i = p.funcReturns(x)
 		case ast.Variable:
-			i = p.document.Vars[fn.(ast.Variable).Value]
+			i = p.document.Vars[fn.(ast.Variable).Key]
 		default:
 			i = fn
 		}
@@ -196,12 +195,17 @@ func (p *Processor) funcReturns(f *ast.Func) interface{} {
 }
 
 func (p *Processor) combineArrays(f *ast.Func) interface{} {
-	var t []string
+	var t []interface{}
 
 	for _, v := range f.AnonParams {
 		switch v.(type) {
-		case []string:
-			t = append(t, v.([]string)...)
+		case ast.Variable:
+			name := v.(ast.Variable)
+			x := p.document.Vars[name.Key]
+			switch x.(type) {
+			case []interface{}:
+				t = append(t, x.([]interface{})...)
+			}
 		}
 	}
 

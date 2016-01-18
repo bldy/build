@@ -98,6 +98,7 @@ func (b *Builder) getTarget(url parser.TargetURL) (n *Node) {
 	} else {
 
 		doc, err := parser.ReadBuildFile(url, b.Wd)
+
 		if err != nil {
 			log.Fatalf("getting target %s failed :%s", url.String(), err.Error())
 		}
@@ -154,8 +155,9 @@ func (b *Builder) getTarget(url parser.TargetURL) (n *Node) {
 			}
 
 		}
+
 		if n == nil {
-			log.Fatalf("we couldn't find %s", url.String())
+			log.Fatalf("we couldn't find %s, %s", url.String())
 		}
 		return n
 	}

@@ -94,13 +94,15 @@ cc_binary(
         "-T",
     ]
 )
+
 elf_to_c(
     name="inith",
     deps=[
         ":init",
     ],
-    elf="bin/init",
+    elf="bin/init"
 )
+
 cc_binary(
     name="init",
     copts=[

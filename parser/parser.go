@@ -27,6 +27,7 @@ type Parser struct {
 	ptr      *ast.Func
 	payload  map[string]interface{}
 	typeName string
+	stack    []stateFn
 }
 
 type stateFn func(*Parser) stateFn
@@ -38,8 +39,7 @@ func (p *Parser) next() token.Token {
 	tok := p.peekTok
 	p.peekTok = <-p.lexer.Tokens
 	p.curTok = tok
-	//	cal, _, _ := caller()
-	//	fmt.Printf("%s\t:: %s:%s -> %s:%s\n%s\n", cal, p.curTok, p.curTok.Type, p.peekTok, p.peekTok.Type, p.path+p.name)
+
 	if tok.Type == token.Error {
 		p.errorf("%q", tok)
 	}
@@ -84,7 +84,8 @@ func parseBuild(p *Parser) stateFn {
 func parseDecl(p *Parser) stateFn {
 	switch p.peek().Type {
 	case token.Func:
-		return parseFunc
+		p.Document.Funcs = append(p.Document.Funcs, p.consumeFunc())
+		return parseDecl
 	case token.String:
 		return parseVar
 	}
@@ -104,42 +105,20 @@ func parseVar(p *Parser) stateFn {
 	}
 
 	switch p.peek().Type {
-	case token.LeftBrac:
-		p.Document.Vars[t.String()] = p.parseSlice()
-	case token.String:
-		p.Document.Vars[t.String()] = ast.Variable{Value: p.next().String()}
-	case token.Quote:
-		p.Document.Vars[t.String()] = p.next().String()
-	case token.True:
-		p.Document.Vars[t.String()] = true
-		return parseDecl
-	case token.False:
-		p.Document.Vars[t.String()] = false
-		return parseDecl
+	case token.LeftBrac, token.String, token.Quote, token.True, token.False:
+		p.Document.Vars[t.String()] = p.consumeNode()
 	case token.Func:
-		f := &ast.Func{
-			Name: p.next().String(),
-		}
-		p.Document.Vars[t.String()] = f
-		// that func is a named param
-		f.Parent = nil
-
-		p.ptr = f
-
-		// parse the funkies
-		t := p.next()
-		if !p.isExpected(t, token.LeftParen) {
-			return nil
-		}
-		return parseParams
+		p.Document.Vars[t.String()] = p.consumeFunc()
 	}
 	if p.peek().Type == token.Plus {
+
 		f := &ast.Func{
-			Name:     "addition",
-			File:     p.name,
-			Line:     t.Line,
-			Position: t.Start,
+			Name: "addition",
 		}
+		f.File = p.name
+		f.Line = t.Line
+		f.Position = t.Start
+
 		f.AnonParams = []interface{}{p.Document.Vars[t.String()]}
 
 		p.Document.Vars[t.String()] = f
@@ -150,7 +129,7 @@ func parseVar(p *Parser) stateFn {
 			case token.String:
 				f.AnonParams = append(
 					f.AnonParams,
-					ast.Variable{Value: p.next().String()},
+					ast.Variable{Key: p.next().String()},
 				)
 			case token.Quote:
 				f.AnonParams = append(
@@ -165,124 +144,88 @@ func parseVar(p *Parser) stateFn {
 
 	return parseDecl
 }
-func parseFunc(p *Parser) stateFn {
+func (p *Parser) consumeNode() interface{} {
+	switch p.peek().Type {
+	case token.Quote:
+		return p.next().String()
+	case token.LeftBrac:
+		x := p.consumeSlice()
+		return x
+	case token.Func:
+		return p.consumeFunc()
+	case token.True:
+		return true
+	case token.False:
+		return false
+	case token.String:
+		return ast.Variable{Key: p.next().String()}
+	}
+	return nil
+}
+func (p *Parser) consumeParams(f *ast.Func) {
+	for {
+		switch p.peek().Type {
+		case token.Quote, token.LeftBrac, token.Func:
+			f.AnonParams = append(f.AnonParams, p.consumeNode())
+		case token.String:
+			t := p.next()
+			if f.Params == nil {
+				f.Params = make(map[string]interface{})
+			}
+
+			if p.expects(p.peek(), []token.Type{token.Colon, token.Equal}) {
+				switch p.next().Type {
+				case token.Colon:
+				case token.Equal:
+					f.Params[t.String()] = p.consumeNode()
+				}
+			} else {
+				return
+			}
+		default:
+			return
+		}
+
+		if p.expects(p.peek(), []token.Type{token.RightParen, token.Comma}) {
+		DANGLING_COMMA:
+			switch p.peek().Type {
+			case token.RightParen:
+				p.next()
+				return
+			case token.Comma:
+				p.next()
+				if p.peek().Type == token.RightParen {
+					goto DANGLING_COMMA
+				}
+				continue
+			}
+		}
+
+	}
+}
+
+func (p *Parser) consumeFunc() *ast.Func {
 	t := p.next()
 	if !p.isExpected(t, token.Func) {
 		return nil
 	}
-	f := &ast.Func{
-		Name:     t.String(),
-		File:     p.name,
-		Line:     t.Line,
-		Position: t.Start,
+	f := ast.Func{
+		Name: t.String(),
 	}
 
-	if p.ptr == nil {
-		p.Document.Funcs = append(p.Document.Funcs, f)
-		p.ptr = f
-
-	}
+	f.File = p.name
+	f.Line = t.Line
+	f.Position = t.Start
 
 	t = p.next()
 	if !p.isExpected(t, token.LeftParen) {
 		return nil
 	}
-
-	return parseParams
+	p.consumeParams(&f)
+	return &f
 }
 
-func parseFuncEnd(p *Parser) stateFn {
-
-	f := p.ptr
-	p.ptr = f.Parent
-
-	p.next()
-
-	if f.Parent == nil {
-		return parseDecl
-	} else {
-		return parseParams
-	}
-}
-
-func parseParamEnd(p *Parser) stateFn {
-
-	switch p.peek().Type {
-	case token.RightParen:
-		return parseFuncEnd
-	}
-	if !p.isExpected(p.next(), token.Comma) {
-		return nil
-	}
-	return parseParams
-}
-func parseAnonParams(p *Parser) stateFn {
-	switch p.peek().Type {
-	case token.Quote:
-		p.ptr.AnonParams = append(p.ptr.AnonParams, p.next().String())
-	case token.LeftBrac:
-		p.ptr.AnonParams = append(p.ptr.AnonParams, p.parseSlice())
-	}
-
-	return parseParams
-}
-func parseParams(p *Parser) stateFn {
-
-	switch p.peek().Type {
-	case token.Quote, token.LeftBrac:
-		return parseAnonParams
-	case token.Comma:
-		p.next()
-		return parseParams
-	case token.String:
-		name := p.next().String()
-
-		if p.ptr.Params == nil {
-			p.ptr.Params = make(map[string]interface{})
-		}
-		if !p.isExpected(p.next(), token.Equal) {
-			return nil
-		}
-		// named param magicication
-		switch p.peek().Type {
-		case token.String:
-			p.ptr.Params[name] = ast.Variable{Value: p.next().String()}
-		case token.Quote:
-			p.ptr.Params[name] = p.next().String()
-		case token.LeftBrac:
-			p.ptr.Params[name] = p.parseSlice()
-		case token.Func:
-			// make a func
-			f := &ast.Func{
-				Name: p.next().String(),
-			}
-			// that func is a named param
-			p.ptr.Params[name] = f
-			// link params for stackjumping
-			f.Parent = p.ptr
-			p.ptr = f
-
-			// parse the funkies
-			t := p.next()
-			if !p.isExpected(t, token.LeftParen) {
-				return nil
-			}
-			return parseParams
-		default:
-			return nil
-		}
-	case token.Func:
-		return parseFunc
-	case token.RightParen:
-
-		return parseFuncEnd
-	default:
-		return nil
-	}
-	return parseParamEnd
-}
-
-func (p *Parser) parseSlice() []interface{} {
+func (p *Parser) consumeSlice() []interface{} {
 	if !p.isExpected(p.next(), token.LeftBrac) {
 		return nil
 	}

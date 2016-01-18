@@ -16,6 +16,7 @@ import (
 
 	"sevki.org/build/ast"
 	_ "sevki.org/build/targets/cc"
+	"sevki.org/lib/prettyprint"
 )
 
 func readAndParse(n string) (*ast.File, error) {
@@ -136,11 +137,13 @@ func TestParseVarFunc(t *testing.T) {
 	v := doc.Vars["XSTRING_SRCS"]
 	switch v.(type) {
 	case *ast.Func:
+
 		f := v.(*ast.Func)
 		if f.Name != "glob" {
 			t.Fail()
 		}
 		q := f.AnonParams[0].([]interface{})
+
 		if q[0] != "*.c" {
 			t.Fail()
 		}
@@ -165,7 +168,7 @@ func TestParseAddition(t *testing.T) {
 			t.Fail()
 		}
 
-		if f.AnonParams[0].(ast.Variable).Value != "CC_FLAGS" {
+		if f.AnonParams[0].(ast.Variable).Key != "CC_FLAGS" {
 			t.Fail()
 		}
 
@@ -181,7 +184,7 @@ func TestParseAddition(t *testing.T) {
 			t.Fail()
 		}
 
-		if f.AnonParams[0].(ast.Variable).Value != "CC_FLAGS" {
+		if f.AnonParams[0].(ast.Variable).Key != "CC_FLAGS" {
 			t.Fail()
 		}
 
@@ -196,7 +199,8 @@ func TestParseFunc(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if doc.Funcs[0].Params["copts"].(ast.Variable).Value != "C_FLAGS" {
+
+	if doc.Funcs[0].Params["copts"].(ast.Variable).Key != "C_FLAGS" {
 		t.Fail()
 	}
 	if doc.Funcs[0].Params["deps"].([]interface{})[0] != ":libxstring" {
@@ -211,10 +215,11 @@ func TestParseFunc(t *testing.T) {
 }
 func TestParseHarvey(t *testing.T) {
 
-	_, err := readAndParse("tests/harvey.BUILD")
+	doc, err := readAndParse("tests/harvey.BUILD")
 	if err != nil {
 		t.Error(err)
 	}
+	log.Println(prettyprint.AsJSON(doc))
 
 }
 

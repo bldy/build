@@ -14,7 +14,6 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/fatih/color"
 	"sevki.org/build/ast"
 	"sevki.org/build/token"
 	"sevki.org/build/util"
@@ -26,10 +25,10 @@ func caller() (call string, file string, line int) {
 	name := strings.Split(runtime.FuncForPC(caller).Name(), ".")
 	callName := name[len(name)-1]
 
-	if len(callName) < 6 {
+	if len(callName) < 8 {
 		return callName, file, line
 	} else {
-		return callName[5:], file, line
+		return callName[7:], file, line
 	}
 
 }
@@ -40,10 +39,10 @@ func firstCaller() (call, file string, line int) {
 	name := strings.Split(runtime.FuncForPC(caller).Name(), ".")
 	callName := name[len(name)-1]
 
-	if len(call) < 6 {
+	if len(call) < 8 {
 		return callName, file, line
 	} else {
-		return callName[5:], file, line
+		return callName[7:], file, line
 	}
 
 }
@@ -71,23 +70,39 @@ func arrow(buf string, tok token.Token) string {
 	}
 	return ret
 }
-func (p *Parser) isExpected(t token.Token, expected token.Type) bool {
-	if t.Type != expected {
-		name, file, line := caller()
-		red := color.New(color.FgRed).SprintFunc()
-		errf := ""
-		errf += red("%s:%d: While parsing %s were expecting %s but got %s at %d:%d.")
+func (p *Parser) expects(tok token.Token, expected []token.Type) bool {
+	for _, t := range expected {
+		if t == tok.Type {
+			return true
+		}
+	}
+	name, _, _ := caller()
+	errf := "%s:%d: While parsing %s were expecting %s but got %s."
+	errf += "\n%s\n%s"
+	p.errorf(errf,
+		p.path,
+		tok.Line,
+		name,
+		expected,
+		p.curTok.Type,
+		strings.Trim(p.lexer.LineBuffer(), "\n"),
+		arrow(p.lexer.LineBuffer(), tok),
+	)
+	return false
+}
+func (p *Parser) isExpected(tok token.Token, expected token.Type) bool {
+	if tok.Type != expected {
+		name, _, _ := caller()
+		errf := "%s:%d: While parsing %s were expecting %s but got %s."
 		errf += "\n%s\n%s"
 		p.errorf(errf,
-			file,
-			line,
+			p.path,
+			tok.Line,
 			name,
 			expected,
 			p.curTok.Type,
-			p.curTok.Line,
-			t.Start,
 			strings.Trim(p.lexer.LineBuffer(), "\n"),
-			red(arrow(p.lexer.LineBuffer(), t)),
+			arrow(p.lexer.LineBuffer(), tok),
 		)
 		return false
 	} else {
@@ -135,7 +150,7 @@ func ReadFile(path string) (i *ast.File, err error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := New("BUILD", "NOTHING", ks).Decode(i); err != nil {
+	if err := New("BUILD", path, ks).Decode(i); err != nil {
 		return nil, err
 	}
 	return i, nil
@@ -204,3 +219,5 @@ func (t TargetURL) hash() []byte {
 	io.WriteString(h, t.Target)
 	return h.Sum(nil)
 }
+
+// BUG(sevki): these are buggy as shite
