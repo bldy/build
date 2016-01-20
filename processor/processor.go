@@ -40,14 +40,24 @@ func (p *Processor) Process(d *ast.File) map[string]build.Target {
 	p.wd = d.Path
 	p.document = d
 
+	// LOAD VARS
+	for _, f := range d.Funcs {
+		if f.Name != "load" {
+			continue
+		}
+		p.runFunc(f)
+	}
 	for k, v := range d.Vars {
 		switch v.(type) {
 		case *ast.Func:
 			d.Vars[k] = p.funcReturns(v.(*ast.Func))
 		}
 	}
-
+	// VARS ARE LOADED
 	for _, f := range d.Funcs {
+		if f.Name == "load" {
+			continue
+		}
 		p.runFunc(f)
 	}
 
@@ -201,11 +211,15 @@ func (p *Processor) combineArrays(f *ast.Func) interface{} {
 		switch v.(type) {
 		case ast.Variable:
 			name := v.(ast.Variable)
-			x := p.document.Vars[name.Key]
+			x, exists := p.document.Vars[name.Key]
+			if !exists {
+				log.Fatalf("combinine arrays: coudln't find var %s", name.Key)
+			}
 			switch x.(type) {
 			case []interface{}:
 				t = append(t, x.([]interface{})...)
 			}
+
 		}
 	}
 
