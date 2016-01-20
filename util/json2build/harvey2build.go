@@ -44,11 +44,11 @@ func main() {
 	for libtype, _ := range loads {
 
 		if strings.Contains(libtype, "klib") {
-			someth := `load('//sys/src/FLAGS', "KLIB_COMPILER_FLAGS")
+			someth := `load("//sys/src/FLAGS", "KLIB_COMPILER_FLAGS")
 `
 			fmt.Printf(someth)
 		} else {
-			someth := `load('//sys/src/FLAGS', "LIB_COMPILER_FLAGS")
+			someth := `load("//sys/src/FLAGS", "LIB_COMPILER_FLAGS")
 `
 			fmt.Printf(someth)
 		}
@@ -86,8 +86,8 @@ func (c CLib) String() string {
 	name = "%s",
         copts = %s,
         includes=[
-            "//sys/include"
-            "//amd64/include"
+            "//sys/include",
+            "//amd64/include",
         ],
 	%s
 )`
@@ -112,7 +112,7 @@ func (s Strm) String() string {
 		field, _ := reflect.TypeOf(CLib{}).FieldByName(k)
 		strs = append(strs, fmt.Sprintf("%s = %s", field.Tag.Get("cc_library"), v))
 	}
-	return fmt.Sprintf(strings.Join(strs, ",\n\t"))
+	return fmt.Sprintf(strings.Join(strs, ",\n\t")) + ","
 }
 
 type CLib struct {
@@ -127,7 +127,7 @@ type CLib struct {
 }
 
 func (c SSlice) String() string {
-	t := "[\n\t\t%s\n\t]"
+	t := "[\n\t\t%s,\n\t]"
 	for i, s := range c {
 		c[i] = fmt.Sprintf("\"%s\"", strings.TrimLeft(s, "-"))
 	}

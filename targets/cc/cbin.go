@@ -11,6 +11,7 @@ import (
 
 	"sevki.org/build"
 	"sevki.org/build/util"
+	"sevki.org/lib/prettyprint"
 )
 
 type CBin struct {
@@ -45,7 +46,7 @@ func (cb *CBin) Hash() []byte {
 }
 
 func (cb *CBin) Build(c *build.Context) error {
-
+	c.Println(prettyprint.AsJSON(cb))
 	params := []string{}
 	params = append(params, cb.CompilerOptions...)
 	params = append(params, cb.Sources...)
