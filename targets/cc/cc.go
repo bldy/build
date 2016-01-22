@@ -62,14 +62,14 @@ func compiler() string {
 		return fmt.Sprintf("%s%s", tpfx, cc)
 	}
 }
-func ar() string {
+func archiver() string {
 	if tpfx := os.Getenv("TOOLPREFIX"); tpfx == "" {
 		return ar
 	} else {
 		return fmt.Sprintf("%s%s", tpfx, ar)
 	}
 }
-func ld() string {
+func linker() string {
 	if tpfx := os.Getenv("TOOLPREFIX"); tpfx == "" {
 		return ld
 	} else {

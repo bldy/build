@@ -83,7 +83,7 @@ func (cb *CBin) Build(c *build.Context) error {
 		ldparams = append(ldparams, fmt.Sprintf("-%s", cb.LinkerFile))
 	}
 
-	if err := c.Exec(ld(), CCENV, ldparams); err != nil {
+	if err := c.Exec(linker(), CCENV, ldparams); err != nil {
 		return fmt.Errorf(err.Error())
 	}
 
