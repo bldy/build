@@ -19,6 +19,8 @@ import (
 var (
 	CCVersion = ""
 	cc        = ""
+	ld        = ""
+	ar        = ""
 	CCENV     = os.Environ()
 )
 
@@ -29,6 +31,12 @@ func init() {
 
 	if cc = os.Getenv("CC"); cc == "" {
 		cc = "CC"
+	}
+	if ld = os.Getenv("LD"); ld == "" {
+		ld = "ld"
+	}
+	if ar = os.Getenv("AR"); ar == "" {
+		ar = "ar"
 	}
 
 	if out, err := exec.Command(cc, "--version").Output(); err != nil {
@@ -56,16 +64,16 @@ func compiler() string {
 }
 func ar() string {
 	if tpfx := os.Getenv("TOOLPREFIX"); tpfx == "" {
-		return "ar"
+		return ar
 	} else {
-		return fmt.Sprintf("%s%s", tpfx, "ar")
+		return fmt.Sprintf("%s%s", tpfx, ar)
 	}
 }
 func ld() string {
 	if tpfx := os.Getenv("TOOLPREFIX"); tpfx == "" {
-		return "ld"
+		return ld
 	} else {
-		return fmt.Sprintf("%s%s", tpfx, "ld")
+		return fmt.Sprintf("%s%s", tpfx, ld)
 	}
 }
 
