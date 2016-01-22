@@ -39,7 +39,9 @@ func (pp *PostProcessor) ProcessDependencies(t build.Target) error {
 
 	for i, d := range deps {
 		if _, ok := seen[d]; ok {
-			log.Fatalf("post process dependencies: %s is duplicated", d)
+			return fmt.Errorf("post process dependencies: %s is duplicated", d)
+		} else {
+			seen[d] = true
 		}
 		switch {
 		case d[:2] == "//":
