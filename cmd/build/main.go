@@ -87,6 +87,7 @@ func execute(t string) {
 	}
 	c.Root = c.Add(t)
 	c.Root.IsRoot = true
+
 	if c.Root == nil {
 		log.Fatal("We couldn't find the root")
 	}
@@ -113,7 +114,7 @@ func execute(t string) {
 		select {
 		case done := <-c.Done:
 			if *verbose {
-				doneMessage(done.Target.GetName())
+				doneMessage(done.Url.String())
 			}
 			if done.IsRoot {
 				goto FIN

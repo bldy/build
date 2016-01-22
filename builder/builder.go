@@ -84,6 +84,7 @@ type Node struct {
 	Target   build.Target
 	Children map[string]*Node
 	Parents  map[string]*Node `json:"-"`
+	Url      parser.TargetURL
 	wg       sync.WaitGroup
 	Status   STATUS
 	Output   string
@@ -125,23 +126,26 @@ func (b *Builder) getTarget(url parser.TargetURL) (n *Node) {
 				once:     sync.Once{},
 				wg:       sync.WaitGroup{},
 				Status:   Pending,
+				Url:      xu,
 			}
 
 			post := postprocessor.New(url.Package)
 
-			post.ProcessDependencies(node.Target)
+			err := post.ProcessDependencies(node.Target)
+			if err != nil {
+				log.Fatal(err)
+			}
 
 			var deps []build.Target
 
 			for _, d := range node.Target.GetDependencies() {
 				c := b.Add(d)
-
 				node.wg.Add(1)
 
 				deps = append(deps, c.Target)
 
-				node.Children[c.Target.GetName()] = c
-				c.Parents[node.Target.GetName()] = &node
+				node.Children[d] = c
+				c.Parents[xu.String()] = &node
 
 			}
 

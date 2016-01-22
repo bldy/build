@@ -147,7 +147,7 @@ func (b *Builder) work(jq chan *Node, workerNumber int) {
 			b.Updates <- Update{
 				Worker:    workerNumber,
 				TimeStamp: time.Now(),
-				Target:    job.Target.GetName(),
+				Target:    job.Url.String(),
 				Status:    Started,
 			}
 			buildErr := b.build(job)
@@ -157,7 +157,7 @@ func (b *Builder) work(jq chan *Node, workerNumber int) {
 				b.Updates <- Update{
 					Worker:    workerNumber,
 					TimeStamp: time.Now(),
-					Target:    job.Target.GetName(),
+					Target:    job.Url.String(),
 					Status:    Fail,
 				}
 
@@ -169,7 +169,7 @@ func (b *Builder) work(jq chan *Node, workerNumber int) {
 				b.Updates <- Update{
 					Worker:    workerNumber,
 					TimeStamp: time.Now(),
-					Target:    job.Target.GetName(),
+					Target:    job.Url.String(),
 					Status:    Success,
 				}
 			}
