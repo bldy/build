@@ -68,6 +68,7 @@ func (dtc *DataToC) Build(c *build.Context) error {
 }
 func (dtc *DataToC) Installs() map[string]string {
 	installs := make(map[string]string)
-	installs[fmt.Sprintf("%.c", dtc.Name)] = fmt.Sprintf("%.c", dtc.Name)
+	fname := fmt.Sprintf("%s.c", dtc.Name)
+	installs[fname] = fname
 	return installs
 }

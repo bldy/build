@@ -55,21 +55,21 @@ func init() {
 	}
 }
 
-func compiler() string {
+func Compiler() string {
 	if tpfx := os.Getenv("TOOLPREFIX"); tpfx == "" {
 		return cc
 	} else {
 		return fmt.Sprintf("%s%s", tpfx, cc)
 	}
 }
-func archiver() string {
+func Archiver() string {
 	if tpfx := os.Getenv("TOOLPREFIX"); tpfx == "" {
 		return ar
 	} else {
 		return fmt.Sprintf("%s%s", tpfx, ar)
 	}
 }
-func linker() string {
+func Linker() string {
 	if tpfx := os.Getenv("TOOLPREFIX"); tpfx == "" {
 		return ld
 	} else {

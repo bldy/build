@@ -60,7 +60,7 @@ func (cl *CLib) Build(c *build.Context) error {
 	params = append(params, cl.Sources...)
 	params = append(params, cl.Includes.Includes()...)
 
-	if err := c.Exec(compiler(), CCENV, params); err != nil {
+	if err := c.Exec(Compiler(), CCENV, params); err != nil {
 		c.Println(err.Error())
 		return fmt.Errorf(cl.buf.String())
 	}
@@ -75,7 +75,7 @@ func (cl *CLib) Build(c *build.Context) error {
 		params = append(params, fmt.Sprintf("%s.o", filename[:strings.LastIndex(filename, ".")]))
 	}
 
-	if err := c.Exec(archiver(), CCENV, params); err != nil {
+	if err := c.Exec(Archiver(), CCENV, params); err != nil {
 		c.Println(err.Error())
 		return fmt.Errorf(cl.buf.String())
 	}

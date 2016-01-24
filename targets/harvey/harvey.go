@@ -11,10 +11,12 @@ import (
 )
 
 func init() {
+	if err := ast.Register("kernel", Kernel{}); err != nil {
+		log.Fatal(err)
+	}
 	if err := ast.Register("mk_sys", MkSys{}); err != nil {
 		log.Fatal(err)
 	}
-
 	if err := ast.Register("elf_to_c", ElfToC{}); err != nil {
 		log.Fatal(err)
 	}

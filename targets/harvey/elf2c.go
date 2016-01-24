@@ -28,8 +28,8 @@ func (etc *ElfToC) GetDependencies() []string {
 
 func (etc *ElfToC) Installs() map[string]string {
 	i := make(map[string]string)
-
-	i[filepath.Join("include", fmt.Sprintf("%s.h", etc.Name))] = fmt.Sprintf("%s.h", etc.Name)
+	name := filepath.Base(etc.Elf)
+	i[filepath.Join("include", fmt.Sprintf("%s.h", name))] = fmt.Sprintf("%s.h", etc.Name)
 	return i
 }
 
