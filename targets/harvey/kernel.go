@@ -58,6 +58,37 @@ func (k *Kernel) Build(c *build.Context) error {
 		return fmt.Errorf(err.Error())
 	}
 
+	// Edit ,s/k/k/g
+	ldparams := []string{"-o", k.Name}
+	ldparams = append(ldparams, k.LinkerOptions...)
+
+	// This is done under the assumption that each src file put in this thing
+	// here will comeout as a .o file
+	for _, f := range k.Sources {
+		_, fname := filepath.Split(f)
+		ldparams = append(ldparams, fmt.Sprintf("%s.o", fname[:strings.LastIndex(fname, ".")]))
+	}
+
+	ldparams = append(ldparams, "-L", "lib")
+
+	for _, dep := range k.Dependencies {
+		d := split(dep, ":")
+		if len(d) < 3 {
+			continue
+		}
+		if d[:3] == "lib" {
+			ldparams = append(ldparams, fmt.Sprintf("-l%s", d[3:]))
+		}
+	}
+
+	if k.LinkerFile != "" {
+		ldparams = append(ldparams, fmt.Sprintf("-%s", k.LinkerFile))
+	}
+
+	if err := c.Exec(cc.Linker(), cc.CCENV, ldparams); err != nil {
+		return fmt.Errorf(err.Error())
+	}
+
 	return nil
 }
 
