@@ -7,13 +7,38 @@ package build // import "sevki.org/build"
 import (
 	"bytes"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
+
+	"gopkg.in/yaml.v2"
+	"sevki.org/build/util"
 )
+
+var vars map[string]string
+
+func init() {
+	if data, err := ioutil.ReadFile(filepath.Join(util.GetProjectPath(), ".build")); err == nil {
+		vars = make(map[string]string)
+
+		err = yaml.Unmarshal(data, &vars)
+		if err != nil {
+			log.Fatalf("error: %v", err)
+		}
+	}
+}
+
+func Getenv(s string) string {
+	if val, exists := vars[s]; exists {
+		return val
+	} else {
+		return os.Getenv(s)
+	}
+}
 
 // Target defines the interface that rules must implement for becoming build targets.
 type Target interface {

@@ -13,6 +13,7 @@ import (
 
 	"os"
 
+	"sevki.org/build"
 	"sevki.org/build/ast"
 )
 
@@ -29,13 +30,13 @@ func init() {
 	CCENV = append(CCENV, fmt.Sprintf("%s=%s", "C_INCLUDE_PATH", "include"))
 	CCENV = append(CCENV, fmt.Sprintf("%s=%s", "LIBRARY_PATH", "lib"))
 
-	if cc = os.Getenv("CC"); cc == "" {
+	if cc = build.Getenv("CC"); cc == "" {
 		cc = "CC"
 	}
-	if ld = os.Getenv("LD"); ld == "" {
+	if ld = build.Getenv("LD"); ld == "" {
 		ld = "ld"
 	}
-	if ar = os.Getenv("AR"); ar == "" {
+	if ar = build.Getenv("AR"); ar == "" {
 		ar = "ar"
 	}
 
@@ -56,21 +57,22 @@ func init() {
 }
 
 func Compiler() string {
-	if tpfx := os.Getenv("TOOLPREFIX"); tpfx == "" {
+	if tpfx := build.Getenv("TOOLPREFIX"); tpfx == "" {
 		return cc
 	} else {
 		return fmt.Sprintf("%s%s", tpfx, cc)
 	}
 }
+
 func Archiver() string {
-	if tpfx := os.Getenv("TOOLPREFIX"); tpfx == "" {
+	if tpfx := build.Getenv("TOOLPREFIX"); tpfx == "" {
 		return ar
 	} else {
 		return fmt.Sprintf("%s%s", tpfx, ar)
 	}
 }
 func Linker() string {
-	if tpfx := os.Getenv("TOOLPREFIX"); tpfx == "" {
+	if tpfx := build.Getenv("TOOLPREFIX"); tpfx == "" {
 		return ld
 	} else {
 		return fmt.Sprintf("%s%s", tpfx, ld)
