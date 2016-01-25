@@ -67,7 +67,7 @@ func (cl *CLib) Build(c *build.Context) error {
 
 	libName := fmt.Sprintf("%s.a", cl.Name)
 	params = []string{"-rs", libName}
-
+	params = append(params, cl.LinkerOptions...)
 	// This is done under the assumption that each src file put in this thing
 	// here will comeout as a .o file
 	for _, f := range cl.Sources {
