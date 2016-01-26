@@ -184,7 +184,7 @@ func (mkSys *MkSys) Build(c *build.Context) error {
 					goargs = append(goargs, fmt.Sprintf("MOVQ	arg%d+%d(FP), %s", k, fpoff, syscallargs[k]))
 					fpoff += 8
 				default:
-					fmt.Errorf("unsupported arg %s in syscall: %v", syscalls[i].Args[k], syscalls[i])
+					return fmt.Errorf("unsupported arg %s in syscall: %v", syscalls[i].Args[k], syscalls[i])
 				}
 			}
 			syscalls[i].GoArgs = goargs

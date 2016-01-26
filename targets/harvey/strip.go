@@ -12,7 +12,6 @@ import (
 type Strip struct {
 	Name         string   `strip:"name"`
 	Dependencies []string `strip:"deps"`
-	Bin          string   `strip:"bin"`
 }
 
 func (s *Strip) GetName() string {
@@ -27,7 +26,6 @@ func (s *Strip) Hash() []byte {
 	h := sha1.New()
 
 	io.WriteString(h, s.Name)
-	io.WriteString(h, s.Bin)
 	return []byte{}
 }
 
@@ -40,9 +38,10 @@ func Stripper() string {
 	}
 }
 func (s *Strip) Build(c *build.Context) error {
+
 	params := []string{"-o"}
 	params = append(params, s.Name)
-	params = append(params, filepath.Join("bin", s.Bin))
+	params = append(params, filepath.Join("bin", split(s.Dependencies[0], ":")))
 	if err := c.Exec(Stripper(), nil, params); err != nil {
 		return fmt.Errorf(err.Error())
 	}
@@ -50,7 +49,6 @@ func (s *Strip) Build(c *build.Context) error {
 }
 func (s *Strip) Installs() map[string]string {
 	installs := make(map[string]string)
-	fname := fmt.Sprintf("%s.c", s.Name)
-	installs[filepath.Join("bin", fname)] = fname
+	installs[filepath.Join("bin", s.Name)] = s.Name
 	return installs
 }

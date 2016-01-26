@@ -117,10 +117,10 @@ func (etc *ElfToC) Build(c *build.Context) error {
 				break
 			} else {
 				i = i + uint64(amt)
-				c.Println("i now %v\n", i)
+				c.Printf("i now %d\n", i)
 			}
 		}
-		c.Println("Processed %v\n", v)
+		c.Printf("Processed %v\n", v)
 	}
 	c.Printf("gencode\n")
 	// Gen code to stdout. For each file, create an array, a start, and an end variable.

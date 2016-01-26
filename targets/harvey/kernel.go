@@ -1,11 +1,10 @@
 package harvey
 
 import (
-	"bytes"
 	"crypto/sha1"
-	"debug/elf"
 	"fmt"
 	"io/ioutil"
+
 	"os"
 	"text/template"
 
@@ -15,28 +14,20 @@ import (
 	"path/filepath"
 
 	"sevki.org/build"
-	"sevki.org/build/targets/cc"
-	"sevki.org/build/util"
 	"sevki.org/lib/prettyprint"
 )
 
 type Kernel struct {
-	Name            string           `kernel:"name"`
-	Sources         []string         `kernel:"srcs" build:"path"`
-	Dependencies    []string         `kernel:"deps"`
-	Includes        cc.Includes      `kernel:"includes" build:"path"`
-	Headers         []string         `kernel:"hdrs" build:"path"`
-	CompilerOptions cc.CompilerFlags `kernel:"copts"`
-	LinkerOptions   []string         `kernel:"linkopts"`
-	LinkerFile      string           `kernel:"ld" build:"path"`
-	RamFiles        []string         `kernel:"ramfiles"`
-	Code            []string
-	Dev             []string
-	Ip              []string
-	Link            []string
-	Sd              []string
-	Uart            []string
-	VGA             []string
+	Name         string   `kernel:"name"`
+	Dependencies []string `kernel:"deps"`
+	RamFiles     []string `kernel:"ramfiles"`
+	Code         []string `kernel:"code"`
+	Dev          []string `kernel:"dev"`
+	Ip           []string `kernel:"ip"`
+	Link         []string `kernel:"link"`
+	Sd           []string `kernel:"sd"`
+	Uart         []string `kernel:"uart"`
+	VGA          []string `kernel:"vga"`
 }
 
 func split(s string, c string) string {
@@ -50,64 +41,51 @@ func split(s string, c string) string {
 func (k *Kernel) Hash() []byte {
 
 	h := sha1.New()
-	io.WriteString(h, cc.CCVersion)
+
 	io.WriteString(h, k.Name)
-	util.HashFiles(h, k.Includes)
-	util.HashFiles(h, []string(k.Sources))
-	util.HashStrings(h, k.CompilerOptions)
-	util.HashStrings(h, k.LinkerOptions)
+	io.WriteString(h, prettyprint.AsJSON(k))
 	return h.Sum(nil)
 }
 
 func (k *Kernel) Build(c *build.Context) error {
-	c.Println(prettyprint.AsJSON(k))
-	params := []string{"-c"}
-	params = append(params, k.CompilerOptions...)
-	params = append(params, k.Sources...)
 
-	params = append(params, k.Includes.Includes()...)
-
-	if err := c.Exec(cc.Compiler(), cc.CCENV, params); err != nil {
-		return fmt.Errorf(err.Error())
-	}
-
-	ldparams := []string{"-o", k.Name}
-	ldparams = append(ldparams, k.LinkerOptions...)
-
-	if k.LinkerFile != "" {
-		ldparams = append(ldparams, k.LinkerFile)
-	}
-
-	// This is done under the assumption that each src file put in this thing
-	// here will comeout as a .o file
-	for _, f := range k.Sources {
-		_, fname := filepath.Split(f)
-		ldparams = append(ldparams, fmt.Sprintf("%s.o", fname[:strings.LastIndex(fname, ".")]))
-	}
-
-	ldparams = append(ldparams, "-L", "lib")
-
+	var rootcodes []string
+	var rootnames []string
 	for _, dep := range k.Dependencies {
-		d := split(dep, ":")
-		if len(d) < 3 {
-			continue
-		}
-		if d[:3] == "lib" {
-			ldparams = append(ldparams, fmt.Sprintf("-l%s", d[3:]))
-		}
-	}
+		name := split(dep, ":")
+		code, err := data2c(name, filepath.Join("bin", name), c)
 
-	if err := c.Exec(cc.Linker(), cc.CCENV, ldparams); err != nil {
-		return fmt.Errorf(err.Error())
+		if err != nil {
+			return err
+		}
+		rootcodes = append(rootcodes, code)
+		rootnames = append(rootnames, name)
 	}
+	path := fmt.Sprintf("%s.c", k.Name)
+	vars := struct {
+		Path      string
+		Config    Kernel
+		Rootnames []string
+		Rootcodes []string
+	}{
+		path,
+		*k,
+		rootnames,
+		rootcodes,
+	}
+	tmpl := template.Must(template.New("kernconf").Parse(kernconfTmpl))
+	f, err := c.Create(path)
+	if err != nil {
+		return nil
+	}
+	return tmpl.Execute(f, vars)
 
-	return nil
 }
 
 func (k *Kernel) Installs() map[string]string {
 	exports := make(map[string]string)
-
-	exports[filepath.Join("bin", k.Name)] = k.Name
+	path := fmt.Sprintf("%s.c", k.Name)
+	exports[path] =path
 
 	return exports
 }
@@ -123,44 +101,18 @@ func (k *Kernel) GetDependencies() []string {
 func data2c(name string, path string, c *build.Context) (string, error) {
 	var out []byte
 	var in []byte
-	fileName := ""
-	if xf, err := c.Open(path); err != nil {
+	var file *os.File
+	var err error
+	if file, err = c.Open(path); err != nil {
 		return "", fmt.Errorf("open :%s", err.Error())
-	} else {
-		fileName = xf.Name()
-		xf.Close()
+
 	}
 
-	if elf, err := elf.Open(path); err == nil {
-		elf.Close()
-		cwd, err := os.Getwd()
-		tmpf, err := ioutil.TempFile(cwd, name)
-		if err != nil {
-			return "", nil
-		}
-
-		in, err = ioutil.ReadAll(tmpf)
-		if err != nil {
-			return "", nil
-		}
-		tmpf.Close()
-		os.Remove(tmpf.Name())
-	} else {
-		var file *os.File
-		var err error
-
-		file, err = os.Open(path)
-		if err != nil {
-			return "", nil
-		}
-
-		in, err = ioutil.ReadAll(file)
-		if err != nil {
-			return "", nil
-		}
-
-		file.Close()
+	if in, err = ioutil.ReadAll(file); err != nil {
+		return "", nil
 	}
+
+	file.Close()
 
 	total := len(in)
 
@@ -178,34 +130,14 @@ func data2c(name string, path string, c *build.Context) (string, error) {
 	return string(out), nil
 }
 
-// confcode creates a kernel configuration header.
-func confcode(path string, k *Kernel, c *build.Context) error {
-	var rootcodes []string
-	var rootnames []string
-	for name, path := range k.RamFiles {
-		code, err := data2c(k.Name, filepath.Join("bin", k.Name), c)
-		if err != nil {
-			return err
-		}
-		rootcodes = append(rootcodes, code)
-		rootnames = append(rootnames, k.Name)
-	}
-
-	vars := struct {
-		Path      string
-		Config    kernconfig
-		Rootnames []string
-		Rootcodes []string
-	}{
-		path,
-		k.Config,
-		rootnames,
-		rootcodes,
-	}
-
-	tmpl := template.Must(template.New("kernconf").Parse(kernconfTmpl))
-	codebuf := &bytes.Buffer{}
-	return codebuf.Bytes()
+type kernconfig struct {
+	Code []string
+	Dev  []string
+	Ip   []string
+	Link []string
+	Sd   []string
+	Uart []string
+	VGA  []string
 }
 
 const kernconfTmpl = `

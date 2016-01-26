@@ -22,6 +22,7 @@ type CBin struct {
 	Headers         []string      `cxx_binary:"exported_headers" cc_binary:"hdrs" build:"path"`
 	CompilerOptions CompilerFlags `cxx_binary:"compiler_flags" cc_binary:"copts"`
 	LinkerOptions   []string      `cxx_binary:"linker_flags" cc_binary:"linkopts"`
+	LinkerFile      string        `cxx_binary:"ld" cc_binary:"ld" build:"path"`
 }
 
 func split(s string, c string) string {
@@ -58,7 +59,9 @@ func (cb *CBin) Build(c *build.Context) error {
 
 	ldparams := []string{"-o", cb.Name}
 	ldparams = append(ldparams, cb.LinkerOptions...)
-
+	if cb.LinkerFile != "" {
+		ldparams = append(ldparams, cb.LinkerFile)
+	}
 	// This is done under the assumption that each src file put in this thing
 	// here will comeout as a .o file
 	for _, f := range cb.Sources {
