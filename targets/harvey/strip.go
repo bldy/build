@@ -1,4 +1,8 @@
-package harvey
+// Copyright 2016 Sevki <s@sevki.org>. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+package harvey // import "sevki.org/build/targets/harvey"
 
 import (
 	"crypto/sha1"
@@ -38,7 +42,6 @@ func Stripper() string {
 	}
 }
 func (s *Strip) Build(c *build.Context) error {
-
 	params := []string{"-o"}
 	params = append(params, s.Name)
 	params = append(params, filepath.Join("bin", split(s.Dependencies[0], ":")))

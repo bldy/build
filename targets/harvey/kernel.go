@@ -20,7 +20,7 @@ import (
 type Kernel struct {
 	Name         string   `kernel:"name"`
 	Dependencies []string `kernel:"deps"`
-	RamFiles     []string `kernel:"ramfiles"`
+	RamFiles     []string `kernel:"ramfiles" build:"path"`
 	Code         []string `kernel:"code"`
 	Dev          []string `kernel:"dev"`
 	Ip           []string `kernel:"ip"`
@@ -54,6 +54,16 @@ func (k *Kernel) Build(c *build.Context) error {
 	for _, dep := range k.Dependencies {
 		name := split(dep, ":")
 		code, err := data2c(name, filepath.Join("bin", name), c)
+
+		if err != nil {
+			return err
+		}
+		rootcodes = append(rootcodes, code)
+		rootnames = append(rootnames, name)
+	}
+	for _, p := range k.RamFiles {
+		name := filepath.Base(p)
+		code, err := data2c(name, p, c)
 
 		if err != nil {
 			return err

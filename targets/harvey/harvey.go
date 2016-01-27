@@ -17,6 +17,9 @@ func init() {
 	if err := ast.Register("strip", Strip{}); err != nil {
 		log.Fatal(err)
 	}
+	if err := ast.Register("objcopy", ObjCopy{}); err != nil {
+		log.Fatal(err)
+	}
 	if err := ast.Register("mk_sys", MkSys{}); err != nil {
 		log.Fatal(err)
 	}
