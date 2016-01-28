@@ -54,7 +54,7 @@ func (b *Builder) Execute(d time.Duration, r int) {
 func (b *Builder) build(n *Node) (err error) {
 	var buildErr error
 
-	nodeHash := fmt.Sprintf("%s-%x", n.Target.GetName(), n.hashNode())
+	nodeHash := fmt.Sprintf("%s-%x", n.Target.GetName(), n.HashNode())
 
 	outDir := filepath.Join(
 		"/tmp",
@@ -99,7 +99,7 @@ func (b *Builder) build(n *Node) (err error) {
 					filepath.Join(
 						"/tmp",
 						"build",
-						fmt.Sprintf("%s-%x", e.Target.GetName(), e.hashNode()),
+						fmt.Sprintf("%s-%x", e.Target.GetName(), e.HashNode()),
 						src,
 					),
 					filepath.Join(
@@ -211,7 +211,7 @@ func (a ByName) Less(i, j int) bool {
 	return strings.Compare(a[i].Target.GetName(), a[j].Target.GetName()) > 0
 }
 
-func (n *Node) hashNode() []byte {
+func (n *Node) HashNode() []byte {
 	h := sha1.New()
 	h.Write(n.Target.Hash())
 	util.HashStrings(h, n.Target.GetDependencies())
@@ -222,7 +222,7 @@ func (n *Node) hashNode() []byte {
 	}
 	sort.Sort(bn)
 	for _, e := range bn {
-		h.Write(e.hashNode())
+		h.Write(e.HashNode())
 	}
 	return h.Sum(nil)
 }
