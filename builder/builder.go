@@ -176,7 +176,7 @@ func (b *Builder) Add(t string) *Node {
 	return b.getTarget(parser.NewTargetURLFromString(t))
 }
 
-func (n *Node) hashNode() []byte {
+func (n *Node) HashNode() []byte {
 	// node hashes should not change after a build,
 	// they should be deterministic, therefore they should and can be cached.
 	if len(n.hash) > 0 {
@@ -192,7 +192,7 @@ func (n *Node) hashNode() []byte {
 	}
 	sort.Sort(bn)
 	for _, e := range bn {
-		h.Write(e.hashNode())
+		h.Write(e.HashNode())
 	}
 	n.hash = h.Sum(nil)
 	return n.hash

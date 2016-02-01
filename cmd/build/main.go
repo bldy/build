@@ -55,6 +55,12 @@ func main() {
 	case "serve":
 		target = flag.Args()[1]
 		server(target)
+	case "query":
+		target = flag.Args()[1]
+		query(target)
+	case "hash":
+		target = flag.Args()[1]
+		hash(target)	
 	default:
 		execute(target)
 	}
@@ -77,6 +83,26 @@ func doneMessage(s string) {
 func failMessage(s string) {
 	fmt.Printf("[ %s ] %s\n", "FAIL", s)
 
+}
+func hash(t string) {
+	c := builder.New()
+
+	if c.ProjectPath == "" {
+		fmt.Fprintf(os.Stderr, "You need to be in a git project.\n\n")
+		printUsage()
+	}
+	fmt.Printf("%x\n", c.Add(t).HashNode())
+}
+
+func query(t string) {
+
+	c := builder.New()
+
+	if c.ProjectPath == "" {
+		fmt.Fprintf(os.Stderr, "You need to be in a git project.\n\n")
+		printUsage()
+	}
+	fmt.Println(prettyprint.AsJSON(c.Add(t).Target))
 }
 func execute(t string) {
 

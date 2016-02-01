@@ -49,10 +49,12 @@ func (b *Builder) Execute(d time.Duration, r int) {
 	}
 	b.visit(b.Root)
 }
+
+
 func (b *Builder) build(n *Node) (err error) {
 	var buildErr error
 
-	nodeHash := fmt.Sprintf("%s-%x", n.Target.GetName(), n.hashNode())
+	nodeHash := fmt.Sprintf("%s-%x", n.Target.GetName(), n.HashNode())
 
 	outDir := filepath.Join(
 		"/tmp",
@@ -97,7 +99,7 @@ func (b *Builder) build(n *Node) (err error) {
 					filepath.Join(
 						"/tmp",
 						"build",
-						fmt.Sprintf("%s-%x", e.Target.GetName(), e.hashNode()),
+						fmt.Sprintf("%s-%x", e.Target.GetName(), e.HashNode()),
 						src,
 					),
 					filepath.Join(
@@ -199,7 +201,7 @@ func (b *Builder) work(jq chan *Node, workerNumber int) {
 						filepath.Join(
 							"/tmp",
 							"build",
-							fmt.Sprintf("%s-%x", job.Target.GetName(), job.hashNode()),
+							fmt.Sprintf("%s-%x", job.Target.GetName(), job.HashNode()),
 							src,
 						),
 						filepath.Join(
