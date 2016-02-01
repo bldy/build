@@ -28,7 +28,6 @@ func (s *Strip) GetDependencies() []string {
 
 func (s *Strip) Hash() []byte {
 	h := sha1.New()
-
 	io.WriteString(h, s.Name)
 	return []byte{}
 }

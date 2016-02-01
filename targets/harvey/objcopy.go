@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 package harvey // import "sevki.org/build/targets/harvey"
- 
+
 import (
 	"crypto/sha1"
 	"fmt"
@@ -30,7 +30,8 @@ func (oc *ObjCopy) GetDependencies() []string {
 
 func (oc *ObjCopy) Hash() []byte {
 	h := sha1.New()
-
+	io.WriteString(h, oc.In)
+	io.WriteString(h, oc.Out)
 	io.WriteString(h, oc.Name)
 	return []byte{}
 }

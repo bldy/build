@@ -5,13 +5,11 @@
 package builder // import "sevki.org/build/builder"
 
 import (
-	"crypto/sha1"
 	"fmt"
 	"io"
 	"log"
 	"os"
 	"path/filepath"
-	"sort"
 	"time"
 
 	"io/ioutil"
@@ -181,8 +179,36 @@ func (b *Builder) work(jq chan *Node, workerNumber int) {
 						parent.wg.Done()
 					}
 				})
-
 			} else {
+				for dst, src := range job.Target.Installs() {
+
+					target := filepath.Base(dst)
+					targetDir := filepath.Join(
+						util.GetProjectPath(),
+						"build_out",
+					)
+					os.RemoveAll(targetDir)
+					if err := os.MkdirAll(
+						targetDir,
+						os.ModeDir|os.ModePerm,
+					); err != nil {
+						log.Fatalf("linking job %s failed: %s", job.Target.GetName(), err.Error())
+					}
+
+					os.Symlink(
+						filepath.Join(
+							"/tmp",
+							"build",
+							fmt.Sprintf("%s-%x", job.Target.GetName(), job.hashNode()),
+							src,
+						),
+						filepath.Join(
+							util.GetProjectPath(),
+							"build_out",
+							target,
+						),
+					)
+				}
 				close(b.Done)
 				return
 			}
@@ -202,30 +228,6 @@ const (
 	Fatal
 	Building
 )
-
-type ByName []*Node
-
-func (a ByName) Len() int      { return len(a) }
-func (a ByName) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
-func (a ByName) Less(i, j int) bool {
-	return strings.Compare(a[i].Target.GetName(), a[j].Target.GetName()) > 0
-}
-
-func (n *Node) hashNode() []byte {
-	h := sha1.New()
-	h.Write(n.Target.Hash())
-	util.HashStrings(h, n.Target.GetDependencies())
-	var bn ByName
-	for _, e := range n.Children {
-		bn = append(bn, e)
-
-	}
-	sort.Sort(bn)
-	for _, e := range bn {
-		h.Write(e.hashNode())
-	}
-	return h.Sum(nil)
-}
 
 func (b *Builder) visit(n *Node) {
 

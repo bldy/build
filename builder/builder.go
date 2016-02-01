@@ -6,8 +6,11 @@
 package builder // import "sevki.org/build/builder"
 
 import (
+	"crypto/sha1"
 	"log"
 	"os"
+	"sort"
+	"strings"
 	"time"
 
 	"sync"
@@ -90,6 +93,7 @@ type Node struct {
 	Output   string
 	once     sync.Once
 	sync.Mutex
+	hash []byte
 }
 
 func (b *Builder) getTarget(url parser.TargetURL) (n *Node) {
@@ -170,4 +174,34 @@ func (b *Builder) getTarget(url parser.TargetURL) (n *Node) {
 
 func (b *Builder) Add(t string) *Node {
 	return b.getTarget(parser.NewTargetURLFromString(t))
+}
+
+func (n *Node) hashNode() []byte {
+	// node hashes should not change after a build,
+	// they should be deterministic, therefore they should and can be cached.
+	if len(n.hash) > 0 {
+		return n.hash
+	}
+	h := sha1.New()
+	h.Write(n.Target.Hash())
+	util.HashStrings(h, n.Target.GetDependencies())
+	var bn ByName
+	for _, e := range n.Children {
+		bn = append(bn, e)
+
+	}
+	sort.Sort(bn)
+	for _, e := range bn {
+		h.Write(e.hashNode())
+	}
+	n.hash = h.Sum(nil)
+	return n.hash
+}
+
+type ByName []*Node
+
+func (a ByName) Len() int      { return len(a) }
+func (a ByName) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a ByName) Less(i, j int) bool {
+	return strings.Compare(a[i].Target.GetName(), a[j].Target.GetName()) > 0
 }

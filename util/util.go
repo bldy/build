@@ -40,6 +40,9 @@ RESTART:
 		if !filepath.IsAbs(file) {
 			continue
 		}
+		if filepath.Base(file) == "build_out" {
+			continue
+		}
 
 		f, err := os.Open(file)
 
@@ -58,6 +61,46 @@ RESTART:
 			in the folder */
 		}
 
+		fmt.Fprintf(h, "file %s\n", filepath.Join(pp, file))
+		n, _ := io.Copy(h, f)
+		fmt.Fprintf(h, "%d bytes\n", n)
+		f.Close()
+	}
+}
+
+// HashFilesWithExt will hash files collecetion represented as a string array,
+// If the string in the array is directory it will the directory contents to the array
+// if the string isn't an absolute path, it will assume that it's a export from a dependency
+// and skip that.
+func HashFilesWithExt(h io.Writer, files []string, ext string) {
+	fsm := files
+RESTART:
+	for i, file := range fsm {
+		if !filepath.IsAbs(file) {
+			continue
+		}
+		if filepath.Base(file) == "build_out" {
+			continue
+		}
+		f, err := os.Open(file)
+
+		if err != nil {
+			log.Fatalf("hash files: %s\n", err.Error())
+		}
+
+		stat, _ := f.Stat()
+		if stat.IsDir() {
+			fsm = append([]string{}, fsm[i+1:]...)
+			fs, _ := f.Readdir(-1)
+			for _, x := range fs {
+				fsm = append(fsm, (filepath.Join(file, x.Name())))
+			}
+			goto RESTART /* to avoid out of bound errors, there may be no files
+			in the folder */
+		} else if filepath.Ext(file) == ext {
+			f.Close()
+			continue
+		}
 		fmt.Fprintf(h, "file %s\n", filepath.Join(pp, file))
 		n, _ := io.Copy(h, f)
 		fmt.Fprintf(h, "%d bytes\n", n)

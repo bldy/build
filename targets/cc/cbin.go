@@ -38,7 +38,7 @@ func (cb *CBin) Hash() []byte {
 	h := sha1.New()
 	io.WriteString(h, CCVersion)
 	io.WriteString(h, cb.Name)
-	util.HashFiles(h, cb.Includes)
+	util.HashFilesWithExt(h, cb.Includes, ".h")
 	util.HashFiles(h, []string(cb.Sources))
 	util.HashStrings(h, cb.CompilerOptions)
 	util.HashStrings(h, cb.LinkerOptions)

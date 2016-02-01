@@ -133,5 +133,8 @@ func (c *Context) Create(name string) (*os.File, error) {
 
 // Create creates and returns a new file with the given name in the context
 func (c *Context) Open(name string) (*os.File, error) {
+	if filepath.IsAbs(name) {
+		return os.Open(name)
+	}
 	return os.Open(filepath.Join(c.wd, name))
 }

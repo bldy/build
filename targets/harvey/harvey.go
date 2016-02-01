@@ -14,6 +14,12 @@ func init() {
 	if err := ast.Register("kernel", Kernel{}); err != nil {
 		log.Fatal(err)
 	}
+	if err := ast.Register("usb", USB{}); err != nil {
+		log.Fatal(err)
+	}
+	if err := ast.Register("sed", Sed{}); err != nil {
+		log.Fatal(err)
+	}
 	if err := ast.Register("strip", Strip{}); err != nil {
 		log.Fatal(err)
 	}

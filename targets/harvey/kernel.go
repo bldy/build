@@ -11,10 +11,11 @@ import (
 	"io"
 	"strings"
 
+	"sevki.org/build/util"
+
 	"path/filepath"
 
 	"sevki.org/build"
-	"sevki.org/lib/prettyprint"
 )
 
 type Kernel struct {
@@ -41,9 +42,15 @@ func split(s string, c string) string {
 func (k *Kernel) Hash() []byte {
 
 	h := sha1.New()
-
+	util.HashFiles(h, k.RamFiles)
+	util.HashStrings(h, k.Code)
+	util.HashStrings(h, k.Dev)
+	util.HashStrings(h, k.Ip)
+	util.HashStrings(h, k.Link)
+	util.HashStrings(h, k.Sd)
+	util.HashStrings(h, k.Uart)
+	util.HashStrings(h, k.VGA)
 	io.WriteString(h, k.Name)
-	io.WriteString(h, prettyprint.AsJSON(k))
 	return h.Sum(nil)
 }
 
@@ -95,7 +102,7 @@ func (k *Kernel) Build(c *build.Context) error {
 func (k *Kernel) Installs() map[string]string {
 	exports := make(map[string]string)
 	path := fmt.Sprintf("%s.c", k.Name)
-	exports[path] =path
+	exports[path] = path
 
 	return exports
 }
@@ -138,16 +145,6 @@ func data2c(name string, path string, c *build.Context) (string, error) {
 	out = append(out, []byte(fmt.Sprintf("0,\n};\nint ramfs_%s_len = %v;\n", name, total))...)
 
 	return string(out), nil
-}
-
-type kernconfig struct {
-	Code []string
-	Dev  []string
-	Ip   []string
-	Link []string
-	Sd   []string
-	Uart []string
-	VGA  []string
 }
 
 const kernconfTmpl = `
