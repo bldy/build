@@ -20,7 +20,6 @@ import (
 	_ "sevki.org/build/targets/build"
 	_ "sevki.org/build/targets/cc"
 	_ "sevki.org/build/targets/harvey"
-	_ "sevki.org/build/targets/golang"
 	_ "sevki.org/build/targets/js"
 	_ "sevki.org/build/targets/yacc"
 	"sevki.org/build/term"
