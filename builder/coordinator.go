@@ -6,7 +6,6 @@ package builder // import "sevki.org/build/builder"
 
 import (
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -24,6 +23,7 @@ import (
 const (
 	SCSSLOG = "success"
 	FAILLOG = "fail"
+	TMP     = "/tmp"
 )
 
 func (b *Builder) Execute(d time.Duration, r int) {
@@ -49,7 +49,6 @@ func (b *Builder) Execute(d time.Duration, r int) {
 	}
 	b.visit(b.Root)
 }
-
 
 func (b *Builder) build(n *Node) (err error) {
 	var buildErr error
@@ -122,10 +121,15 @@ func (b *Builder) build(n *Node) (err error) {
 	if logFile, err := os.Create(filepath.Join(outDir, logName)); err != nil {
 		log.Fatalf("error creating log for %s:", n.Target.GetName(), err.Error())
 	} else {
-		_, err := io.Copy(logFile, context.Stdout())
+		errbytz, err := ioutil.ReadAll(context.Stdout())
+		if err != nil {
+			log.Fatalf("error reading log for %s:", n.Target.GetName(), err.Error())
+		}
+		_, err = logFile.Write(errbytz)
 		if err != nil {
 			log.Fatalf("error writing log for %s:", n.Target.GetName(), err.Error())
 		}
+		return fmt.Errorf("%s", errbytz)
 	}
 
 	return buildErr
