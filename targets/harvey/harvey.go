@@ -14,6 +14,9 @@ func init() {
 	if err := ast.Register("kernel", Kernel{}); err != nil {
 		log.Fatal(err)
 	}
+	if err := ast.Register("config", Config{}); err != nil {
+		log.Fatal(err)
+	}
 	if err := ast.Register("usb", USB{}); err != nil {
 		log.Fatal(err)
 	}

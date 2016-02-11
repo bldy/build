@@ -129,7 +129,9 @@ func (b *Builder) build(n *Node) (err error) {
 		if err != nil {
 			log.Fatalf("error writing log for %s:", n.Target.GetName(), err.Error())
 		}
-		return fmt.Errorf("%s", errbytz)
+		if buildErr != nil {
+			return fmt.Errorf("%s: \n%s", buildErr, errbytz)
+		}
 	}
 
 	return buildErr
@@ -186,16 +188,28 @@ func (b *Builder) work(jq chan *Node, workerNumber int) {
 					}
 				})
 			} else {
-				for dst, src := range job.Target.Installs() {
+				buildOut := filepath.Join(
+					util.GetProjectPath(),
+					"build_out",
+				)
+				os.RemoveAll(buildOut)
+				if err := os.MkdirAll(
+					buildOut,
+					os.ModeDir|os.ModePerm,
+				); err != nil {
+					log.Fatalf("linking job %s failed: %s", job.Target.GetName(), err.Error())
+				}
 
+				for dst, src := range job.Target.Installs() {
 					target := filepath.Base(dst)
-					targetDir := filepath.Join(
-						util.GetProjectPath(),
-						"build_out",
-					)
-					os.RemoveAll(targetDir)
-					if err := os.MkdirAll(
+					targetDir := strings.TrimRight(dst, target)
+
+					buildOutTarget := filepath.Join(
+						buildOut,
 						targetDir,
+					)
+					if err := os.MkdirAll(
+						buildOutTarget,
 						os.ModeDir|os.ModePerm,
 					); err != nil {
 						log.Fatalf("linking job %s failed: %s", job.Target.GetName(), err.Error())
@@ -209,8 +223,7 @@ func (b *Builder) work(jq chan *Node, workerNumber int) {
 							src,
 						),
 						filepath.Join(
-							util.GetProjectPath(),
-							"build_out",
+							buildOutTarget,
 							target,
 						),
 					)
