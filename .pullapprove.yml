@@ -1,0 +1,8 @@
+approve_by_comment: true
+approve_regex: ^(LGTM|:shipit:|:+1:|+1)
+reset_on_push: true
+reviewers:
+  members:
+  - sevki
+  name: default
+  required: 1

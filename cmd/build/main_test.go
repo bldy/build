@@ -12,13 +12,13 @@ import (
 	"testing"
 
 	"sevki.org/build/ast"
-	"sevki.org/build/context"
+	"sevki.org/build/builder"
 )
 
 //BUG(sevki): FOR TESTING PURPOSES THIS IS REALLY STUPID
 func TestParse(t *testing.T) {
 	wd, _ := os.Getwd()
-	c := context.Context{
+	c := builder.Builder{
 		Wd:          filepath.Join(wd, "tests/libxstring"),
 		ProjectPath: filepath.Join(wd, "tests/libxstring"),
 		Targets:     make(map[string]ast.Target),
@@ -35,7 +35,7 @@ func TestParse(t *testing.T) {
 func TestBuild(t *testing.T) {
 
 	wd, _ := os.Getwd()
-	c := context.Context{
+	c := builder.Builder{
 		Wd:          filepath.Join(wd, "tests/libxstring"),
 		ProjectPath: filepath.Join(wd, "tests/libxstring"),
 		Error:       make(chan error),

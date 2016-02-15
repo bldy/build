@@ -37,14 +37,3 @@ func TestGet(t *testing.T) {
 
 	}
 }
-
-func TestKeyMismatch(t *testing.T) {
-
-	if err := Register("test_target", TestTarget{}); err != nil {
-		t.Error(err)
-	}
-	if target := Get("toast_target"); target != nil {
-		t.Error("We couldn't get it")
-
-	}
-}

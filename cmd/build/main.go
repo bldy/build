@@ -42,11 +42,12 @@ var (
 func main() {
 	flag.Parse()
 
-	target := flag.Args()[0]
+
 	if len(flag.Args()) < 1 {
 		flag.Usage()
 		printUsage()
 	}
+	target := flag.Args()[0]
 	switch target {
 	case "version":
 		version()
