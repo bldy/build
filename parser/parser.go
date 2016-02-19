@@ -203,7 +203,13 @@ func (p *Parser) consumeParams(f *ast.Func) {
 
 	}
 }
-
+func (p *Parser) consumeMap() *ast.Map {
+	t := p.next()
+	if !p.isExpected(t, token.LeftCurly) {
+		return nil
+	}
+	return nil
+}
 func (p *Parser) consumeFunc() *ast.Func {
 	t := p.next()
 	if !p.isExpected(t, token.Func) {
