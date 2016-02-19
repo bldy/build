@@ -55,7 +55,6 @@ func TestParseSingleVar(t *testing.T) {
 func TestParseBoolVar(t *testing.T) {
 	doc, err := readAndParse("tests/bool.BUILD")
 	if err != nil {
-
 		t.Error(err)
 	}
 
@@ -192,7 +191,12 @@ func TestParseAddition(t *testing.T) {
 		t.Fail()
 	}
 }
-
+func TestParseMap(t *testing.T) {
+	doc, err := readAndParse("tests/map.BUILD")
+	if err != nil {
+		log.Print(prettyprint.AsJSON(doc))
+	}
+}
 func TestParseFunc(t *testing.T) {
 
 	doc, err := readAndParse("tests/func.BUILD")

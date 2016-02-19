@@ -48,7 +48,11 @@ type Func struct {
 	Parent     *Func `json:"-"`
 	Node
 }
-
+type Map struct {
+	Name string
+	Values map[string]interface{}
+	Node
+}
 type FuncPointer int
 
 type Path string
