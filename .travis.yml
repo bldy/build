@@ -1,0 +1,16 @@
+language: go
+
+go:
+  - 1.5
+  - tip
+
+install:
+  - export GOPATH="$HOME/gopath"
+  - mkdir -p "$GOPATH/src/sevki.org/"
+  - mv "$TRAVIS_BUILD_DIR" "$GOPATH/src/sevki.org/build"
+  - go get sevki.org/build/cmd/build
+
+script:
+  - go test -v sevki.org/build/parser
+  - go test -v sevki.org/build/lexer
+  - go test -v sevki.org/build/ast
