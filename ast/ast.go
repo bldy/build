@@ -47,12 +47,7 @@ type Func struct {
 	AnonParams []interface{}
 	Parent     *Func `json:"-"`
 	Node
-}
-type Map struct {
-	Name string
-	Values map[string]interface{}
-	Node
-}
+} 
 type FuncPointer int
 
 type Path string

@@ -5,6 +5,7 @@
 package parser // import "sevki.org/build/parser"
 
 import (
+	"errors"
 	"fmt"
 	"io"
 
@@ -12,6 +13,10 @@ import (
 
 	"sevki.org/build/ast"
 	"sevki.org/build/lexer"
+)
+
+var (
+	ErrConsumption = errors.New("consumption error")
 )
 
 type Parser struct {
@@ -47,10 +52,11 @@ func (p *Parser) next() token.Token {
 	return tok
 }
 
-func (p *Parser) errorf(format string, args ...interface{}) {
+func (p *Parser) errorf(format string, args ...interface{}) error {
 	p.curTok = token.Token{Type: token.Error}
 	p.peekTok = token.Token{Type: token.EOF}
 	p.Error = fmt.Errorf(format, args...)
+	return p.Error
 }
 
 func New(name, path string, r io.Reader) *Parser {
@@ -84,7 +90,12 @@ func parseBuild(p *Parser) stateFn {
 func parseDecl(p *Parser) stateFn {
 	switch p.peek().Type {
 	case token.Func:
-		p.Document.Funcs = append(p.Document.Funcs, p.consumeFunc())
+		if f, err :=  p.consumeFunc(); err != nil {
+			p.Error = err 
+			return nil 
+		} else {
+			p.Document.Funcs = append(p.Document.Funcs, f)
+		}
 		return parseDecl
 	case token.String:
 		return parseVar
@@ -93,10 +104,13 @@ func parseDecl(p *Parser) stateFn {
 }
 func parseVar(p *Parser) stateFn {
 	t := p.next()
-	if !p.isExpected(t, token.String) {
+
+	if err := p.expects(t, token.String); err != nil {
+		p.Error = err
 		return nil
 	}
-	if !p.isExpected(p.next(), token.Equal) {
+	if err := p.expects(p.next(), token.Equal); err != nil {
+		p.Error = err
 		return nil
 	}
 
@@ -105,10 +119,12 @@ func parseVar(p *Parser) stateFn {
 	}
 
 	switch p.peek().Type {
-	case token.LeftBrac, token.String, token.Quote, token.True, token.False:
-		p.Document.Vars[t.String()] = p.consumeNode()
-	case token.Func:
-		p.Document.Vars[t.String()] = p.consumeFunc()
+	case token.LeftBrac, token.LeftCurly, token.String, token.Quote, token.True, token.False, token.Func:
+		if n, err := p.consumeNode(); err != nil {
+			return nil
+		} else {
+			p.Document.Vars[t.String()] = n
+		}
 	}
 	if p.peek().Type == token.Plus {
 
@@ -144,54 +160,64 @@ func parseVar(p *Parser) stateFn {
 
 	return parseDecl
 }
-func (p *Parser) consumeNode() interface{} {
+func (p *Parser) consumeNode() (interface{}, error) {
 	switch p.peek().Type {
 	case token.Quote:
-		return p.next().String()
+		return p.next().String(), nil
 	case token.LeftBrac:
-		x := p.consumeSlice()
-		return x
+		return p.consumeSlice()
+	case token.LeftCurly:
+		return  p.consumeMap() 
 	case token.Func:
 		return p.consumeFunc()
 	case token.True:
-		return true
+		return true, nil
 	case token.False:
-		return false
+		return false, nil
 	case token.String:
-		return ast.Variable{Key: p.next().String()}
+		return ast.Variable{Key: p.next().String()}, nil
+	default:
+		return nil, ErrConsumption
 	}
-	return nil
 }
-func (p *Parser) consumeParams(f *ast.Func) {
+func (p *Parser) consumeParams(f *ast.Func) error {
 	for {
 		switch p.peek().Type {
 		case token.Quote, token.LeftBrac, token.Func:
-			f.AnonParams = append(f.AnonParams, p.consumeNode())
+			if n, err := p.consumeNode(); err != nil {
+				return err
+			} else {
+				f.AnonParams = append(f.AnonParams, n)
+			}
 		case token.String:
 			t := p.next()
 			if f.Params == nil {
 				f.Params = make(map[string]interface{})
 			}
 
-			if p.expects(p.peek(), []token.Type{token.Colon, token.Equal}) {
+			if err := p.expects(p.peek(), token.Colon, token.Equal); err == nil {
 				switch p.next().Type {
 				case token.Colon:
 				case token.Equal:
-					f.Params[t.String()] = p.consumeNode()
+					if n, err := p.consumeNode(); err != nil {
+						return err
+					} else {
+						f.Params[t.String()] = n
+					}
 				}
 			} else {
-				return
+				return err
 			}
 		default:
-			return
+			return ErrConsumption
 		}
 
-		if p.expects(p.peek(), []token.Type{token.RightParen, token.Comma}) {
+		if err := p.expects(p.peek(), token.RightParen, token.Comma); err == nil {
 		DANGLING_COMMA:
 			switch p.peek().Type {
 			case token.RightParen:
 				p.next()
-				return
+				return nil
 			case token.Comma:
 				p.next()
 				if p.peek().Type == token.RightParen {
@@ -199,21 +225,48 @@ func (p *Parser) consumeParams(f *ast.Func) {
 				}
 				continue
 			}
+		} else {
+			return err
 		}
 
 	}
 }
-func (p *Parser) consumeMap() *ast.Map {
-	t := p.next()
-	if !p.isExpected(t, token.LeftCurly) {
-		return nil
+func (p *Parser) consumeMap() (map[string]interface{}, error) {
+
+	if err := p.expects(p.next(), token.LeftCurly); err != nil {
+		return nil, err
 	}
-	return nil
+	_map := make(map[string]interface{})
+	for p.peek().Type != token.RightCurly {
+		t := p.next()
+		if err := p.expects(t, token.Quote); err != nil {
+			return nil, err
+		}
+		if err := p.expects(p.next(), token.Colon); err != nil {
+			return nil, err
+		}
+
+		if n, err := p.consumeNode(); err != nil {
+			return nil, err
+		} else {
+			_map[t.String()] = n
+		}
+		if p.peek().Type == token.Comma {
+			p.next()
+		} else if err := p.expects(p.peek(), token.RightCurly); err != nil {
+			return nil, err
+		}
+	}
+
+	// advance }
+	p.next()
+
+	return _map, nil
 }
-func (p *Parser) consumeFunc() *ast.Func {
+func (p *Parser) consumeFunc() (*ast.Func, error) {
 	t := p.next()
-	if !p.isExpected(t, token.Func) {
-		return nil
+	if err := p.expects(t, token.Func); err != nil {
+		return nil, err
 	}
 	f := ast.Func{
 		Name: t.String(),
@@ -224,16 +277,16 @@ func (p *Parser) consumeFunc() *ast.Func {
 	f.Position = t.Start
 
 	t = p.next()
-	if !p.isExpected(t, token.LeftParen) {
-		return nil
+	if err := p.expects(t, token.LeftParen); err != nil {
+		return nil, err
 	}
 	p.consumeParams(&f)
-	return &f
+	return &f, nil
 }
 
-func (p *Parser) consumeSlice() []interface{} {
-	if !p.isExpected(p.next(), token.LeftBrac) {
-		return nil
+func (p *Parser) consumeSlice() ([]interface{}, error) {
+	if err := p.expects(p.next(), token.LeftBrac); err != nil {
+		return nil, err
 	}
 	var slc []interface{}
 
@@ -241,15 +294,15 @@ func (p *Parser) consumeSlice() []interface{} {
 		slc = append(slc, p.next().String())
 		if p.peek().Type == token.Comma {
 			p.next()
-		} else if !p.isExpected(p.peek(), token.RightBrac) {
-			return nil
+		} else if err := p.expects(p.peek(), token.RightBrac); err != nil {
+			return nil, err
 		}
 	}
 
 	// advance ]
 	p.next()
 
-	return slc
+	return slc, nil
 }
 
 // Decode decodes a bazel/buck ast.
@@ -257,8 +310,9 @@ func (p *Parser) Decode(i interface{}) (err error) {
 	p.Document = (i.(*ast.File))
 	p.Document.Path = p.path
 	p.run()
-	if p.curTok.Type == token.Error {
+ 	if p.curTok.Type == token.Error {
 		return p.Error
 	}
 	return nil
 }
+ 
