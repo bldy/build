@@ -16,7 +16,6 @@ import (
 
 	"sevki.org/build/ast"
 	_ "sevki.org/build/targets/cc"
-	"sevki.org/lib/prettyprint"
 )
 
 func readAndParse(n string) (*ast.File, error) {
@@ -28,13 +27,16 @@ func readAndParse(n string) (*ast.File, error) {
 	}
 	ts, _ := filepath.Abs(ks.Name())
 	dir := strings.Split(ts, "/")
-	if err := New("BUILD", "/"+filepath.Join(dir[:len(dir)-1]...), ks).Decode(&doc); err != nil {
+	p := New("BUILD", "/"+filepath.Join(dir[:len(dir)-1]...), ks)
+
+	if err := p.Decode(&doc); err != nil {
 
 		if err != nil {
 			return nil, fmt.Errorf("decoding file: %s\n", err)
 		}
 
 	}
+
 	return &doc, nil
 
 }
@@ -55,7 +57,6 @@ func TestParseSingleVar(t *testing.T) {
 func TestParseBoolVar(t *testing.T) {
 	doc, err := readAndParse("tests/bool.BUILD")
 	if err != nil {
-
 		t.Error(err)
 	}
 
@@ -193,6 +194,46 @@ func TestParseAddition(t *testing.T) {
 	}
 }
 
+func TestParseMap(t *testing.T) {
+	doc, err := readAndParse("tests/map.BUILD")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	v, ok := doc.Vars["SOME_MAP"]
+	if !ok {
+		t.Fail()
+		return
+	}
+	switch v.(type) {
+	case map[string]interface{}:
+		f := v.(map[string]interface{})
+		if f["bla"] != "b" && f["foo"] != "p" {
+			t.Fail()
+		}
+		return
+	}
+}
+func TestParseMapInFunc(t *testing.T) {
+	doc, err := readAndParse("tests/mapinfunc.BUILD")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if doc.Funcs[0].Params["exports"].(map[string]interface{})["bla"] != "b" {
+		t.Fail()
+	}
+	if doc.Funcs[0].Params["deps"].([]interface{})[0] != ":libxstring" {
+		t.Fail()
+	}
+	if doc.Funcs[0].Params["name"] != "test" {
+		t.Fail()
+	}
+	if doc.Funcs[0].Params["srcs"].([]interface{})[0] != "tests/test.c" {
+		t.Fail()
+	}
+}
 func TestParseFunc(t *testing.T) {
 
 	doc, err := readAndParse("tests/func.BUILD")
@@ -215,11 +256,10 @@ func TestParseFunc(t *testing.T) {
 }
 func TestParseHarvey(t *testing.T) {
 
-	doc, err := readAndParse("tests/harvey.BUILD")
+	_, err := readAndParse("tests/harvey.BUILD")
 	if err != nil {
 		t.Error(err)
 	}
-	log.Println(prettyprint.AsJSON(doc))
 
 }
 

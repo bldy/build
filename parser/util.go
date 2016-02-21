@@ -57,7 +57,6 @@ func arrow(buf string, tok token.Token) string {
 
 		}
 		switch i {
-
 		case tok.Start - 1, tok.Start - 2, tok.Start - 3:
 			ret += ">"
 			break
@@ -69,17 +68,18 @@ func arrow(buf string, tok token.Token) string {
 		}
 	}
 	return ret
-}
-func (p *Parser) expects(tok token.Token, expected []token.Type) bool {
+} 
+
+func (p *Parser)expects(tok token.Token, expected ...token.Type) error {
 	for _, t := range expected {
 		if t == tok.Type {
-			return true
+			return nil
 		}
 	}
 	name, _, _ := caller()
 	errf := "%s:%d: While parsing %s were expecting %s but got %s."
 	errf += "\n%s\n%s"
-	p.errorf(errf,
+	return p.errorf(errf,
 		p.path,
 		tok.Line,
 		name,
@@ -88,28 +88,9 @@ func (p *Parser) expects(tok token.Token, expected []token.Type) bool {
 		strings.Trim(p.lexer.LineBuffer(), "\n"),
 		arrow(p.lexer.LineBuffer(), tok),
 	)
-	return false
-}
-func (p *Parser) isExpected(tok token.Token, expected token.Type) bool {
-	if tok.Type != expected {
-		name, _, _ := caller()
-		errf := "%s:%d: While parsing %s were expecting %s but got %s."
-		errf += "\n%s\n%s"
-		p.errorf(errf,
-			p.path,
-			tok.Line,
-			name,
-			expected,
-			p.curTok.Type,
-			strings.Trim(p.lexer.LineBuffer(), "\n"),
-			arrow(p.lexer.LineBuffer(), tok),
-		)
-		return false
-	} else {
-		return true
-	}
 }
 
+ 
 func (p *Parser) panic(message string) {
 	p.errorf("%s\nIllegal element '%s' (of type %s) at line %d, character %d\n",
 		message,
