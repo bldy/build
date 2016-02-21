@@ -40,7 +40,7 @@ func init() {
 		ar = "ar"
 	}
 
-	if out, err := exec.Command(cc, "--version").Output(); err != nil {
+	if out, err := exec.Command(Compiler(), "--version").Output(); err != nil {
 		CCVersion = "deadbeef"
 	} else {
 		CCVersion = strings.TrimSpace(string(out))
