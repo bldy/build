@@ -9,16 +9,17 @@ import (
 )
 
 type Kernel struct {
-	Name         string   `kernel:"name"`
-	Dependencies []string `kernel:"deps"`
-	RamFiles     []string `kernel:"ramfiles" build:"path"`
-	Code         []string `kernel:"code"`
-	Dev          []string `kernel:"dev"`
-	Ip           []string `kernel:"ip"`
-	Link         []string `kernel:"link"`
-	Sd           []string `kernel:"sd"`
-	Uart         []string `kernel:"uart"`
-	VGA          []string `kernel:"vga"`
+	Name         string            `kernel:"name"`
+	Dependencies []string          `kernel:"deps"`
+	RamFiles     []string          `kernel:"ramfiles" build:"path"`
+	Code         []string          `kernel:"code"`
+	Dev          []string          `kernel:"dev"`
+	Ip           []string          `kernel:"ip"`
+	Link         []string          `kernel:"link"`
+	Sd           []string          `kernel:"sd"`
+	Uart         []string          `kernel:"uart"`
+	VGA          []string          `kernel:"vga"`
+	Exports     map[string]string `kernel:"installs"`
 }
 
 func (k *Kernel) Hash() []byte {
@@ -35,11 +36,7 @@ func (k *Kernel) Build(c *build.Context) error {
 }
 
 func (k *Kernel) Installs() map[string]string {
-	exports := make(map[string]string)
-	exports["amd64/bin/init"] = "bin/init"
-	exports["amd64/harvey"] = "bin/harvey"
-
-	return exports
+	return k.Exports
 }
 
 func (k *Kernel) GetName() string {
