@@ -7,25 +7,23 @@ package build // import "sevki.org/build"
 import (
 	"bytes"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 
-	"gopkg.in/yaml.v2"
+	ini "github.com/vaughan0/go-ini"
 	"sevki.org/build/util"
 )
 
-var vars map[string]string
+var file ini.File
 
 func init() {
-	if data, err := ioutil.ReadFile(filepath.Join(util.GetProjectPath(), ".build")); err == nil {
-		vars = make(map[string]string)
-
-		err = yaml.Unmarshal(data, &vars)
+	var err error
+	if file, err = ini.LoadFile(filepath.Join(util.GetProjectPath(), ".build")); err == nil {
 		if err != nil {
 			log.Fatalf("error: %v", err)
 		}
@@ -33,7 +31,9 @@ func init() {
 }
 
 func Getenv(s string) string {
-	if val, exists := vars[s]; exists {
+	if val, exists := file.Get(runtime.GOOS, s); exists {
+		return val
+	} else if val, exists := file.Get("", s); exists {
 		return val
 	} else {
 		return os.Getenv(s)
