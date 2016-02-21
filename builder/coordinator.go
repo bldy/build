@@ -180,8 +180,9 @@ func (b *Builder) work(jq chan *Node, workerNumber int) {
 				}
 			}
 
-			b.Done <- job
+		
 			if !job.IsRoot {
+				b.Done <- job
 				job.once.Do(func() {
 					for _, parent := range job.Parents {
 						parent.wg.Done()
@@ -228,9 +229,11 @@ func (b *Builder) work(jq chan *Node, workerNumber int) {
 						),
 					)
 				}
+				b.Done <- job
 				close(b.Done)
 				return
 			}
+			
 
 		}
 	}
