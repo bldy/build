@@ -22,4 +22,4 @@ deploy:
     - gox -output "dist/{{.OS}}_{{.Arch}}_{{.Dir}}"
     - ghr --username sevki --token $GITHUB_TOKEN --replace --prerelease --debug `git describe --always`  dist/
   on:
-    branch: prod
+    branch: master
