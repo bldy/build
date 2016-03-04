@@ -15,7 +15,11 @@ script:
   - go test -v sevki.org/build/parser
   - go test -v sevki.org/build/lexer
   - go test -v sevki.org/build/ast
-after_success:
-  - cd "$GOPATH/src/sevki.org/build/cmd/build"
-  - gox -output "dist/{{.OS}}_{{.Arch}}_{{.Dir}}"
-  - ghr --username sevki --token $GITHUB_TOKEN --replace --prerelease --debug `git describe --always`  dist/
+deploy:
+  provider: script
+  script: 
+    - cd "$GOPATH/src/sevki.org/build/cmd/build"
+    - gox -output "dist/{{.OS}}_{{.Arch}}_{{.Dir}}"
+    - ghr --username sevki --token $GITHUB_TOKEN --replace --prerelease --debug `git describe --always`  dist/
+  on:
+    branch: prod
