@@ -17,6 +17,7 @@ script:
   - go test -v sevki.org/build/ast
 deploy:
   provider: script
+  skip_cleanup: true
   script: 
     - cd "$GOPATH/src/sevki.org/build/cmd/build"
     - gox -output "dist/{{.OS}}_{{.Arch}}_{{.Dir}}"
