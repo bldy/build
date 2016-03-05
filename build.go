@@ -31,12 +31,14 @@ func init() {
 }
 
 func Getenv(s string) string {
-	if val, exists := file.Get(runtime.GOOS, s); exists {
+	if os.Getenv(s) != "" {
+		return os.Getenv(s)
+	} else if val, exists := file.Get(runtime.GOOS, s); exists {
 		return val
 	} else if val, exists := file.Get("", s); exists {
 		return val
 	} else {
-		return os.Getenv(s)
+		return ""
 	}
 }
 
