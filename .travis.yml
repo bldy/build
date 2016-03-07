@@ -19,4 +19,3 @@ after_success:
   - cd "$GOPATH/src/sevki.org/build/cmd/build"
   - gox -output "dist/{{.OS}}_{{.Arch}}_{{.Dir}}"
   - if [ "$TRAVIS_BRANCH" == "master" ]; then ghr --username sevki --token $GITHUB_TOKEN --replace --prerelease --debug `git describe --always`  dist/; fi
-  - if [ "$TRAVIS_BRANCH" == "master" ]; then ghr --username sevki --token $GITHUB_TOKEN --replace --prerelease --debug latest  dist/; fi
