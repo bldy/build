@@ -165,7 +165,7 @@ func (b *Builder) getTarget(url parser.TargetURL) (n *Node) {
 		}
 
 		if n == nil {
-			log.Fatalf("we couldn't find %s, %s", url.String())
+			log.Fatalf("we couldn't find target %s", url.String())
 		}
 		return n
 	}
