@@ -20,38 +20,38 @@ func init() {
 	targets = make(map[string]reflect.Type)
 
 }
-
-type Info struct {
-	BuildDir string
-	OutDir   string
-}
-
 type File struct {
 	Path  string
 	Funcs []*Func
 	Vars  map[string]interface{}
 }
 
+// Node defines what 
 type Node struct {
 	File           string
 	Line, Position int
 }
 
+// Variable type points to a variable in, or a loaded document. 
 type Variable struct {
 	Key string
 	Node
 }
+
+// Func represents a function in the ast mostly in the form of 
+//
+// 	glob("", exclude=[], exclude_directories=1)
+//
+// a function can have named and anonymouse variables at the same time.
 type Func struct {
 	Name       string
 	Params     map[string]interface{}
 	AnonParams []interface{}
 	Parent     *Func `json:"-"`
 	Node
-} 
-type FuncPointer int
+}
 
-type Path string
-
+// Register function is used to register new types of targets.
 func Register(name string, t interface{}) error {
 	ty := reflect.TypeOf(t)
 	if _, build := reflect.PtrTo(reflect.TypeOf(t)).MethodByName("Build"); !build {
@@ -61,6 +61,8 @@ func Register(name string, t interface{}) error {
 
 	return nil
 }
+
+// Get returns a reflect.Type for a given name.
 func Get(name string) reflect.Type {
 	if t, ok := targets[name]; ok {
 		return t
@@ -69,6 +71,8 @@ func Get(name string) reflect.Type {
 		return nil
 	}
 }
+
+// GetFieldByTag returns field by tag
 func GetFieldByTag(tn, tag string, p reflect.Type) (*reflect.StructField, error) {
 	if p == nil {
 		return nil, fmt.Errorf("%s isn't a registered type.", tn)
