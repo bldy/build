@@ -42,7 +42,6 @@ var (
 func main() {
 	flag.Parse()
 
-
 	if len(flag.Args()) < 1 {
 		flag.Usage()
 		printUsage()
@@ -60,7 +59,7 @@ func main() {
 		query(target)
 	case "hash":
 		target = flag.Args()[1]
-		hash(target)	
+		hash(target)
 	default:
 		execute(target)
 	}

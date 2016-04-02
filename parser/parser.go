@@ -90,9 +90,9 @@ func parseBuild(p *Parser) stateFn {
 func parseDecl(p *Parser) stateFn {
 	switch p.peek().Type {
 	case token.Func:
-		if f, err :=  p.consumeFunc(); err != nil {
-			p.Error = err 
-			return nil 
+		if f, err := p.consumeFunc(); err != nil {
+			p.Error = err
+			return nil
 		} else {
 			p.Document.Funcs = append(p.Document.Funcs, f)
 		}
@@ -167,7 +167,7 @@ func (p *Parser) consumeNode() (interface{}, error) {
 	case token.LeftBrac:
 		return p.consumeSlice()
 	case token.LeftCurly:
-		return  p.consumeMap() 
+		return p.consumeMap()
 	case token.Func:
 		return p.consumeFunc()
 	case token.True:
@@ -310,9 +310,8 @@ func (p *Parser) Decode(i interface{}) (err error) {
 	p.Document = (i.(*ast.File))
 	p.Document.Path = p.path
 	p.run()
- 	if p.curTok.Type == token.Error {
+	if p.curTok.Type == token.Error {
 		return p.Error
 	}
 	return nil
 }
- 

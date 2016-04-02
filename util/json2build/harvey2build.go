@@ -41,7 +41,7 @@ func main() {
 
 	}
 
-	for libtype, _ := range loads {
+	for libtype := range loads {
 
 		if strings.Contains(libtype, "klib") {
 			someth := `load("//sys/src/FLAGS", "KLIB_COMPILER_FLAGS")

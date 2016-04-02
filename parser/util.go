@@ -68,9 +68,9 @@ func arrow(buf string, tok token.Token) string {
 		}
 	}
 	return ret
-} 
+}
 
-func (p *Parser)expects(tok token.Token, expected ...token.Type) error {
+func (p *Parser) expects(tok token.Token, expected ...token.Type) error {
 	for _, t := range expected {
 		if t == tok.Type {
 			return nil
@@ -90,7 +90,6 @@ func (p *Parser)expects(tok token.Token, expected ...token.Type) error {
 	)
 }
 
- 
 func (p *Parser) panic(message string) {
 	p.errorf("%s\nIllegal element '%s' (of type %s) at line %d, character %d\n",
 		message,

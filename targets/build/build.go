@@ -7,14 +7,14 @@ package build // import "sevki.org/build/targets/build"
 import (
 	"log"
 
-	"sevki.org/build/ast"
+	"sevki.org/build/internal"
 )
 
 func init() {
-	if err := ast.Register("gen_rule", GenRule{}); err != nil {
+	if err := internal.Register("gen_rule", GenRule{}); err != nil {
 		log.Fatal(err)
 	}
-	if err := ast.Register("group", Group{}); err != nil {
+	if err := internal.Register("group", Group{}); err != nil {
 		log.Fatal(err)
 	}
 }

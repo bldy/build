@@ -11,11 +11,11 @@ import (
 	"time"
 
 	"sevki.org/build"
-	"sevki.org/build/ast"
+	"sevki.org/build/internal"
 )
 
 func init() {
-	if err := ast.Register("npm_package", NpmPackage{}); err != nil {
+	if err := internal.Register("npm_package", NpmPackage{}); err != nil {
 		log.Fatal(err)
 	}
 }
