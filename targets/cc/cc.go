@@ -14,7 +14,7 @@ import (
 	"os"
 
 	"sevki.org/build"
-	"sevki.org/build/ast"
+	"sevki.org/build/internal"
 )
 
 var (
@@ -45,13 +45,13 @@ func init() {
 	} else {
 		CCVersion = strings.TrimSpace(string(out))
 	}
-	if err := ast.Register("cc_library", CLib{}); err != nil {
+	if err := internal.Register("cc_library", CLib{}); err != nil {
 		log.Fatal(err)
 	}
-	if err := ast.Register("cxx_library", CLib{}); err != nil {
+	if err := internal.Register("cxx_library", CLib{}); err != nil {
 		log.Fatal(err)
 	}
-	if err := ast.Register("cc_binary", CBin{}); err != nil {
+	if err := internal.Register("cc_binary", CBin{}); err != nil {
 		log.Fatal(err)
 	}
 }

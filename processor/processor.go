@@ -22,6 +22,7 @@ import (
 
 	"sevki.org/build"
 	"sevki.org/build/ast"
+	"sevki.org/build/internal"
 	"sevki.org/build/parser"
 	"sevki.org/build/util"
 )
@@ -142,14 +143,13 @@ func (p *Processor) absPath(s string) string {
 }
 
 func (p *Processor) makeTarget(f *ast.Func) (build.Target, error) {
-
-	ttype := ast.Get(f.Name)
+	ttype := internal.Get(f.Name)
 
 	payload := make(map[string]interface{})
 
 	for key, fn := range f.Params {
 
-		field, err := ast.GetFieldByTag(f.Name, key, ttype)
+		field, err := internal.GetFieldByTag(f.Name, key, ttype)
 		if err != nil {
 			return nil, err
 		}

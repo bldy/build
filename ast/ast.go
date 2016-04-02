@@ -5,26 +5,7 @@
 // Package ast defines build data structures.
 package ast // import "sevki.org/build/ast"
 
-import (
-	"fmt"
-	"log"
-
-	"reflect"
-)
-
-var (
-	targets map[string]reflect.Type
-)
-
-func init() {
-	targets = make(map[string]reflect.Type)
-
-}
-
-type Info struct {
-	BuildDir string
-	OutDir   string
-}
+import "sevki.org/build/token"
 
 type File struct {
 	Path  string
@@ -32,53 +13,38 @@ type File struct {
 	Vars  map[string]interface{}
 }
 
+type Statement interface {
+	isStatement()
+}
+
+// Node defines objects on file
 type Node struct {
 	File           string
 	Line, Position int
 }
 
+// A BasicLit node represents a literal of basic type.
+type BasicLit struct {
+	Kind  token.Token // token.INT, token.FLOAT or token.STRING
+	Value string      // literal string; e.g. 42, 0x7f, 3.14, 1e-9, 2.4i, 'a', '\x7f', "foo" or `\m\n\o`
+	Node
+}
+
+// Variable type points to a variable in, or a loaded document.
 type Variable struct {
 	Key string
 	Node
 }
+
+// Func represents a function in the ast mostly in the form of
+//
+// 	glob("", exclude=[], exclude_directories=1)
+//
+// a function can have named and anonymouse variables at the same time.
 type Func struct {
 	Name       string
 	Params     map[string]interface{}
 	AnonParams []interface{}
 	Parent     *Func `json:"-"`
 	Node
-} 
-type FuncPointer int
-
-type Path string
-
-func Register(name string, t interface{}) error {
-	ty := reflect.TypeOf(t)
-	if _, build := reflect.PtrTo(reflect.TypeOf(t)).MethodByName("Build"); !build {
-		return fmt.Errorf("%s doesn't implement Build.", reflect.TypeOf(t))
-	}
-	targets[name] = ty
-
-	return nil
-}
-func Get(name string) reflect.Type {
-	if t, ok := targets[name]; ok {
-		return t
-	} else {
-		log.Fatalf("unregistered target type %s", name)
-		return nil
-	}
-}
-func GetFieldByTag(tn, tag string, p reflect.Type) (*reflect.StructField, error) {
-	if p == nil {
-		return nil, fmt.Errorf("%s isn't a registered type.", tn)
-	}
-
-	for i := 0; i < p.NumField(); i++ {
-		f := p.Field(i)
-		if f.Tag.Get(tn) == tag {
-			return &f, nil
-		}
-	}
-	return nil, fmt.Errorf("%s isn't a field of %s.", tag, tn)
 }

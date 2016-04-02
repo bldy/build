@@ -33,7 +33,7 @@ func (s *Sed) Hash() []byte {
 
 	io.WriteString(h, s.Name)
 	return []byte{}
-} 
+}
 
 func (s *Sed) Build(c *build.Context) error {
 	params := s.Args

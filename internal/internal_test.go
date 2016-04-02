@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Package ast defines build data structures.
-package ast // import "sevki.org/build/ast"
+package internal // import "sevki.org/build/internal"
 
 import "testing"
 

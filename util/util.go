@@ -93,10 +93,10 @@ RESTART:
 			fsm = append([]string{}, fsm[i+1:]...)
 			fs, _ := f.Readdir(-1)
 			for _, x := range fs {
-				if filepath.Ext(x.Name()) == ext ||  filepath.Ext(x.Name()) == "" {
+				if filepath.Ext(x.Name()) == ext || filepath.Ext(x.Name()) == "" {
 					fsm = append(fsm, (filepath.Join(file, x.Name())))
 				}
-				
+
 			}
 			goto RESTART /* to avoid out of bound errors, there may be no files
 			in the folder */

@@ -180,7 +180,6 @@ func (b *Builder) work(jq chan *Node, workerNumber int) {
 				}
 			}
 
-		
 			if !job.IsRoot {
 				b.Done <- job
 				job.once.Do(func() {
@@ -233,7 +232,6 @@ func (b *Builder) work(jq chan *Node, workerNumber int) {
 				close(b.Done)
 				return
 			}
-			
 
 		}
 	}

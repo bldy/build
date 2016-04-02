@@ -19,7 +19,7 @@ import (
 	"fmt"
 
 	"sevki.org/build"
-	"sevki.org/build/ast"
+	"sevki.org/build/internal"
 	"sevki.org/build/util"
 )
 
@@ -43,7 +43,7 @@ func init() {
 		YaccVersion = strings.TrimSpace(string(out))
 	}
 
-	if err := ast.Register("yacc", Yacc{}); err != nil {
+	if err := internal.Register("yacc", Yacc{}); err != nil {
 		log.Fatal(err)
 	}
 }

@@ -3,12 +3,12 @@ package apple
 import (
 	"log"
 
-	"sevki.org/build/ast"
+	"sevki.org/build/internal"
 )
 
 func init() {
 
-	if err := ast.Register("ios_application", IOSApplication{}); err != nil {
+	if err := internal.Register("ios_application", IOSApplication{}); err != nil {
 		log.Fatal(err)
 	}
 }

@@ -19,7 +19,7 @@ type Kernel struct {
 	Sd           []string          `kernel:"sd"`
 	Uart         []string          `kernel:"uart"`
 	VGA          []string          `kernel:"vga"`
-	Exports     map[string]string `kernel:"installs"`
+	Exports      map[string]string `kernel:"installs"`
 }
 
 func (k *Kernel) Hash() []byte {
