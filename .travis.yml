@@ -14,7 +14,7 @@ install:
 script:
   - go test -v sevki.org/build/parser
   - go test -v sevki.org/build/lexer
-  - go test -v sevki.org/build/ast
+  - go test -v sevki.org/build/internal
 after_success:
   - cd "$GOPATH/src/sevki.org/build/cmd/build"
   - gox -output "dist/{{.OS}}_{{.Arch}}_{{.Dir}}"
