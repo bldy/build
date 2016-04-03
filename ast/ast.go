@@ -17,10 +17,21 @@ type Statement interface {
 	isStatement()
 }
 
+// Position represents a index of a byte in a given file relative to the
+// start of the line.
+//
+// 	abcd
+// 	efg
+//
+// Given "testfile.txt" 'f' would be adressed "testfile.txt:1:1"
+type Position struct {
+	Line, Index int
+}
+
 // Node defines objects on file
 type Node struct {
-	File           string
-	Line, Position int
+	File       string
+	Start, End Position
 }
 
 // A BasicLit node represents a literal of basic type.
