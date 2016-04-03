@@ -255,6 +255,25 @@ func TestParseFunc(t *testing.T) {
 		t.Fail()
 	}
 }
+
+func TestParseSmileyFunc(t *testing.T) {
+
+	doc, err := readAndParse("tests/☺☹☻.BUILD")
+	if err != nil {
+		t.Error(err)
+	}
+
+	if doc.Funcs[0].Params["deps"].([]interface{})[0] != ":☹☻☺" {
+		t.Fail()
+	}
+	if doc.Funcs[0].Params["name"].(ast.BasicLit).Interface().(string) != "☹☺☻" {
+		t.Fail()
+	}
+	if doc.Funcs[0].Params["srcs"].([]interface{})[0] != "☺☹☻.c" {
+		t.Fail()
+	}
+}
+
 func TestParseHarvey(t *testing.T) {
 
 	_, err := readAndParse("tests/harvey.BUILD")
