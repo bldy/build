@@ -5,7 +5,16 @@
 // Package ast defines build data structures.
 package ast // import "sevki.org/build/ast"
 
-import "sevki.org/build/token"
+import (
+	"errors"
+	"strconv"
+
+	"sevki.org/build/token"
+)
+
+var (
+	InterfaceConversionError = errors.New("Interface conversion error")
+)
 
 type File struct {
 	Path  string
@@ -34,11 +43,20 @@ type Node struct {
 	Start, End Position
 }
 
-// A BasicLit node represents a literal of basic type.
-type BasicLit struct {
-	Kind  token.Token // token.INT, token.FLOAT or token.STRING
-	Value string      // literal string; e.g. 42, 0x7f, 3.14, 1e-9, 2.4i, 'a', '\x7f', "foo" or `\m\n\o`
-	Node
+// Sets the start position of the node with a token
+func (n *Node) SetStart(t token.Token) {
+	n.Start = Position{
+		Line:  t.Line,
+		Index: t.Start,
+	}
+}
+
+// Sets the end position of the node with a token
+func (n *Node) SetEnd(t token.Token) {
+	n.End = Position{
+		Line:  t.Line,
+		Index: t.End,
+	}
 }
 
 // Variable type points to a variable in, or a loaded document.
@@ -58,4 +76,45 @@ type Func struct {
 	AnonParams []interface{}
 	Parent     *Func `json:"-"`
 	Node
+}
+
+type Map struct {
+	Value map[string]interface{}
+	Node
+}
+
+// A BasicLit node represents a literal of basic type.
+type BasicLit struct {
+	Kind  token.Type // token.INT, token.FLOAT or token.STRING
+	Value string     // literal string; e.g. 42, 0x7f, 3.14, 1e-9, 2.4i, 'a', '\x7f', "foo" or `\m\n\o`
+	Node
+}
+
+func NewBasicLit(t token.Token) BasicLit {
+	lit := BasicLit{
+		Kind:  t.Type,
+		Value: t.String(),
+	}
+	lit.SetStart(t)
+	lit.SetEnd(t)
+	return lit
+}
+
+func (b BasicLit) Interface() interface{} {
+	switch b.Kind {
+	case token.Int:
+		if s, err := strconv.Atoi(b.Value); err == nil {
+			return s
+		} else {
+			return InterfaceConversionError
+		}
+	case token.Quote:
+		return b.Value
+	case token.True:
+		return true
+	case token.False:
+		return false
+	default:
+		return InterfaceConversionError
+	}
 }

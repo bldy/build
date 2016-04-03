@@ -47,11 +47,11 @@ func TestParseSingleVar(t *testing.T) {
 		t.Error(err)
 	}
 
-	if doc.Vars["UNDESIRED"].(string) != "-fplan9-extensions" {
+	if doc.Vars["UNDESIRED"].(ast.BasicLit).Interface().(string) != "-fplan9-extensions" {
 		log.Fatal(doc.Vars["UNDESIRED"])
+	
 		t.Fail()
 	}
-
 }
 
 func TestParseBoolVar(t *testing.T) {
@@ -60,7 +60,7 @@ func TestParseBoolVar(t *testing.T) {
 		t.Error(err)
 	}
 
-	if !doc.Vars["TRUE_BOOL"].(bool) {
+	if !doc.Vars["TRUE_BOOL"].(ast.BasicLit).Interface().(bool) {
 		log.Fatal(doc.Vars["TRUE_BOOL"])
 		t.Fail()
 	}
@@ -82,7 +82,7 @@ func TestParseSlice(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-
+ 
 	v := doc.Vars["C_FLAGS"]
 	switch v.(type) {
 	case []interface{}:
@@ -221,13 +221,14 @@ func TestParseMapInFunc(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	if doc.Funcs[0].Params["exports"].(map[string]interface{})["bla"] != "b" {
-		t.Fail()
+
+	if doc.Funcs[0].Params["exports"].(*ast.Map).Value["bla"].(ast.BasicLit).Interface().(string) != "b" {
+			t.Fail()
 	}
 	if doc.Funcs[0].Params["deps"].([]interface{})[0] != ":libxstring" {
 		t.Fail()
 	}
-	if doc.Funcs[0].Params["name"] != "test" {
+	if doc.Funcs[0].Params["name"].(ast.BasicLit).Interface().(string) != "test" {
 		t.Fail()
 	}
 	if doc.Funcs[0].Params["srcs"].([]interface{})[0] != "tests/test.c" {
@@ -247,7 +248,7 @@ func TestParseFunc(t *testing.T) {
 	if doc.Funcs[0].Params["deps"].([]interface{})[0] != ":libxstring" {
 		t.Fail()
 	}
-	if doc.Funcs[0].Params["name"] != "test" {
+	if doc.Funcs[0].Params["name"].(ast.BasicLit).Interface().(string) != "test" {
 		t.Fail()
 	}
 	if doc.Funcs[0].Params["srcs"].([]interface{})[0] != "tests/test.c" {
