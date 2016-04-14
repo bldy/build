@@ -23,6 +23,7 @@ type Parser struct {
 	name     string
 	path     string
 	lexer    *lexer.Lexer
+	Decls    chan ast.Decl
 	state    stateFn
 	peekTok  token.Token
 	curTok   token.Token
@@ -33,6 +34,7 @@ type Parser struct {
 func (p *Parser) peek() token.Token {
 	return p.peekTok
 }
+
 func (p *Parser) next() token.Token {
 IGNORETOKEN:
 	t := <-p.lexer.Tokens
@@ -66,6 +68,7 @@ func New(name, path string, r io.Reader) *Parser {
 		Document: &ast.File{
 			Path: path,
 		},
+		Decls: make(chan ast.Decl),
 	}
 	return p
 }
@@ -94,6 +97,7 @@ func parseFunc(p *Parser) stateFn {
 		p.Error = err
 		return nil
 	} else {
+		p.Decls <- f
 		p.Document.Funcs = append(p.Document.Funcs, f)
 	}
 	return parseDecl
@@ -121,6 +125,13 @@ func parseVar(p *Parser) stateFn {
 			return nil
 		} else {
 			p.Document.Vars[t.String()] = n
+	a := ast.Assignment{
+		Key: t.String(),
+		Value: n,
+	}
+	a.SetEnd(t)
+	a.SetStart(p.curTok)
+	p.Decls <- &a
 		}
 	}
 

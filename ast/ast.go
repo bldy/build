@@ -21,9 +21,8 @@ type File struct {
 	Funcs []*Func
 	Vars  map[string]interface{}
 }
-
-type Statement interface {
-	isStatement()
+type Decl interface {
+	isDecl()
 }
 
 // Position represents a index of a byte in a given file relative to the
@@ -65,6 +64,15 @@ type Variable struct {
 	Node
 }
 
+
+// Assignment
+type Assignment struct {
+	Key	string
+	Value interface{}
+	Node
+}
+func (a *Assignment)isDecl() {}
+
 // Func represents a function in the ast mostly in the form of
 //
 // 	glob("", exclude=[], exclude_directories=1)
@@ -77,6 +85,7 @@ type Func struct {
 	Parent     *Func `json:"-"`
 	Node
 }
+func (f *Func)isDecl() {}
 
 type Map struct {
 	Value map[string]interface{}
