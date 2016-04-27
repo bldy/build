@@ -20,15 +20,14 @@ var (
 )
 
 type Parser struct {
-	name     string
-	path     string
-	lexer    *lexer.Lexer
-	Decls    chan ast.Decl
-	state    stateFn
-	peekTok  token.Token
-	curTok   token.Token
-	Error    error
-	Document *ast.File
+	name    string
+	path    string
+	lexer   *lexer.Lexer
+	Decls   chan ast.Decl
+	state   stateFn
+	peekTok token.Token
+	curTok  token.Token
+	Error   error
 }
 
 func (p *Parser) peek() token.Token {
@@ -65,9 +64,6 @@ func New(name, path string, r io.Reader) *Parser {
 		name:  name,
 		path:  path,
 		lexer: lexer.New(name, r),
-		Document: &ast.File{
-			Path: path,
-		},
 		Decls: make(chan ast.Decl),
 	}
 	return p
@@ -98,7 +94,6 @@ func parseFunc(p *Parser) stateFn {
 		return nil
 	} else {
 		p.Decls <- f
-		p.Document.Funcs = append(p.Document.Funcs, f)
 	}
 	return parseDecl
 }
@@ -115,23 +110,18 @@ func parseVar(p *Parser) stateFn {
 		return nil
 	}
 
-	if p.Document.Vars == nil {
-		p.Document.Vars = make(map[string]interface{})
-	}
-
 	switch p.peek().Type {
 	case token.LeftBrac, token.LeftCurly, token.String, token.Quote, token.True, token.False, token.Func:
 		if n, err := p.consumeNode(); err != nil {
 			return nil
 		} else {
-			p.Document.Vars[t.String()] = n
-	a := ast.Assignment{
-		Key: t.String(),
-		Value: n,
-	}
-	a.SetEnd(t)
-	a.SetStart(p.curTok)
-	p.Decls <- &a
+			a := ast.Assignment{
+				Key:   t.String(),
+				Value: n,
+			}
+			a.SetEnd(t)
+			a.SetStart(p.curTok)
+			p.Decls <- &a
 		}
 	}
 
@@ -375,31 +365,33 @@ func (p *Parser) consumeFunc() (*ast.Func, error) {
 	return &f, nil
 }
 
-func (p *Parser) consumeSlice() ([]interface{}, error) {
-	if err := p.expects(p.next(), token.LeftBrac); err != nil {
-		return nil, err
+func (p *Parser) consumeSlice() (ast.Slice, error) {
+	var _slice ast.Slice
+
+	if err := p.expects(p.peek(), token.LeftBrac); err != nil {
+		return _slice, err
+	} else {
+		_slice.SetStart(p.next())
 	}
-	var slc []interface{}
+
 
 	for p.peek().Type != token.RightBrac {
-		slc = append(slc, p.next().String())
+		_slice.Slice = append(_slice.Slice, p.next().String())
 		if p.peek().Type == token.Comma {
 			p.next()
 		} else if err := p.expects(p.peek(), token.RightBrac); err != nil {
-			return nil, err
+			return _slice, err
 		}
 	}
 
 	// advance ]
-	p.next()
+	_slice.SetEnd(p.next())
 
-	return slc, nil
+	return _slice, nil
 }
 
 // Decode decodes a bazel/buck ast.
 func (p *Parser) Decode(i interface{}) (err error) {
-	p.Document = (i.(*ast.File))
-	p.Document.Path = p.path
 	p.run()
 	if p.curTok.Type == token.Error {
 		return p.Error

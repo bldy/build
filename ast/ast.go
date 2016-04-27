@@ -64,6 +64,10 @@ type Variable struct {
 	Node
 }
 
+type Slice struct {
+	Slice []interface{}
+	Node
+}
 
 // Assignment
 type Assignment struct {

@@ -6,7 +6,6 @@ package parser // import "sevki.org/build/parser"
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"testing"
 
@@ -16,11 +15,11 @@ import (
 
 	"sevki.org/build/ast"
 	_ "sevki.org/build/targets/cc"
+	"sevki.org/build/token"
 )
 
-func readAndParse(n string) (*ast.File, error) {
+func readAndParse(n string) (chan ast.Decl, error) {
 
-	var doc ast.File
 	ks, err := os.Open(n)
 	if err != nil {
 		return nil, fmt.Errorf("opening file: %s\n", err.Error())
@@ -29,39 +28,61 @@ func readAndParse(n string) (*ast.File, error) {
 	dir := strings.Split(ts, "/")
 	p := New("BUILD", "/"+filepath.Join(dir[:len(dir)-1]...), ks)
 
-	if err := p.Decode(&doc); err != nil {
+	go p.run()
 
-		if err != nil {
-			return nil, fmt.Errorf("decoding file: %s\n", err)
-		}
-
-	}
-
-	return &doc, nil
+	return p.Decls, nil
 
 }
 
 func TestParseSingleVar(t *testing.T) {
-	doc, err := readAndParse("tests/var.BUILD")
+	decls, err := readAndParse("tests/var.BUILD")
 	if err != nil {
 		t.Error(err)
 	}
-
-	if doc.Vars["UNDESIRED"].(ast.BasicLit).Interface().(string) != "-fplan9-extensions" {
-		log.Fatal(doc.Vars["UNDESIRED"])
-	
+	decl := <-decls
+	switch decl.(type) {
+	case *ast.Assignment:
+		asgn := decl.(*ast.Assignment)
+		if asgn.Key != "UNDESIRED" {
+			t.Fail()
+		}
+		switch asgn.Value.(type) {
+		case ast.BasicLit:
+			val := asgn.Value.(ast.BasicLit)
+			if val.Kind != token.Quote || val.Value != "-fplan9-extensions" {
+				t.Fail()
+			}
+		default:
+			t.Fail()
+		}
+	default:
 		t.Fail()
 	}
+
 }
 
 func TestParseBoolVar(t *testing.T) {
-	doc, err := readAndParse("tests/bool.BUILD")
+	decls, err := readAndParse("tests/bool.BUILD")
 	if err != nil {
 		t.Error(err)
 	}
-
-	if !doc.Vars["TRUE_BOOL"].(ast.BasicLit).Interface().(bool) {
-		log.Fatal(doc.Vars["TRUE_BOOL"])
+	decl := <-decls
+	switch decl.(type) {
+	case *ast.Assignment:
+		asgn := decl.(*ast.Assignment)
+		if asgn.Key != "TRUE_BOOL" {
+			t.Fail()
+		}
+		switch asgn.Value.(type) {
+		case ast.BasicLit:
+			val := asgn.Value.(ast.BasicLit)
+			if val.Kind != token.True {
+				t.Fail()
+			}
+		default:
+			t.Fail()
+		}
+	default:
 		t.Fail()
 	}
 
@@ -78,28 +99,39 @@ func TestParseSlice(t *testing.T) {
 		"-c",
 	}
 
-	doc, err := readAndParse("tests/slice.BUILD")
+	decls, err := readAndParse("tests/slice.BUILD")
 	if err != nil {
 		t.Error(err)
 	}
- 
-	v := doc.Vars["C_FLAGS"]
-	switch v.(type) {
-	case []interface{}:
-		for i, x := range v.([]interface{}) {
-			if strs[i] != x.(string) {
-				t.Fail()
-			}
+	decl := <-decls
+	switch decl.(type) {
+	case *ast.Assignment:
+		asgn := decl.(*ast.Assignment)
+		if asgn.Key != "C_FLAGS" {
+			t.Log(asgn.Key)
+			t.Fail()
 		}
-
+		switch asgn.Value.(type) {
+		case ast.Slice:
+			val := asgn.Value.(ast.Slice)
+			for i, x := range val.Slice {
+				if strs[i] != x.(string) {
+					t.Log(x.(string))
+					t.Fail()
+				}
+			}
+		default:
+			t.Logf("not basic literal %T", asgn.Value)
+			t.Fail()
+		}
 	default:
+		t.Log("not an assignment")
 		t.Fail()
-
 	}
 
 }
-
 func TestParseSliceWithOutComma(t *testing.T) {
+
 	strs := []string{
 		"-Wall",
 		"-ansi",
@@ -109,185 +141,234 @@ func TestParseSliceWithOutComma(t *testing.T) {
 		"-c",
 	}
 
-	doc, err := readAndParse("tests/sliceWithOutLastComma.BUILD")
+	decls, err := readAndParse("tests/sliceWithOutLastComma.BUILD")
 	if err != nil {
 		t.Error(err)
 	}
-
-	v := doc.Vars["C_FLAGS"]
-	switch v.(type) {
-	case []interface{}:
-		for i, x := range v.([]interface{}) {
-			if strs[i] != x.(string) {
-				t.Fail()
-			}
+	decl := <-decls
+	switch decl.(type) {
+	case *ast.Assignment:
+		asgn := decl.(*ast.Assignment)
+		if asgn.Key != "C_FLAGS" {
+			t.Log(asgn.Key)
+			t.Fail()
 		}
-
+		switch asgn.Value.(type) {
+		case ast.Slice:
+			val := asgn.Value.(ast.Slice)
+			for i, x := range val.Slice {
+				if strs[i] != x.(string) {
+					t.Log(x.(string))
+					t.Fail()
+				}
+			}
+		default:
+			t.Logf("not basic literal %T", asgn.Value)
+			t.Fail()
+		}
 	default:
+		t.Log("not an assignment")
 		t.Fail()
 	}
-
 }
 
 func TestParseVarFunc(t *testing.T) {
 
-	doc, err := readAndParse("tests/varFunc.BUILD")
+	decls, err := readAndParse("tests/varFunc.BUILD")
 	if err != nil {
 		t.Error(err)
 	}
-	v := doc.Vars["XSTRING_SRCS"]
-	switch v.(type) {
-	case *ast.Func:
 
-		f := v.(*ast.Func)
-		if f.Name != "glob" {
-			t.Fail()
-		}
-		q := f.AnonParams[0].([]interface{})
+	decl := <-decls
+	switch decl.(type) {
+	case *ast.Assignment:
+		asgn := decl.(*ast.Assignment)
+		v := asgn.Value
+		switch v.(type) {
+		case *ast.Func:
+			f := v.(*ast.Func)
+			if f.Name != "glob" {
+				t.Fail()
+			}
+			q := f.AnonParams[0].(ast.Slice)
 
-		if q[0] != "*.c" {
+			if q.Slice[0] != "*.c" {
+				t.Fail()
+			}
+
+		default:
 			t.Fail()
 		}
 
 	default:
+		t.Log("not an assignment")
 		t.Fail()
 	}
+
 }
 
 func TestParseAddition(t *testing.T) {
 
-	doc, err := readAndParse("tests/addition.BUILD")
+	decls, err := readAndParse("tests/addition.BUILD")
 	if err != nil {
 		t.Error(err)
 	}
 
-	v := doc.Vars["XSTRING_SRCS"]
-	switch v.(type) {
-	case *ast.Func:
-		f := v.(*ast.Func)
-		if f.Name != "addition" {
+	decl := <-decls
+	switch decl.(type) {
+	case *ast.Assignment:
+		v := decl.(*ast.Assignment).Value
+		switch v.(type) {
+		case *ast.Func:
+			f := v.(*ast.Func)
+			if f.Name != "addition" {
+				t.Logf("%s is wrong function", f.Name)
+				t.Fail()
+			}
+
+			if f.AnonParams[0].(ast.Variable).Key != "CC_FLAGS" {
+				t.Log("Was Expeting CC_FLAGS ")
+				t.Fail()
+			}
+
+		default:
+			t.Logf("was expectin a function not a %T", v)
 			t.Fail()
 		}
-
-		if f.AnonParams[0].(ast.Variable).Key != "CC_FLAGS" {
-			t.Fail()
-		}
-
 	default:
+		t.Log("was expeting an assignment")
 		t.Fail()
 	}
 
-	v = doc.Vars["GOO_SRCS"]
-	switch v.(type) {
-	case *ast.Func:
-		f := v.(*ast.Func)
-		if f.Name != "addition" {
+	decl = <-decls
+	switch decl.(type) {
+	case *ast.Assignment:
+		v := decl.(*ast.Assignment).Value
+		switch v.(type) {
+		case *ast.Func:
+			f := v.(*ast.Func)
+			if f.Name != "addition" {
+				t.Logf("%s is wrong function", f.Name)
+				t.Fail()
+			}
+
+			if f.AnonParams[0].(ast.Variable).Key != "BB_FLAGS" {
+				t.Log("was expecting BB_FLAGS")
+				t.Fail()
+			}
+
+		default:
+			t.Logf("was expectin a function not a %T", v)
 			t.Fail()
 		}
-
-		if f.AnonParams[0].(ast.Variable).Key != "CC_FLAGS" {
-			t.Fail()
-		}
-
 	default:
+		t.Log("was expecting an assignment")
 		t.Fail()
 	}
 }
 
 func TestParseMap(t *testing.T) {
-	doc, err := readAndParse("tests/map.BUILD")
+	decls, err := readAndParse("tests/map.BUILD")
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	v, ok := doc.Vars["SOME_MAP"]
-	if !ok {
-		t.Fail()
+	decl := <-decls
+	switch decl.(type) {
+	case *ast.Assignment:
+		v := decl.(*ast.Assignment).Value
+
+		switch v.(type) {
+		case map[string]interface{}:
+			f := v.(map[string]interface{})
+			if f["bla"] != "b" && f["foo"] != "p" {
+				t.Fail()
+			}
+			return
+		}
+	}
+}
+
+func TestParseMapInFunc(t *testing.T) {
+	decls, err := readAndParse("tests/mapinfunc.BUILD")
+	if err != nil {
+		t.Error(err)
 		return
 	}
-	switch v.(type) {
-	case map[string]interface{}:
-		f := v.(map[string]interface{})
-		if f["bla"] != "b" && f["foo"] != "p" {
+	decl := <-decls
+
+	switch decl.(type) {
+	case *ast.Func:
+		f := decl.(*ast.Func)
+		if f.Params["exports"].(*ast.Map).Value["bla"].(ast.BasicLit).Interface().(string) != "b" {
 			t.Fail()
 		}
-		return
-	}
-}
-func TestParseMapInFunc(t *testing.T) {
-	doc, err := readAndParse("tests/mapinfunc.BUILD")
-	if err != nil {
-		t.Error(err)
-		return
-	}
-
-	if doc.Funcs[0].Params["exports"].(*ast.Map).Value["bla"].(ast.BasicLit).Interface().(string) != "b" {
+		if f.Params["deps"].(ast.Slice).Slice[0] != ":libxstring" {
 			t.Fail()
-	}
-	if doc.Funcs[0].Params["deps"].([]interface{})[0] != ":libxstring" {
-		t.Fail()
-	}
-	if doc.Funcs[0].Params["name"].(ast.BasicLit).Interface().(string) != "test" {
-		t.Fail()
-	}
-	if doc.Funcs[0].Params["srcs"].([]interface{})[0] != "tests/test.c" {
+		}
+		if f.Params["name"].(ast.BasicLit).Interface().(string) != "test" {
+			t.Fail()
+		}
+		if f.Params["srcs"].(ast.Slice).Slice[0] != "tests/test.c" {
+			t.Fail()
+		}
+	default:
 		t.Fail()
 	}
 }
-func TestParseFunc(t *testing.T) {
 
-	doc, err := readAndParse("tests/func.BUILD")
+func TestParseFunc(t *testing.T) {
+	decls, err := readAndParse("tests/func.BUILD")
 	if err != nil {
 		t.Error(err)
+		return
+	}
+	decl := <-decls
+
+	switch decl.(type) {
+	case *ast.Func:
+		f := decl.(*ast.Func)
+		if f.Params["copts"].(ast.Variable).Key != "C_FLAGS" {
+			t.Fail()
+		}
+		if f.Params["deps"].(ast.Slice).Slice[0] != ":libxstring" {
+			t.Fail()
+		}
+		if f.Params["name"].(ast.BasicLit).Interface().(string) != "test" {
+			t.Fail()
+		}
+		if f.Params["srcs"].(ast.Slice).Slice[0] != "tests/test.c" {
+			t.Fail()
+		}
+	default:
+		t.Fail()
 	}
 
-	if doc.Funcs[0].Params["copts"].(ast.Variable).Key != "C_FLAGS" {
-		t.Fail()
-	}
-	if doc.Funcs[0].Params["deps"].([]interface{})[0] != ":libxstring" {
-		t.Fail()
-	}
-	if doc.Funcs[0].Params["name"].(ast.BasicLit).Interface().(string) != "test" {
-		t.Fail()
-	}
-	if doc.Funcs[0].Params["srcs"].([]interface{})[0] != "tests/test.c" {
-		t.Fail()
-	}
 }
+
 
 func TestParseSmileyFunc(t *testing.T) {
-
-	doc, err := readAndParse("tests/☺☹☻.BUILD")
+	decls, err := readAndParse("tests/☺☹☻.BUILD")
 	if err != nil {
 		t.Error(err)
+		return
 	}
+	decl := <-decls
 
-	if doc.Funcs[0].Params["deps"].([]interface{})[0] != ":☹☻☺" {
+	switch decl.(type) {
+	case *ast.Func:
+		f := decl.(*ast.Func)
+		if f.Params["deps"].(ast.Slice).Slice[0] != ":☹☻☺" {
 		t.Fail()
 	}
-	if doc.Funcs[0].Params["name"].(ast.BasicLit).Interface().(string) != "☹☺☻" {
+	if f.Params["name"].(ast.BasicLit).Interface().(string) != "☹☺☻" {
 		t.Fail()
 	}
-	if doc.Funcs[0].Params["srcs"].([]interface{})[0] != "☺☹☻.c" {
+	if f.Params["srcs"].(ast.Slice).Slice[0] != "☺☹☻.c" {
 		t.Fail()
 	}
-}
-
-func TestParseHarvey(t *testing.T) {
-
-	_, err := readAndParse("tests/harvey.BUILD")
-	if err != nil {
-		t.Error(err)
+	default:
+		t.Fail()
 	}
-
-}
-
-func TestParseFull(t *testing.T) {
-
-	_, err := readAndParse("tests/full.BUILD")
-	if err != nil {
-		t.Error(err)
-	}
-
 }
