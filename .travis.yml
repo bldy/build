@@ -17,5 +17,4 @@ script:
   - go test -v sevki.org/build/internal
 after_success:
   - cd "$GOPATH/src/sevki.org/build/cmd/build"
-  - gox -output "dist/{{.OS}}_{{.Arch}}_{{.Dir}}"
-  - if [ "$TRAVIS_BRANCH" == "master" ]; then ghr --username sevki --token $GITHUB_TOKEN --replace --prerelease --debug `git describe --always`  dist/; fi
+  - if [ "$TRAVIS_PULL_REQUEST" == 0] || ["$TRAVIS_BRANCH" == "master" ]; then gox -output "dist/{{.OS}}_{{.Arch}}_{{.Dir}}"; ghr --username sevki --token $GITHUB_TOKEN --replace --prerelease --debug `git describe --always`  dist/; fi
