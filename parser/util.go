@@ -14,8 +14,7 @@ import (
 	"runtime"
 	"strings"
 
-	"sevki.org/build/ast"
-	"sevki.org/build/token"
+ 	"sevki.org/build/token"
 	"sevki.org/build/util"
 )
 
@@ -80,7 +79,7 @@ func (p *Parser) expects(tok token.Token, expected ...token.Type) error {
 	errf := "%s:%d: While parsing %s were expecting %s but got %s."
 	errf += "\n%s\n%s"
 	return p.errorf(errf,
-		p.path,
+		p.Path,
 		tok.Line,
 		name,
 		expected,
@@ -99,42 +98,44 @@ func (p *Parser) panic(message string) {
 		p.lexer.Pos(),
 	)
 }
-func ReadBuildFile(url TargetURL, wd string) (i *ast.File, err error) {
+//
+//func ReadBuildFile(url TargetURL, wd string) (i *ast.File, err error) {
+//
+//	BUILDPATH := filepath.Join(url.BuildDir(wd, util.GetProjectPath()), "BUILD")
+//	BUCKPATH := filepath.Join(url.BuildDir(wd, util.GetProjectPath()), "BUCK")
+//
+//	var FILEPATH string
+//
+//	if _, err := os.Stat(BUCKPATH); err == nil {
+//		FILEPATH = BUCKPATH
+//	} else if _, err := os.Stat(BUILDPATH); err == nil {
+//		FILEPATH = BUILDPATH
+//	} else {
+//		return nil, err
+//	}
+//
+//	i = &ast.File{}
+//	ks, _ := os.Open(FILEPATH)
+//	if err := New("BUILD", url.BuildDir(wd, util.GetProjectPath()), ks).Decode(i); err != nil {
+//		return nil, err
+//	}
+//	return i, nil
+//}
 
-	BUILDPATH := filepath.Join(url.BuildDir(wd, util.GetProjectPath()), "BUILD")
-	BUCKPATH := filepath.Join(url.BuildDir(wd, util.GetProjectPath()), "BUCK")
-
-	var FILEPATH string
-
-	if _, err := os.Stat(BUCKPATH); err == nil {
-		FILEPATH = BUCKPATH
-	} else if _, err := os.Stat(BUILDPATH); err == nil {
-		FILEPATH = BUILDPATH
-	} else {
-		return nil, err
-	}
-
-	i = &ast.File{}
-	ks, _ := os.Open(FILEPATH)
-	if err := New("BUILD", url.BuildDir(wd, util.GetProjectPath()), ks).Decode(i); err != nil {
-		return nil, err
-	}
-	return i, nil
-}
-
-func ReadFile(path string) (i *ast.File, err error) {
-	i = &ast.File{}
-
-	ks, err := os.Open(path)
-
-	if err != nil {
-		return nil, err
-	}
-	if err := New("BUILD", path, ks).Decode(i); err != nil {
-		return nil, err
-	}
-	return i, nil
-}
+//
+//func ReadFile(path string) (i *ast.File, err error) {
+//	i = &ast.File{}
+//
+//	ks, err := os.Open(path)
+//
+//	if err != nil {
+//		return nil, err
+//	}
+//	if err := New("BUILD", path, ks).Decode(i); err != nil {
+//		return nil, err
+//	}
+//	return i, nil
+//}
 
 type TargetURL struct {
 	Package string

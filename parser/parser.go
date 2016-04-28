@@ -21,7 +21,7 @@ var (
 
 type Parser struct {
 	name    string
-	path    string
+	Path    string
 	lexer   *lexer.Lexer
 	Decls   chan ast.Decl
 	state   stateFn
@@ -62,18 +62,21 @@ func (p *Parser) errorf(format string, args ...interface{}) error {
 func New(name, path string, r io.Reader) *Parser {
 	p := &Parser{
 		name:  name,
-		path:  path,
+		Path:  path,
 		lexer: lexer.New(name, r),
 		Decls: make(chan ast.Decl),
 	}
 	return p
 }
 
-func (p *Parser) run() {
+func (p *Parser) Run() {
 	p.next()
 	for p.state = parseDecl; p.state != nil; {
 		p.state = p.state(p)
 	}
+	p.Decls <- nil
+	close(p.Decls)
+
 }
 
 type stateFn func(*Parser) stateFn
@@ -388,13 +391,4 @@ func (p *Parser) consumeSlice() (ast.Slice, error) {
 	_slice.SetEnd(p.next())
 
 	return _slice, nil
-}
-
-// Decode decodes a bazel/buck ast.
-func (p *Parser) Decode(i interface{}) (err error) {
-	p.run()
-	if p.curTok.Type == token.Error {
-		return p.Error
-	}
-	return nil
 }

@@ -28,7 +28,7 @@ func readAndParse(n string) (chan ast.Decl, error) {
 	dir := strings.Split(ts, "/")
 	p := New("BUILD", "/"+filepath.Join(dir[:len(dir)-1]...), ks)
 
-	go p.run()
+	go p.Run()
 
 	return p.Decls, nil
 
