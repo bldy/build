@@ -379,7 +379,11 @@ func (p *Parser) consumeSlice() (ast.Slice, error) {
 
 
 	for p.peek().Type != token.RightBrac {
-		_slice.Slice = append(_slice.Slice, p.next().String())
+		node, err := p.consumeNode()
+		if err != nil {
+			return _slice, err
+		}
+		_slice.Slice = append(_slice.Slice, node)
 		if p.peek().Type == token.Comma {
 			p.next()
 		} else if err := p.expects(p.peek(), token.RightBrac); err != nil {
