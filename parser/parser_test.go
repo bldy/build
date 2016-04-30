@@ -115,7 +115,7 @@ func TestParseSlice(t *testing.T) {
 		case ast.Slice:
 			val := asgn.Value.(ast.Slice)
 			for i, x := range val.Slice {
-				if strs[i] != x.(string) {
+				if strs[i] != x.(ast.BasicLit).Interface().(string) {
 					t.Log(x.(string))
 					t.Fail()
 				}
@@ -157,7 +157,7 @@ func TestParseSliceWithOutComma(t *testing.T) {
 		case ast.Slice:
 			val := asgn.Value.(ast.Slice)
 			for i, x := range val.Slice {
-				if strs[i] != x.(string) {
+				if strs[i] != x.(ast.BasicLit).Interface() {
 					t.Log(x.(string))
 					t.Fail()
 				}
@@ -192,7 +192,7 @@ func TestParseVarFunc(t *testing.T) {
 			}
 			q := f.AnonParams[0].(ast.Slice)
 
-			if q.Slice[0] != "*.c" {
+			if q.Slice[0].(ast.BasicLit).Interface() != "*.c" {
 				t.Fail()
 			}
 
@@ -304,13 +304,13 @@ func TestParseMapInFunc(t *testing.T) {
 		if f.Params["exports"].(*ast.Map).Value["bla"].(ast.BasicLit).Interface().(string) != "b" {
 			t.Fail()
 		}
-		if f.Params["deps"].(ast.Slice).Slice[0] != ":libxstring" {
+		if f.Params["deps"].(ast.Slice).Slice[0].(ast.BasicLit).Interface() != ":libxstring" {
 			t.Fail()
 		}
 		if f.Params["name"].(ast.BasicLit).Interface().(string) != "test" {
 			t.Fail()
 		}
-		if f.Params["srcs"].(ast.Slice).Slice[0] != "tests/test.c" {
+		if f.Params["srcs"].(ast.Slice).Slice[0].(ast.BasicLit).Interface() != "tests/test.c" {
 			t.Fail()
 		}
 	default:
@@ -332,13 +332,13 @@ func TestParseFunc(t *testing.T) {
 		if f.Params["copts"].(ast.Variable).Key != "C_FLAGS" {
 			t.Fail()
 		}
-		if f.Params["deps"].(ast.Slice).Slice[0] != ":libxstring" {
+		if f.Params["deps"].(ast.Slice).Slice[0].(ast.BasicLit).Interface() != ":libxstring" {
 			t.Fail()
 		}
 		if f.Params["name"].(ast.BasicLit).Interface().(string) != "test" {
 			t.Fail()
 		}
-		if f.Params["srcs"].(ast.Slice).Slice[0] != "tests/test.c" {
+		if f.Params["srcs"].(ast.Slice).Slice[0].(ast.BasicLit).Interface() != "tests/test.c" {
 			t.Fail()
 		}
 	default:
@@ -359,13 +359,13 @@ func TestParseSmileyFunc(t *testing.T) {
 	switch decl.(type) {
 	case *ast.Func:
 		f := decl.(*ast.Func)
-		if f.Params["deps"].(ast.Slice).Slice[0] != ":☹☻☺" {
+		if f.Params["deps"].(ast.Slice).Slice[0].(ast.BasicLit).Interface() != ":☹☻☺" {
 		t.Fail()
 	}
 	if f.Params["name"].(ast.BasicLit).Interface().(string) != "☹☺☻" {
 		t.Fail()
 	}
-	if f.Params["srcs"].(ast.Slice).Slice[0] != "☺☹☻.c" {
+	if f.Params["srcs"].(ast.Slice).Slice[0].(ast.BasicLit).Interface() != "☺☹☻.c" {
 		t.Fail()
 	}
 	default:
