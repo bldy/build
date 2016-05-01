@@ -61,17 +61,39 @@ func (p *Processor) Run() {
 }
 
 func (p *Processor) doAssignment(a *ast.Assignment) {
- 	switch a.Value.(type) {
-		case ast.BasicLit:
-		p.vars[a.Key] = a.Value.(ast.BasicLit).Interface()
-		case *ast.Func:
-		case ast.Slice:
-		p.vars[a.Key] = a.Value.(ast.Slice).Slice
-		default:
+	switch a.Value.(type) {
+	case *ast.BasicLit:
+		p.vars[a.Key] = a.Value.(*ast.BasicLit).Interface()
+	case *ast.Func: 
+	case *ast.Slice:
+		p.unwrapSlice(a.Value.(*ast.Slice))
+		p.vars[a.Key] = a.Value.(*ast.Slice).Slice 
+	case *ast.Map:
+		p.unwrapMap(a.Value.(*ast.Map))
+		p.vars[a.Key] = a.Value.(*ast.Map).Map 
+	default: 
 		log.Printf("%T", a.Value)
 	}
 }
- 
+
+func (p *Processor) unwrapSlice(slc *ast.Slice) {
+	for i, v := range slc.Slice {
+		switch v.(type) {
+		case *ast.BasicLit:
+			slc.Slice[i] = v.(*ast.BasicLit).Interface()
+		}
+	}
+}
+
+func (p *Processor) unwrapMap(slc *ast.Map) {
+	for i, v := range slc.Map {
+		switch v.(type) {
+		case *ast.BasicLit:
+			slc.Map[i] = v.(*ast.BasicLit).Interface()
+		}
+	}
+}
+
 func (p *Processor) runFunc(f *ast.Func) {
 	switch f.Name {
 
