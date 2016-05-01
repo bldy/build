@@ -47,8 +47,8 @@ func TestParseSingleVar(t *testing.T) {
 			t.Fail()
 		}
 		switch asgn.Value.(type) {
-		case ast.BasicLit:
-			val := asgn.Value.(ast.BasicLit)
+		case *ast.BasicLit:
+			val := asgn.Value.(*ast.BasicLit)
 			if val.Kind != token.Quote || val.Value != "-fplan9-extensions" {
 				t.Fail()
 			}
@@ -74,8 +74,8 @@ func TestParseBoolVar(t *testing.T) {
 			t.Fail()
 		}
 		switch asgn.Value.(type) {
-		case ast.BasicLit:
-			val := asgn.Value.(ast.BasicLit)
+		case *ast.BasicLit:
+			val := asgn.Value.(*ast.BasicLit)
 			if val.Kind != token.True {
 				t.Fail()
 			}
@@ -112,10 +112,10 @@ func TestParseSlice(t *testing.T) {
 			t.Fail()
 		}
 		switch asgn.Value.(type) {
-		case ast.Slice:
-			val := asgn.Value.(ast.Slice)
+		case *ast.Slice:
+			val := asgn.Value.(*ast.Slice)
 			for i, x := range val.Slice {
-				if strs[i] != x.(ast.BasicLit).Interface().(string) {
+				if strs[i] != x.(*ast.BasicLit).Interface().(string) {
 					t.Log(x.(string))
 					t.Fail()
 				}
@@ -154,10 +154,10 @@ func TestParseSliceWithOutComma(t *testing.T) {
 			t.Fail()
 		}
 		switch asgn.Value.(type) {
-		case ast.Slice:
-			val := asgn.Value.(ast.Slice)
+		case *ast.Slice:
+			val := asgn.Value.(*ast.Slice)
 			for i, x := range val.Slice {
-				if strs[i] != x.(ast.BasicLit).Interface() {
+				if strs[i] != x.(*ast.BasicLit).Interface() {
 					t.Log(x.(string))
 					t.Fail()
 				}
@@ -190,9 +190,9 @@ func TestParseVarFunc(t *testing.T) {
 			if f.Name != "glob" {
 				t.Fail()
 			}
-			q := f.AnonParams[0].(ast.Slice)
+			q := f.AnonParams[0].(*ast.Slice)
 
-			if q.Slice[0].(ast.BasicLit).Interface() != "*.c" {
+			if q.Slice[0].(*ast.BasicLit).Interface() != "*.c" {
 				t.Fail()
 			}
 
@@ -301,16 +301,16 @@ func TestParseMapInFunc(t *testing.T) {
 	switch decl.(type) {
 	case *ast.Func:
 		f := decl.(*ast.Func)
-		if f.Params["exports"].(*ast.Map).Value["bla"].(ast.BasicLit).Interface().(string) != "b" {
+		if f.Params["exports"].(*ast.Map).Map["bla"].(*ast.BasicLit).Interface().(string) != "b" {
 			t.Fail()
 		}
-		if f.Params["deps"].(ast.Slice).Slice[0].(ast.BasicLit).Interface() != ":libxstring" {
+		if f.Params["deps"].(*ast.Slice).Slice[0].(*ast.BasicLit).Interface() != ":libxstring" {
 			t.Fail()
 		}
-		if f.Params["name"].(ast.BasicLit).Interface().(string) != "test" {
+		if f.Params["name"].(*ast.BasicLit).Interface().(string) != "test" {
 			t.Fail()
 		}
-		if f.Params["srcs"].(ast.Slice).Slice[0].(ast.BasicLit).Interface() != "tests/test.c" {
+		if f.Params["srcs"].(*ast.Slice).Slice[0].(*ast.BasicLit).Interface() != "tests/test.c" {
 			t.Fail()
 		}
 	default:
@@ -332,13 +332,13 @@ func TestParseFunc(t *testing.T) {
 		if f.Params["copts"].(ast.Variable).Key != "C_FLAGS" {
 			t.Fail()
 		}
-		if f.Params["deps"].(ast.Slice).Slice[0].(ast.BasicLit).Interface() != ":libxstring" {
+		if f.Params["deps"].(*ast.Slice).Slice[0].(*ast.BasicLit).Interface() != ":libxstring" {
 			t.Fail()
 		}
-		if f.Params["name"].(ast.BasicLit).Interface().(string) != "test" {
+		if f.Params["name"].(*ast.BasicLit).Interface().(string) != "test" {
 			t.Fail()
 		}
-		if f.Params["srcs"].(ast.Slice).Slice[0].(ast.BasicLit).Interface() != "tests/test.c" {
+		if f.Params["srcs"].(*ast.Slice).Slice[0].(*ast.BasicLit).Interface() != "tests/test.c" {
 			t.Fail()
 		}
 	default:
@@ -359,13 +359,13 @@ func TestParseSmileyFunc(t *testing.T) {
 	switch decl.(type) {
 	case *ast.Func:
 		f := decl.(*ast.Func)
-		if f.Params["deps"].(ast.Slice).Slice[0].(ast.BasicLit).Interface() != ":☹☻☺" {
+		if f.Params["deps"].(*ast.Slice).Slice[0].(*ast.BasicLit).Interface() != ":☹☻☺" {
 		t.Fail()
 	}
-	if f.Params["name"].(ast.BasicLit).Interface().(string) != "☹☺☻" {
+	if f.Params["name"].(*ast.BasicLit).Interface().(string) != "☹☺☻" {
 		t.Fail()
 	}
-	if f.Params["srcs"].(ast.Slice).Slice[0].(ast.BasicLit).Interface() != "☺☹☻.c" {
+	if f.Params["srcs"].(*ast.Slice).Slice[0].(*ast.BasicLit).Interface() != "☺☹☻.c" {
 		t.Fail()
 	}
 	default:
