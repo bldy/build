@@ -92,7 +92,7 @@ type Func struct {
 func (f *Func)isDecl() {}
 
 type Map struct {
-	Value map[string]interface{}
+	Map map[string]interface{}
 	Node
 }
 
@@ -103,14 +103,14 @@ type BasicLit struct {
 	Node
 }
 
-func NewBasicLit(t token.Token) BasicLit {
+func NewBasicLit(t token.Token) *BasicLit {
 	lit := BasicLit{
 		Kind:  t.Type,
 		Value: t.String(),
 	}
 	lit.SetStart(t)
 	lit.SetEnd(t)
-	return lit
+	return &lit
 }
 
 func (b BasicLit) Interface() interface{} {

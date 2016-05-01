@@ -315,7 +315,7 @@ func (p *Parser) consumeParams(f *ast.Func) error {
 func (p *Parser) consumeMap() (*ast.Map, error) {
 	t := p.next()
 	_map := ast.Map{
-		Value: make(map[string]interface{}),
+		Map: make(map[string]interface{}),
 	}
 	_map.SetStart(t)
 
@@ -331,7 +331,7 @@ func (p *Parser) consumeMap() (*ast.Map, error) {
 		if n, err := p.consumeNode(); err != nil {
 			return nil, err
 		} else {
-			_map.Value[t.String()] = n
+			_map.Map[t.String()] = n
 		}
 		if p.peek().Type == token.Comma {
 			p.next()
@@ -368,11 +368,11 @@ func (p *Parser) consumeFunc() (*ast.Func, error) {
 	return &f, nil
 }
 
-func (p *Parser) consumeSlice() (ast.Slice, error) {
+func (p *Parser) consumeSlice() (*ast.Slice, error) {
 	var _slice ast.Slice
 
 	if err := p.expects(p.peek(), token.LeftBrac); err != nil {
-		return _slice, err
+		return nil, err
 	} else {
 		_slice.SetStart(p.next())
 	}
@@ -381,18 +381,18 @@ func (p *Parser) consumeSlice() (ast.Slice, error) {
 	for p.peek().Type != token.RightBrac {
 		node, err := p.consumeNode()
 		if err != nil {
-			return _slice, err
+			return nil, err
 		}
 		_slice.Slice = append(_slice.Slice, node)
 		if p.peek().Type == token.Comma {
 			p.next()
 		} else if err := p.expects(p.peek(), token.RightBrac); err != nil {
-			return _slice, err
+			return nil, err
 		}
 	}
 
 	// advance ]
 	_slice.SetEnd(p.next())
 
-	return _slice, nil
+	return &_slice, nil
 }
