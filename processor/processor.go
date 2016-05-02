@@ -24,9 +24,8 @@ import (
 	"sevki.org/build/ast"
 	"sevki.org/build/internal"
 	"sevki.org/build/parser"
-	"sevki.org/build/token"
-	"sevki.org/build/util"
-)
+ 	"sevki.org/build/util"
+ )
 
 type Processor struct {
 	vars    map[string]interface{}
@@ -102,7 +101,8 @@ func (p *Processor) unwrapValue(i interface{}) interface{} {
 	}
 }
 func (p *Processor) runFunc(f *ast.Func) {
- 	switch f.Name {
+	p.unwrapFunc(f)
+	switch f.Name {
 	case "load":
 		fail := func() {
 			log.Fatal("should be used like so; load(file, var...)")
@@ -113,15 +113,12 @@ func (p *Processor) runFunc(f *ast.Func) {
 		// Check paramter types
 		for i, param := range f.AnonParams {
 			switch param.(type) {
-			case ast.BasicLit:
-				v := param.(ast.BasicLit)
-				if v.Kind != token.Quote {
-					fail()
-				}
+			case string:
+				v := param.(string)
 				if i == 0 {
-					filePath = v.Value
+					filePath = v
 				} else {
-					varsToImport = append(varsToImport, v.Value)
+					varsToImport = append(varsToImport, v)
 				}
 				break
 			default:
@@ -145,8 +142,7 @@ func (p *Processor) runFunc(f *ast.Func) {
 				log.Fatalf("%s is not present at %s. Please check the file and try again.", v, filePath)
 			}
 		}
-	case "select":
-	default:
+ 	default:
 		targ, err := p.makeTarget(f)
 		if err != nil {
 			log.Fatal(err)
@@ -179,7 +175,22 @@ func NewProcessorFromFile(n string) (*Processor, error) {
 }
 
 func (p *Processor) makeTarget(f *ast.Func) (build.Target, error) {
-	ttype := internal.Get(f.Name)
+ 
+
+	if v, ok := p.vars[f.Name]; ok {
+		switch v.(type) {
+			case *ast.Func:
+			macro := v.(*ast.Func)
+			f.Name = macro.Name
+			for k, v := range  macro.Params {
+				if _, ok := f.Params[k]; !ok {
+					f.Params[k] = v
+				}
+			}
+		}
+	}  
+ 	ttype := internal.Get(f.Name)
+ 
 
 	payload := make(map[string]interface{})
 
@@ -240,7 +251,7 @@ func (p *Processor) funcReturns(f *ast.Func) interface{} {
 	case "env":
 		return p.env(f)
 	default:
-		return ""
+		return f
 	}
 }
 

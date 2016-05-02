@@ -147,3 +147,15 @@ func TestTarget(t *testing.T) {
 		t.Fail()
 	}
 }
+
+func TestTargetFromMacro(t *testing.T) {
+	p, err := NewProcessorFromFile("tests/targetFromMacro.BUILD")
+	if err != nil {
+		t.Fatal(err)
+	}
+	go p.Run()
+	targ := <-p.Targets
+	if targ.GetName() == "libxstring" {
+		t.Fail()
+	}
+}
