@@ -71,11 +71,12 @@ type Slice struct {
 
 // Assignment
 type Assignment struct {
-	Key	string
+	Key   string
 	Value interface{}
 	Node
 }
-func (a *Assignment)isDecl() {}
+
+func (a *Assignment) isDecl() {}
 
 // Func represents a function in the ast mostly in the form of
 //
@@ -89,7 +90,8 @@ type Func struct {
 	Parent     *Func `json:"-"`
 	Node
 }
-func (f *Func)isDecl() {}
+
+func (f *Func) isDecl() {}
 
 type Map struct {
 	Map map[string]interface{}

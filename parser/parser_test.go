@@ -226,7 +226,7 @@ func TestParseAddition(t *testing.T) {
 				t.Fail()
 			}
 
-			if f.AnonParams[0].(ast.Variable).Key != "CC_FLAGS" {
+			if f.AnonParams[0].(*ast.Variable).Key != "CC_FLAGS" {
 				t.Log("Was Expeting CC_FLAGS ")
 				t.Fail()
 			}
@@ -252,7 +252,7 @@ func TestParseAddition(t *testing.T) {
 				t.Fail()
 			}
 
-			if f.AnonParams[0].(ast.Variable).Key != "BB_FLAGS" {
+			if f.AnonParams[0].(*ast.Variable).Key != "BB_FLAGS" {
 				t.Log("was expecting BB_FLAGS")
 				t.Fail()
 			}
@@ -329,7 +329,7 @@ func TestParseFunc(t *testing.T) {
 	switch decl.(type) {
 	case *ast.Func:
 		f := decl.(*ast.Func)
-		if f.Params["copts"].(ast.Variable).Key != "C_FLAGS" {
+		if f.Params["copts"].(*ast.Variable).Key != "C_FLAGS" {
 			t.Fail()
 		}
 		if f.Params["deps"].(*ast.Slice).Slice[0].(*ast.BasicLit).Interface() != ":libxstring" {

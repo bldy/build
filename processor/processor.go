@@ -61,39 +61,46 @@ func (p *Processor) Run() {
 }
 
 func (p *Processor) doAssignment(a *ast.Assignment) {
-	switch a.Value.(type) {
+	p.vars[a.Key] = p.unwrapValue(a.Value)
+}
+func (p *Processor) unwrapFunc(f *ast.Func) {
+	f.Params = p.unwrapMap(f.Params)
+	f.AnonParams = p.unwrapSlice(f.AnonParams)
+}
+func (p *Processor) unwrapSlice(slc []interface{}) []interface{} {
+	for i, v := range slc {
+		slc[i] = p.unwrapValue(v)
+	}
+	return slc
+}
+
+func (p *Processor) unwrapMap(mp map[string]interface{}) map[string]interface{} {
+	for i, v := range mp {
+		mp[i] = p.unwrapValue(v)
+	}
+	return mp
+}
+func (p *Processor) unwrapValue(i interface{}) interface{} {
+	switch i.(type) {
 	case *ast.BasicLit:
-		p.vars[a.Key] = a.Value.(*ast.BasicLit).Interface()
-	case *ast.Func: 
+		return i.(*ast.BasicLit).Interface()
+	case *ast.Variable:
+		if v, ok :=  p.vars[i.(*ast.Variable).Key]; ok {
+			return v
+		} else {
+			log.Fatalf("variable %s is not present. make sure it's loaded properly or declared")
+		}
+		return nil
 	case *ast.Slice:
-		p.unwrapSlice(a.Value.(*ast.Slice))
-		p.vars[a.Key] = a.Value.(*ast.Slice).Slice 
+		return p.unwrapSlice(i.(*ast.Slice).Slice)
 	case *ast.Map:
-		p.unwrapMap(a.Value.(*ast.Map))
-		p.vars[a.Key] = a.Value.(*ast.Map).Map 
-	default: 
-		log.Printf("%T", a.Value)
+		return p.unwrapMap(i.(*ast.Map).Map)
+	case *ast.Func:
+		return p.funcReturns(i.(*ast.Func))
+	default:
+		return nil
 	}
 }
-
-func (p *Processor) unwrapSlice(slc *ast.Slice) {
-	for i, v := range slc.Slice {
-		switch v.(type) {
-		case *ast.BasicLit:
-			slc.Slice[i] = v.(*ast.BasicLit).Interface()
-		}
-	}
-}
-
-func (p *Processor) unwrapMap(slc *ast.Map) {
-	for i, v := range slc.Map {
-		switch v.(type) {
-		case *ast.BasicLit:
-			slc.Map[i] = v.(*ast.BasicLit).Interface()
-		}
-	}
-}
-
 func (p *Processor) runFunc(f *ast.Func) {
 	switch f.Name {
 
@@ -139,7 +146,6 @@ func (p *Processor) runFunc(f *ast.Func) {
 				log.Fatalf("%s is not present at %s. Please check the file and try again.", v, filePath)
 			}
 		}
-
 	case "select":
 	default:
 		targ, err := p.makeTarget(f)
@@ -223,6 +229,7 @@ func (p *Processor) makeTarget(f *ast.Func) (build.Target, error) {
 }
 
 func (p *Processor) funcReturns(f *ast.Func) interface{} {
+	p.unwrapFunc(f)
 	switch f.Name {
 	case "glob":
 		return p.glob(f)
@@ -230,8 +237,11 @@ func (p *Processor) funcReturns(f *ast.Func) interface{} {
 		return p.version(f)
 	case "addition":
 		return p.combineArrays(f)
+	case "env":
+		return p.env(f)
+	default:
+		return ""
 	}
-	return ""
 }
 
 func (p *Processor) combineArrays(f *ast.Func) interface{} {
@@ -239,17 +249,8 @@ func (p *Processor) combineArrays(f *ast.Func) interface{} {
 
 	for _, v := range f.AnonParams {
 		switch v.(type) {
-		case ast.Variable:
-			name := v.(ast.Variable)
-			x, exists := p.vars[name.Key]
-			if !exists {
-				log.Fatalf("combinine arrays: coudln't find var %s", name.Key)
-			}
-			switch x.(type) {
-			case []interface{}:
-				t = append(t, x.([]interface{})...)
-			}
-
+		case []interface{}:
+			t = append(t, v.([]interface{})...)
 		}
 	}
 

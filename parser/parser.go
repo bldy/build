@@ -143,7 +143,11 @@ func (p *Parser) consumeNode() (interface{}, error) {
 	case token.False:
 		r, err = ast.NewBasicLit(p.next()), nil
 	case token.String:
-		r, err = ast.Variable{Key: p.next().String()}, nil
+		t := p.next()
+		v := ast.Variable{Key: t.String()}
+		v.SetStart(t)
+		v.SetEnd(t)
+		r, err = &v, nil
 	case token.LeftBrac:
 		r, err = p.consumeSlice()
 	case token.LeftCurly:
@@ -188,6 +192,15 @@ func (p *Parser) consumeAddFunc(v interface{}) (*ast.Func, error) {
 			f.AnonParams = append(
 				f.AnonParams,
 				p.next().String(),
+			)
+		case token.LeftBrac:
+			slc, err := p.consumeSlice()
+			if err != nil {
+				return nil, err
+			}
+			f.AnonParams = append(
+				f.AnonParams,
+				slc,
 			)
 		}
 	}
