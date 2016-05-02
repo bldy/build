@@ -24,8 +24,8 @@ import (
 	"sevki.org/build/ast"
 	"sevki.org/build/internal"
 	"sevki.org/build/parser"
- 	"sevki.org/build/util"
- )
+	"sevki.org/build/util"
+)
 
 type Processor struct {
 	vars    map[string]interface{}
@@ -127,6 +127,10 @@ func (p *Processor) runFunc(f *ast.Func) {
 		}
 
 		loadingProcessor, err := NewProcessorFromFile(p.absPath(filePath))
+		go loadingProcessor.Run()
+		d := <-loadingProcessor.Targets
+		for ; d != nil; d = <-loadingProcessor.Targets {
+		}
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -135,14 +139,13 @@ func (p *Processor) runFunc(f *ast.Func) {
 		}
 
 		for _, v := range varsToImport {
-
 			if val, ok := loadingProcessor.vars[v]; ok {
 				p.vars[v] = val
 			} else {
 				log.Fatalf("%s is not present at %s. Please check the file and try again.", v, filePath)
 			}
 		}
- 	default:
+	default:
 		targ, err := p.makeTarget(f)
 		if err != nil {
 			log.Fatal(err)
@@ -175,22 +178,20 @@ func NewProcessorFromFile(n string) (*Processor, error) {
 }
 
 func (p *Processor) makeTarget(f *ast.Func) (build.Target, error) {
- 
 
 	if v, ok := p.vars[f.Name]; ok {
 		switch v.(type) {
-			case *ast.Func:
+		case *ast.Func:
 			macro := v.(*ast.Func)
 			f.Name = macro.Name
-			for k, v := range  macro.Params {
+			for k, v := range macro.Params {
 				if _, ok := f.Params[k]; !ok {
 					f.Params[k] = v
 				}
 			}
 		}
-	}  
- 	ttype := internal.Get(f.Name)
- 
+	}
+	ttype := internal.Get(f.Name)
 
 	payload := make(map[string]interface{})
 
