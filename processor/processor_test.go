@@ -6,6 +6,8 @@ package processor // import "sevki.org/build/processor"
 import (
 	"os"
 	"testing"
+	
+	_ "sevki.org/build/targets/cc"
 )
 
 //
@@ -128,5 +130,20 @@ func TestAddition(t *testing.T) {
 		if slc[i] != v {
 			t.Fail()
 		}
+	}
+}
+
+
+func TestTarget(t *testing.T) {
+
+
+	p, err := NewProcessorFromFile("tests/target.BUILD")
+	if err != nil {
+		t.Fatal(err)
+	}
+	go p.Run()
+	targ := <-p.Targets
+	if targ.GetName() == "libxstring" {
+		t.Fail()
 	}
 }

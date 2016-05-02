@@ -33,14 +33,14 @@ type Processor struct {
 	wd      string
 	targs   map[string]build.Target
 	parser  *parser.Parser
-	Targets chan *build.Target
+	Targets chan build.Target
 }
 
 func NewProcessor(p *parser.Parser) *Processor {
 	return &Processor{
 		vars:    make(map[string]interface{}),
 		parser:  p,
-		Targets: make(chan *build.Target),
+		Targets: make(chan build.Target),
 	}
 }
 func (p *Processor) Run() {
@@ -85,7 +85,7 @@ func (p *Processor) unwrapValue(i interface{}) interface{} {
 	case *ast.BasicLit:
 		return i.(*ast.BasicLit).Interface()
 	case *ast.Variable:
-		if v, ok :=  p.vars[i.(*ast.Variable).Key]; ok {
+		if v, ok := p.vars[i.(*ast.Variable).Key]; ok {
 			return v
 		} else {
 			log.Fatalf("variable %s is not present. make sure it's loaded properly or declared")
@@ -102,8 +102,7 @@ func (p *Processor) unwrapValue(i interface{}) interface{} {
 	}
 }
 func (p *Processor) runFunc(f *ast.Func) {
-	switch f.Name {
-
+ 	switch f.Name {
 	case "load":
 		fail := func() {
 			log.Fatal("should be used like so; load(file, var...)")
@@ -152,8 +151,9 @@ func (p *Processor) runFunc(f *ast.Func) {
 		if err != nil {
 			log.Fatal(err)
 			return
+		} else {
+			p.Targets <- targ
 		}
-		p.targs[targ.GetName()] = targ
 	}
 }
 
