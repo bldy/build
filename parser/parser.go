@@ -184,9 +184,14 @@ func (p *Parser) consumeAddFunc(v interface{}) (*ast.Func, error) {
 		p.next()
 		switch p.peek().Type {
 		case token.String:
+			t := p.next()
+			v := ast.Variable{Key: t.String()}
+			v.SetStart(t)
+			v.SetEnd(t)
+
 			f.AnonParams = append(
 				f.AnonParams,
-				ast.Variable{Key: p.next().String()},
+				&v,
 			)
 		case token.Quote:
 			f.AnonParams = append(
@@ -389,7 +394,6 @@ func (p *Parser) consumeSlice() (*ast.Slice, error) {
 	} else {
 		_slice.SetStart(p.next())
 	}
-
 
 	for p.peek().Type != token.RightBrac {
 		node, err := p.consumeNode()

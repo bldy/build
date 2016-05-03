@@ -26,7 +26,7 @@ import (
 	"sevki.org/build/parser"
 	"sevki.org/build/preprocessor"
 	"sevki.org/build/util"
-)
+ )
 
 type Processor struct {
 	vars    map[string]interface{}
@@ -43,7 +43,7 @@ func NewProcessor(p *parser.Parser) *Processor {
 		Targets: make(chan build.Target),
 	}
 }
-func NewProcessorFromURL(url parser.TargetURL, wd string)  (*Processor, error) {
+func NewProcessorFromURL(url parser.TargetURL, wd string) (*Processor, error) {
 
 	BUILDPATH := filepath.Join(url.BuildDir(wd, util.GetProjectPath()), "BUILD")
 	BUCKPATH := filepath.Join(url.BuildDir(wd, util.GetProjectPath()), "BUCK")
@@ -58,6 +58,7 @@ func NewProcessorFromURL(url parser.TargetURL, wd string)  (*Processor, error) {
 		return nil, err
 	}
 	return NewProcessorFromFile(fp)
+
 }
 
 func NewProcessorFromFile(n string) (*Processor, error) {
@@ -111,11 +112,19 @@ func (p *Processor) doAssignment(a *ast.Assignment) {
 }
 func (p *Processor) unwrapFunc(f *ast.Func) {
 	f.Params = p.unwrapMap(f.Params)
+ 
+
 	f.AnonParams = p.unwrapSlice(f.AnonParams)
 }
 func (p *Processor) unwrapSlice(slc []interface{}) []interface{} {
+	 
 	for i, v := range slc {
-		slc[i] = p.unwrapValue(v)
+		t := p.unwrapValue(v)
+		if t != nil {
+			slc[i] = t
+		} else {
+			log.Fatalf("unwrapping of value %v failed.", v)
+		}
 	}
 	return slc
 }
@@ -131,7 +140,7 @@ func (p *Processor) unwrapValue(i interface{}) interface{} {
 	case *ast.BasicLit:
 		return i.(*ast.BasicLit).Interface()
 	case *ast.Variable:
-		if v, ok := p.vars[i.(*ast.Variable).Key]; ok {
+ 		if v, ok := p.vars[i.(*ast.Variable).Key]; ok {
 			return v
 		} else {
 			log.Fatalf("variable %s is not present. make sure it's loaded properly or declared")
@@ -172,14 +181,13 @@ func (p *Processor) runFunc(f *ast.Func) {
 				fail()
 			}
 		}
-
-		loadingProcessor, err := NewProcessorFromFile(p.absPath(filePath))
+ 		loadingProcessor, err := NewProcessorFromFile(p.absPath(filePath))
 		if err != nil {
 			log.Fatal(err)
 		}
 		go loadingProcessor.Run()
-	
-		for 	d := <-loadingProcessor.Targets; d != nil; d = <-loadingProcessor.Targets {
+
+		for d := <-loadingProcessor.Targets; d != nil; d = <-loadingProcessor.Targets {
 		}
 		if err != nil {
 			log.Fatal(err)
@@ -195,6 +203,7 @@ func (p *Processor) runFunc(f *ast.Func) {
 				log.Fatalf("%s is not present at %s. Please check the file and try again.", v, filePath)
 			}
 		}
+
 	default:
 		targ, err := p.makeTarget(f)
 		if err != nil {
