@@ -5,41 +5,34 @@
 package preprocessor // import "sevki.org/build/preprocessor"
 import (
 	"fmt"
-	"log"
-	"path/filepath"
 
 	"sevki.org/build/ast"
 )
 
-func Process(f *ast.File) error {
-	return processDupeLoad(f)
+type PreProcessor interface {
+	Process(ast.Decl) (ast.Decl, error)
 }
 
-func processDupeLoad(f *ast.File) error {
-	seenFile := make(map[string]*ast.Func)
-	for _, function := range f.Funcs {
-		if function.Name != "load" {
-			continue
-		}
-		var fileName string
-		switch function.AnonParams[0].(type) {
-		case string:
-			fileName = function.AnonParams[0].(string)
-		default:
-			errorMessage := `load must always be in this form 'load("//foo/bar/FILE", "EXPORTED_VALUE_A", "EXPORTED_VALUE_B")'`
-			log.Fatal(errorMessage)
-		}
+type DuplicateLoadChecker struct {
+	Seen map[string]*ast.Func
+}
 
-		if before, seen := seenFile[fileName]; seen {
-			return fmt.Errorf("'load' function in file %s, loads from same file %s twice. try merging load functions on line %d and %d.",
-				filepath.Join(f.Path, function.File),
-				function.AnonParams[0].(string),
-				function.Line,
-				before.Line,
-			)
-		} else {
-			seenFile[fileName] = function
+func (dlc *DuplicateLoadChecker) Process(d ast.Decl) (ast.Decl, error) {
+	switch d.(type) {
+	case *ast.Func:
+		f := d.(*ast.Func)
+		if f.Name == "load" {
+			file := f.AnonParams[0].(*ast.BasicLit).Value
+			if exst, ok := dlc.Seen[file]; ok {
+				dupeErr := `File %s is loaded more then once at these locations:
+	 ./%s:%d: 
+	 ./%s:%d: `
+
+				return nil, fmt.Errorf(dupeErr, file, f.File, f.Start.Line, exst.File, exst.Start.Line)
+			} else {
+				dlc.Seen[file] = f
+			}
 		}
 	}
-	return nil
+	return d, nil
 }

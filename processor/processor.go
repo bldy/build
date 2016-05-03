@@ -24,6 +24,7 @@ import (
 	"sevki.org/build/ast"
 	"sevki.org/build/internal"
 	"sevki.org/build/parser"
+	"sevki.org/build/preprocessor"
 	"sevki.org/build/util"
 )
 
@@ -46,8 +47,24 @@ func (p *Processor) Run() {
 
 	go p.parser.Run()
 	var d ast.Decl
-	d = <-p.parser.Decls
-	for ; d != nil; d = <-p.parser.Decls {
+
+	// Define a set of preprocessors
+	preprocessors := []preprocessor.PreProcessor{
+		&preprocessor.DuplicateLoadChecker{
+			Seen: make(map[string]*ast.Func),
+		},
+	}
+
+	for d = <-p.parser.Decls; d != nil; d = <-p.parser.Decls {
+		// Run preprocessors
+		for _, pp := range preprocessors {
+			var err error
+			d, err = pp.Process(d)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+
 		switch d.(type) {
 		case *ast.Func:
 			p.runFunc(d.(*ast.Func))
