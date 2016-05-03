@@ -1,0 +1,9 @@
+cc_binary(
+	name="libString",
+	deps=[
+		":libc",
+	],
+	srcs=[
+		"string.c",
+	]
+)

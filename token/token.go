@@ -5,16 +5,18 @@
 //go:generate stringer -type Type
 
 package token // import "sevki.org/build/token"
+ 
 
 type Token struct {
 	Type  Type
-	Line  int
 	Text  []byte
+	Line  int
 	Start int
 	End   int
 }
 
 type Type int
+
 
 const (
 	EOF Type = iota
@@ -22,7 +24,7 @@ const (
 	Newline
 	String
 	Space
-	Number
+	Int
 	Float
 	Hex
 	LeftCurly

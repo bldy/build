@@ -1,6 +1,8 @@
 language: go
 go:
   - 1.5
+  - 1.6
+  - tip
 env:
   - "PATH=/home/travis/gopath/bin:$PATH"
 before_install:
@@ -12,10 +14,11 @@ install:
   - mv "$TRAVIS_BUILD_DIR" "$GOPATH/src/sevki.org/build"
   - go get -v -t -d sevki.org/build/...
 script:
-  - go test -v sevki.org/build/parser
   - go test -v sevki.org/build/lexer
   - go test -v sevki.org/build/internal
+  - go test -v sevki.org/build/parser
+  - go test -v sevki.org/build/preprocessor
+  - go test -v sevki.org/build/processor
 after_success:
   - cd "$GOPATH/src/sevki.org/build/cmd/build"
-  - gox -output "dist/{{.OS}}_{{.Arch}}_{{.Dir}}"
-  - if [ "$TRAVIS_BRANCH" == "master" ]; then ghr --username sevki --token $GITHUB_TOKEN --replace --prerelease --debug `git describe --always`  dist/; fi
+  - if [ "$TRAVIS_PULL_REQUEST" == 0] || ["$TRAVIS_BRANCH" == "master" ]; then gox -output "dist/{{.OS}}_{{.Arch}}_{{.Dir}}"; ghr --username sevki --token $GITHUB_TOKEN --replace --prerelease --debug `git describe --always`  dist/; fi

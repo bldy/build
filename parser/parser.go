@@ -20,34 +20,34 @@ var (
 )
 
 type Parser struct {
-	name     string
-	path     string
-	lexer    *lexer.Lexer
-	state    stateFn
-	peekTok  token.Token
-	curTok   token.Token
-	line     int
-	Error    error
-	Document *ast.File
-	ptr      *ast.Func
-	payload  map[string]interface{}
-	typeName string
-	stack    []stateFn
+	name    string
+	Path    string
+	lexer   *lexer.Lexer
+	Decls   chan ast.Decl
+	state   stateFn
+	peekTok token.Token
+	curTok  token.Token
+	Error   error
 }
-
-type stateFn func(*Parser) stateFn
 
 func (p *Parser) peek() token.Token {
 	return p.peekTok
 }
-func (p *Parser) next() token.Token {
-	tok := p.peekTok
-	p.peekTok = <-p.lexer.Tokens
-	p.curTok = tok
 
-	if tok.Type == token.Error {
-		p.errorf("%q", tok)
+func (p *Parser) next() token.Token {
+IGNORETOKEN:
+	t := <-p.lexer.Tokens
+
+	switch t.Type {
+	case token.Error:
+		p.errorf("%q", t)
+	case token.Newline:
+		goto IGNORETOKEN
 	}
+
+	tok := p.peekTok
+	p.peekTok = t
+	p.curTok = tok
 
 	return tok
 }
@@ -62,46 +62,45 @@ func (p *Parser) errorf(format string, args ...interface{}) error {
 func New(name, path string, r io.Reader) *Parser {
 	p := &Parser{
 		name:  name,
-		path:  path,
-		line:  0,
+		Path:  path,
 		lexer: lexer.New(name, r),
-		Document: &ast.File{
-			Path: path,
-		},
+		Decls: make(chan ast.Decl),
 	}
-
 	return p
 }
 
-func (p *Parser) run() {
+func (p *Parser) Run() {
 	p.next()
-	for p.state = parseBuild; p.state != nil; {
+	for p.state = parseDecl; p.state != nil; {
 		p.state = p.state(p)
 	}
+	p.Decls <- nil
+	close(p.Decls)
+
 }
 
-func parseBuild(p *Parser) stateFn {
-	for p.peek().Type != token.EOF {
-		return parseDecl
-	}
-	return nil
-}
+type stateFn func(*Parser) stateFn
 
 func parseDecl(p *Parser) stateFn {
 	switch p.peek().Type {
 	case token.Func:
-		if f, err := p.consumeFunc(); err != nil {
-			p.Error = err
-			return nil
-		} else {
-			p.Document.Funcs = append(p.Document.Funcs, f)
-		}
-		return parseDecl
+		return parseFunc
 	case token.String:
 		return parseVar
 	}
 	return nil
 }
+
+func parseFunc(p *Parser) stateFn {
+	if f, err := p.consumeFunc(); err != nil {
+		p.Error = err
+		return nil
+	} else {
+		p.Decls <- f
+	}
+	return parseDecl
+}
+
 func parseVar(p *Parser) stateFn {
 	t := p.next()
 
@@ -114,71 +113,166 @@ func parseVar(p *Parser) stateFn {
 		return nil
 	}
 
-	if p.Document.Vars == nil {
-		p.Document.Vars = make(map[string]interface{})
-	}
-
 	switch p.peek().Type {
 	case token.LeftBrac, token.LeftCurly, token.String, token.Quote, token.True, token.False, token.Func:
 		if n, err := p.consumeNode(); err != nil {
 			return nil
 		} else {
-			p.Document.Vars[t.String()] = n
-		}
-	}
-	if p.peek().Type == token.Plus {
-
-		f := &ast.Func{
-			Name: "addition",
-		}
-		f.File = p.name
-		f.Line = t.Line
-		f.Position = t.Start
-
-		f.AnonParams = []interface{}{p.Document.Vars[t.String()]}
-
-		p.Document.Vars[t.String()] = f
-
-		for p.peek().Type == token.Plus {
-			p.next()
-			switch p.peek().Type {
-			case token.String:
-				f.AnonParams = append(
-					f.AnonParams,
-					ast.Variable{Key: p.next().String()},
-				)
-			case token.Quote:
-				f.AnonParams = append(
-					f.AnonParams,
-					p.next().String(),
-				)
+			a := ast.Assignment{
+				Key:   t.String(),
+				Value: n,
 			}
-
+			a.SetEnd(t)
+			a.SetStart(p.curTok)
+			p.Decls <- &a
 		}
-
 	}
 
 	return parseDecl
 }
+
 func (p *Parser) consumeNode() (interface{}, error) {
+	var r interface{}
+	var err error
+
 	switch p.peek().Type {
 	case token.Quote:
-		return p.next().String(), nil
-	case token.LeftBrac:
-		return p.consumeSlice()
-	case token.LeftCurly:
-		return p.consumeMap()
-	case token.Func:
-		return p.consumeFunc()
+		r, err = ast.NewBasicLit(p.next()), nil
 	case token.True:
-		return true, nil
+		r, err = ast.NewBasicLit(p.next()), nil
 	case token.False:
-		return false, nil
+		r, err = ast.NewBasicLit(p.next()), nil
 	case token.String:
-		return ast.Variable{Key: p.next().String()}, nil
+		t := p.next()
+		v := ast.Variable{Key: t.String()}
+		v.SetStart(t)
+		v.SetEnd(t)
+		r, err = &v, nil
+	case token.LeftBrac:
+		r, err = p.consumeSlice()
+	case token.LeftCurly:
+		r, err = p.consumeMap()
+	case token.Func:
+		r, err = p.consumeFunc()
 	default:
 		return nil, ErrConsumption
 	}
+REPROCESS:
+	switch p.peek().Type {
+	case token.Plus:
+		r, err = p.consumeAddFunc(r)
+		goto REPROCESS
+	case token.LeftBrac:
+		r, err = p.consumeSliceFunc(r)
+		goto REPROCESS
+	}
+	return r, err
+}
+
+func (p *Parser) consumeAddFunc(v interface{}) (*ast.Func, error) {
+	f := &ast.Func{
+		Name: "addition",
+	}
+
+	f.File = p.name
+	f.SetStart(p.curTok)
+
+	f.AnonParams = []interface{}{v}
+
+	for p.peek().Type == token.Plus {
+
+		p.next()
+		switch p.peek().Type {
+		case token.String:
+			f.AnonParams = append(
+				f.AnonParams,
+				ast.Variable{Key: p.next().String()},
+			)
+		case token.Quote:
+			f.AnonParams = append(
+				f.AnonParams,
+				p.next().String(),
+			)
+		case token.LeftBrac:
+			slc, err := p.consumeSlice()
+			if err != nil {
+				return nil, err
+			}
+			f.AnonParams = append(
+				f.AnonParams,
+				slc,
+			)
+		}
+	}
+
+	f.SetEnd(p.curTok)
+	return f, nil
+}
+
+func (p *Parser) consumeSliceFunc(v interface{}) (*ast.Func, error) {
+
+	f := &ast.Func{
+		Params: make(map[string]interface{}),
+	}
+	f.File = p.name
+	f.SetStart(p.curTok)
+
+	// advance [
+	p.next()
+
+	f.Params["var"] = v
+	if p.peek().Type == token.Colon {
+		// advance :
+		p.next()
+		f.Name = "slice"
+		f.Params["start"] = 0
+		node, err := p.consumeNode()
+		if err != nil {
+			return nil, err
+		}
+		f.Params["end"] = node
+		goto END
+	} else if p.peek().Type == token.Int {
+		node, err := p.consumeNode()
+		if err != nil {
+			return nil, err
+		}
+
+		if p.peek().Type == token.RightBrac {
+			f.Name = "index"
+			f.Params["index"] = node
+			goto END
+		} else if p.peek().Type == token.Colon {
+			// advance :
+			p.next()
+		} else {
+			return nil, fmt.Errorf("this is a malformed slice")
+		}
+		f.Name = "slice"
+
+		node, err = p.consumeNode()
+		if err != nil {
+			return nil, err
+		}
+
+		f.Params["start"] = node
+		if p.peek().Type == token.Int {
+			node, err = p.consumeNode()
+			if err != nil {
+				return nil, err
+			}
+			f.Params["end"] = node
+		} else if p.peek().Type == token.RightBrac {
+			goto END
+		} else {
+			return nil, fmt.Errorf("this is a malformed slice")
+		}
+
+	}
+END:
+	// advance ]
+	f.SetEnd(p.next())
+	return f, nil
 }
 func (p *Parser) consumeParams(f *ast.Func) error {
 	for {
@@ -231,12 +325,13 @@ func (p *Parser) consumeParams(f *ast.Func) error {
 
 	}
 }
-func (p *Parser) consumeMap() (map[string]interface{}, error) {
-
-	if err := p.expects(p.next(), token.LeftCurly); err != nil {
-		return nil, err
+func (p *Parser) consumeMap() (*ast.Map, error) {
+	t := p.next()
+	_map := ast.Map{
+		Map: make(map[string]interface{}),
 	}
-	_map := make(map[string]interface{})
+	_map.SetStart(t)
+
 	for p.peek().Type != token.RightCurly {
 		t := p.next()
 		if err := p.expects(t, token.Quote); err != nil {
@@ -249,7 +344,7 @@ func (p *Parser) consumeMap() (map[string]interface{}, error) {
 		if n, err := p.consumeNode(); err != nil {
 			return nil, err
 		} else {
-			_map[t.String()] = n
+			_map.Map[t.String()] = n
 		}
 		if p.peek().Type == token.Comma {
 			p.next()
@@ -259,9 +354,9 @@ func (p *Parser) consumeMap() (map[string]interface{}, error) {
 	}
 
 	// advance }
-	p.next()
 
-	return _map, nil
+	_map.SetEnd(p.next())
+	return &_map, nil
 }
 func (p *Parser) consumeFunc() (*ast.Func, error) {
 	t := p.next()
@@ -273,8 +368,10 @@ func (p *Parser) consumeFunc() (*ast.Func, error) {
 	}
 
 	f.File = p.name
-	f.Line = t.Line
-	f.Position = t.Start
+	f.Start = ast.Position{
+		Line:  t.Line,
+		Index: t.Start,
+	}
 
 	t = p.next()
 	if err := p.expects(t, token.LeftParen); err != nil {
@@ -284,14 +381,22 @@ func (p *Parser) consumeFunc() (*ast.Func, error) {
 	return &f, nil
 }
 
-func (p *Parser) consumeSlice() ([]interface{}, error) {
-	if err := p.expects(p.next(), token.LeftBrac); err != nil {
+func (p *Parser) consumeSlice() (*ast.Slice, error) {
+	var _slice ast.Slice
+
+	if err := p.expects(p.peek(), token.LeftBrac); err != nil {
 		return nil, err
+	} else {
+		_slice.SetStart(p.next())
 	}
-	var slc []interface{}
+
 
 	for p.peek().Type != token.RightBrac {
-		slc = append(slc, p.next().String())
+		node, err := p.consumeNode()
+		if err != nil {
+			return nil, err
+		}
+		_slice.Slice = append(_slice.Slice, node)
 		if p.peek().Type == token.Comma {
 			p.next()
 		} else if err := p.expects(p.peek(), token.RightBrac); err != nil {
@@ -300,18 +405,7 @@ func (p *Parser) consumeSlice() ([]interface{}, error) {
 	}
 
 	// advance ]
-	p.next()
+	_slice.SetEnd(p.next())
 
-	return slc, nil
-}
-
-// Decode decodes a bazel/buck ast.
-func (p *Parser) Decode(i interface{}) (err error) {
-	p.Document = (i.(*ast.File))
-	p.Document.Path = p.path
-	p.run()
-	if p.curTok.Type == token.Error {
-		return p.Error
-	}
-	return nil
+	return &_slice, nil
 }

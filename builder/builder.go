@@ -18,8 +18,7 @@ import (
 	"sevki.org/build"
 	"sevki.org/build/parser"
 	"sevki.org/build/postprocessor"
-	"sevki.org/build/preprocessor"
-	"sevki.org/build/processor"
+ 	"sevki.org/build/processor"
 	"sevki.org/build/util"
 )
 
@@ -101,26 +100,20 @@ func (b *Builder) getTarget(url parser.TargetURL) (n *Node) {
 	if gnode, ok := b.Nodes[url.String()]; ok {
 		return gnode
 	} else {
-
-		doc, err := parser.ReadBuildFile(url, b.Wd)
-
+ 		p, err :=processor.NewProcessorFromURL(url, b.Wd)
 		if err != nil {
-			log.Fatalf("getting target %s failed :%s", url.String(), err.Error())
+			log.Fatal(err)
 		}
-
-		if err := preprocessor.Process(doc); err != nil {
-			log.Fatalf("error processing document: %s", err.Error())
-		}
-
-		var p processor.Processor
-
-		for name, t := range p.Process(doc) {
+		go p.Run()
+		// bug(sevki): this is a really bad way of doing this, there should me 
+		// some caching mechanism for this, it is yet to come !!
+		for t := <- p.Targets; t != nil; t = <-p.Targets   {
 			if t.GetName() != url.Target {
 				continue
 			}
 			xu := parser.TargetURL{
 				Package: url.Package,
-				Target:  name,
+				Target:  t.GetName(),
 			}
 
 			node := Node{

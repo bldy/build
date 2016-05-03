@@ -24,70 +24,136 @@ import (
 	"sevki.org/build/ast"
 	"sevki.org/build/internal"
 	"sevki.org/build/parser"
+	"sevki.org/build/preprocessor"
 	"sevki.org/build/util"
 )
 
 type Processor struct {
-	wd       string
-	targs    map[string]build.Target
-	document *ast.File
+	vars    map[string]interface{}
+	wd      string
+	targs   map[string]build.Target
+	parser  *parser.Parser
+	Targets chan build.Target
 }
 
-func (p *Processor) Process(d *ast.File) map[string]build.Target {
-	p.targs = make(map[string]build.Target)
-	if d == nil {
-		log.Fatal("should not be null")
+func NewProcessor(p *parser.Parser) *Processor {
+	return &Processor{
+		vars:    make(map[string]interface{}),
+		parser:  p,
+		Targets: make(chan build.Target),
 	}
-	p.wd = d.Path
-	p.document = d
+}
+func NewProcessorFromURL(url parser.TargetURL, wd string)  (*Processor, error) {
 
-	// LOAD VARS
-	for _, f := range d.Funcs {
-		if f.Name != "load" {
-			continue
-		}
-		p.runFunc(f)
+	BUILDPATH := filepath.Join(url.BuildDir(wd, util.GetProjectPath()), "BUILD")
+	BUCKPATH := filepath.Join(url.BuildDir(wd, util.GetProjectPath()), "BUCK")
+
+	var fp string
+
+	if _, err := os.Stat(BUCKPATH); err == nil {
+		fp = BUCKPATH
+	} else if _, err := os.Stat(BUILDPATH); err == nil {
+		fp = BUILDPATH
+	} else {
+		return nil, err
 	}
-	for k, v := range d.Vars {
-		switch v.(type) {
+	return NewProcessorFromFile(fp)
+}
+
+func NewProcessorFromFile(n string) (*Processor, error) {
+
+	ks, err := os.Open(n)
+	if err != nil {
+		return nil, fmt.Errorf("opening file: %s\n", err.Error())
+	}
+	ts, _ := filepath.Abs(ks.Name())
+	dir := strings.Split(ts, "/")
+	p := parser.New(n, "/"+filepath.Join(dir[:len(dir)-1]...), ks)
+
+	return NewProcessor(p), nil
+}
+
+func (p *Processor) Run() {
+
+	go p.parser.Run()
+	var d ast.Decl
+
+	// Define a set of preprocessors
+	preprocessors := []preprocessor.PreProcessor{
+		&preprocessor.DuplicateLoadChecker{
+			Seen: make(map[string]*ast.Func),
+		},
+	}
+
+	for d = <-p.parser.Decls; d != nil; d = <-p.parser.Decls {
+		// Run preprocessors
+		for _, pp := range preprocessors {
+			var err error
+			d, err = pp.Process(d)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+
+		switch d.(type) {
 		case *ast.Func:
-			d.Vars[k] = p.funcReturns(v.(*ast.Func))
+			p.runFunc(d.(*ast.Func))
+		case *ast.Assignment:
+			p.doAssignment(d.(*ast.Assignment))
 		}
 	}
-	// VARS ARE LOADED
-	for _, f := range d.Funcs {
-		if f.Name == "load" {
-			continue
-		}
-		p.runFunc(f)
-	}
+	p.Targets <- nil
 
-	return p.targs
+}
+
+func (p *Processor) doAssignment(a *ast.Assignment) {
+	p.vars[a.Key] = p.unwrapValue(a.Value)
+}
+func (p *Processor) unwrapFunc(f *ast.Func) {
+	f.Params = p.unwrapMap(f.Params)
+	f.AnonParams = p.unwrapSlice(f.AnonParams)
+}
+func (p *Processor) unwrapSlice(slc []interface{}) []interface{} {
+	for i, v := range slc {
+		slc[i] = p.unwrapValue(v)
+	}
+	return slc
+}
+
+func (p *Processor) unwrapMap(mp map[string]interface{}) map[string]interface{} {
+	for i, v := range mp {
+		mp[i] = p.unwrapValue(v)
+	}
+	return mp
+}
+func (p *Processor) unwrapValue(i interface{}) interface{} {
+	switch i.(type) {
+	case *ast.BasicLit:
+		return i.(*ast.BasicLit).Interface()
+	case *ast.Variable:
+		if v, ok := p.vars[i.(*ast.Variable).Key]; ok {
+			return v
+		} else {
+			log.Fatalf("variable %s is not present. make sure it's loaded properly or declared")
+		}
+		return nil
+	case *ast.Slice:
+		return p.unwrapSlice(i.(*ast.Slice).Slice)
+	case *ast.Map:
+		return p.unwrapMap(i.(*ast.Map).Map)
+	case *ast.Func:
+		return p.funcReturns(i.(*ast.Func))
+	default:
+		return nil
+	}
 }
 func (p *Processor) runFunc(f *ast.Func) {
+	p.unwrapFunc(f)
 	switch f.Name {
-	case "include_defs":
-		// takes only one parameter
-		packagePath := ""
-		switch f.AnonParams[0].(type) {
-		case string:
-			packagePath = f.AnonParams[0].(string)
-			break
-		default:
-			log.Fatal("include_defs takes a string as an argument")
-		}
-
-		document, err := parser.ReadBuildFile(parser.TargetURL{Package: packagePath}, p.wd)
-		if err != nil {
-			log.Fatal(err)
-		}
-		if p.document.Vars == nil {
-			p.document.Vars = make(map[string]interface{})
-		}
-		for k, v := range document.Vars {
-			p.document.Vars[k] = v
-		}
 	case "load":
+		fail := func() {
+			log.Fatal("should be used like so; load(file, var...)")
+		}
 
 		filePath := ""
 		var varsToImport []string
@@ -95,42 +161,48 @@ func (p *Processor) runFunc(f *ast.Func) {
 		for i, param := range f.AnonParams {
 			switch param.(type) {
 			case string:
+				v := param.(string)
 				if i == 0 {
-					filePath = param.(string)
+					filePath = v
 				} else {
-					varsToImport = append(varsToImport, param.(string))
+					varsToImport = append(varsToImport, v)
 				}
 				break
 			default:
-				log.Fatal("should be used like so; load(file, var...)")
+				fail()
 			}
 		}
 
-		document, err := parser.ReadFile(p.absPath(filePath))
-
+		loadingProcessor, err := NewProcessorFromFile(p.absPath(filePath))
 		if err != nil {
 			log.Fatal(err)
 		}
-		if p.document.Vars == nil {
-			p.document.Vars = make(map[string]interface{})
+		go loadingProcessor.Run()
+	
+		for 	d := <-loadingProcessor.Targets; d != nil; d = <-loadingProcessor.Targets {
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
+		if p.vars == nil {
+			p.vars = make(map[string]interface{})
 		}
 
 		for _, v := range varsToImport {
-
-			if val, ok := document.Vars[v]; ok {
-				p.document.Vars[v] = val
+			if val, ok := loadingProcessor.vars[v]; ok {
+				p.vars[v] = val
 			} else {
 				log.Fatalf("%s is not present at %s. Please check the file and try again.", v, filePath)
 			}
 		}
-	case "select":
 	default:
 		targ, err := p.makeTarget(f)
 		if err != nil {
 			log.Fatal(err)
 			return
+		} else {
+			p.Targets <- targ
 		}
-		p.targs[targ.GetName()] = targ
 	}
 }
 
@@ -138,11 +210,24 @@ func (p *Processor) absPath(s string) string {
 	if strings.TrimLeft(s, "//") != s {
 		return filepath.Join(util.GetProjectPath(), strings.Trim(s, "//"))
 	} else {
-		return filepath.Join(p.document.Path, s)
+		return filepath.Join(p.parser.Path, s)
 	}
 }
 
 func (p *Processor) makeTarget(f *ast.Func) (build.Target, error) {
+
+	if v, ok := p.vars[f.Name]; ok {
+		switch v.(type) {
+		case *ast.Func:
+			macro := v.(*ast.Func)
+			f.Name = macro.Name
+			for k, v := range macro.Params {
+				if _, ok := f.Params[k]; !ok {
+					f.Params[k] = v
+				}
+			}
+		}
+	}
 	ttype := internal.Get(f.Name)
 
 	payload := make(map[string]interface{})
@@ -160,7 +245,7 @@ func (p *Processor) makeTarget(f *ast.Func) (build.Target, error) {
 			x := fn.(*ast.Func)
 			i = p.funcReturns(x)
 		case ast.Variable:
-			i = p.document.Vars[fn.(ast.Variable).Key]
+			i = p.vars[fn.(ast.Variable).Key]
 		default:
 			i = fn
 		}
@@ -193,6 +278,7 @@ func (p *Processor) makeTarget(f *ast.Func) (build.Target, error) {
 }
 
 func (p *Processor) funcReturns(f *ast.Func) interface{} {
+	p.unwrapFunc(f)
 	switch f.Name {
 	case "glob":
 		return p.glob(f)
@@ -200,8 +286,11 @@ func (p *Processor) funcReturns(f *ast.Func) interface{} {
 		return p.version(f)
 	case "addition":
 		return p.combineArrays(f)
+	case "env":
+		return p.env(f)
+	default:
+		return f
 	}
-	return ""
 }
 
 func (p *Processor) combineArrays(f *ast.Func) interface{} {
@@ -209,17 +298,8 @@ func (p *Processor) combineArrays(f *ast.Func) interface{} {
 
 	for _, v := range f.AnonParams {
 		switch v.(type) {
-		case ast.Variable:
-			name := v.(ast.Variable)
-			x, exists := p.document.Vars[name.Key]
-			if !exists {
-				log.Fatalf("combinine arrays: coudln't find var %s", name.Key)
-			}
-			switch x.(type) {
-			case []interface{}:
-				t = append(t, x.([]interface{})...)
-			}
-
+		case []interface{}:
+			t = append(t, v.([]interface{})...)
 		}
 	}
 

@@ -1,0 +1,1 @@
+load('//sys/src/FLAGS', "KLIB_COMPILER_FLAGS", "LIB_COMPILER_FLAGS")

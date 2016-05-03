@@ -166,7 +166,7 @@ func lexAny(l *Lexer) stateFn {
 			l.emit(token.LeftParen)
 			return lexAny
 		case unicode.IsDigit(r):
-			return lexNumber
+			return lexInt
 		case unicode.IsLetter(r):
 			return lexAlphaNumeric
 		case r == '#':
@@ -263,8 +263,8 @@ func lexComment(l *Lexer) stateFn {
 	for !isEndOfLine(l.peek()) {
 		l.next()
 	}
-	//	l.emit(token.Comment)
-	l.ignore()
+	l.emit(token.Newline)
+
 	return lexAny
 }
 
@@ -296,8 +296,8 @@ func lexAlphaNumeric(l *Lexer) stateFn {
 	return lexAny
 }
 
-func lexNumber(l *Lexer) stateFn {
-	emitee := token.Number
+func lexInt(l *Lexer) stateFn {
+	emitee := token.Int
 	for isValidNumber(l.peek()) {
 		switch l.next() {
 		case '.':
