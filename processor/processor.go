@@ -174,9 +174,12 @@ func (p *Processor) runFunc(f *ast.Func) {
 		}
 
 		loadingProcessor, err := NewProcessorFromFile(p.absPath(filePath))
+		if err != nil {
+			log.Fatal(err)
+		}
 		go loadingProcessor.Run()
-		d := <-loadingProcessor.Targets
-		for ; d != nil; d = <-loadingProcessor.Targets {
+	
+		for 	d := <-loadingProcessor.Targets; d != nil; d = <-loadingProcessor.Targets {
 		}
 		if err != nil {
 			log.Fatal(err)

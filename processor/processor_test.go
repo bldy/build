@@ -235,3 +235,53 @@ func TestTargetFromMacroWithLoad(t *testing.T) {
 	}
 
 }
+
+func TestTargetFromMacroWithDoubleLoad(t *testing.T) {
+	copts := []string{
+ 		"-std=c11",
+		"-fasm",
+		"-c",
+		"-ffreestanding",
+		"-fno-builtin",
+		"-fno-omit-frame-pointer",
+		"-fplan9-extensions",
+		"-fvar-tracking",
+		"-fvar-tracking-assignments",
+		"-g",
+		"-gdwarf-2",
+		"-ggdb",
+		"-mcmodel=small",
+		"-mno-red-zone",
+		"-O0",
+		"-static",
+		"-Wall",
+		"-Wno-missing-braces",
+		"-Wno-parentheses",
+		"-Wno-unknown-pragmas",
+	}
+	includes:=[]string{
+		"//sys/include",
+		"//amd64/include",
+	}
+	p, err := NewProcessorFromFile("tests/targetFromMacroWithDoubleLoadONE.BUILD")
+	if err != nil { 
+		t.Fatal(err)
+	}
+	go p.Run()
+	targ := <-p.Targets
+	cBin := targ.(*cc.CLib)
+	if cBin.Name == "libxstring" {
+		t.Fail()
+	}
+	for i, v := range copts {
+		if cBin.CompilerOptions[i] != v {
+			t.Fail()
+		}
+	}
+	for i, v := range includes {
+		if cBin.Includes[i] != v {
+			t.Fail()
+		}
+	}
+
+}
