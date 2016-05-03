@@ -17,6 +17,7 @@ script:
   - go test -v sevki.org/build/lexer
   - go test -v sevki.org/build/internal
   - go test -v sevki.org/build/parser
+  - go test -v sevki.org/build/preprocessor
   - go test -v sevki.org/build/processor
 after_success:
   - cd "$GOPATH/src/sevki.org/build/cmd/build"
