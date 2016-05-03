@@ -189,7 +189,7 @@ func NewProcessorFromFile(n string) (*Processor, error) {
 	}
 	ts, _ := filepath.Abs(ks.Name())
 	dir := strings.Split(ts, "/")
-	p := parser.New("BUILD", "/"+filepath.Join(dir[:len(dir)-1]...), ks)
+	p := parser.New(n, "/"+filepath.Join(dir[:len(dir)-1]...), ks)
 
 	return NewProcessor(p), nil
 }
