@@ -43,6 +43,22 @@ func NewProcessor(p *parser.Parser) *Processor {
 		Targets: make(chan build.Target),
 	}
 }
+func NewProcessorFromURL(url parser.TargetURL, wd string)  (*Processor, error) {
+
+	BUILDPATH := filepath.Join(url.BuildDir(wd, util.GetProjectPath()), "BUILD")
+	BUCKPATH := filepath.Join(url.BuildDir(wd, util.GetProjectPath()), "BUCK")
+
+	var fp string
+
+	if _, err := os.Stat(BUCKPATH); err == nil {
+		fp = BUCKPATH
+	} else if _, err := os.Stat(BUILDPATH); err == nil {
+		fp = BUILDPATH
+	} else {
+		return nil, err
+	}
+	return NewProcessorFromFile(fp)
+}
 
 func NewProcessorFromFile(n string) (*Processor, error) {
 

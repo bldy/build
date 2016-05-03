@@ -100,8 +100,7 @@ func (b *Builder) getTarget(url parser.TargetURL) (n *Node) {
 	if gnode, ok := b.Nodes[url.String()]; ok {
 		return gnode
 	} else {
-
-		p, err :=processor.NewProcessorFromFile(url.String())
+ 		p, err :=processor.NewProcessorFromURL(url, b.Wd)
 		if err != nil {
 			log.Fatal(err)
 		}
