@@ -43,6 +43,20 @@ func NewProcessor(p *parser.Parser) *Processor {
 		Targets: make(chan build.Target),
 	}
 }
+
+func NewProcessorFromFile(n string) (*Processor, error) {
+
+	ks, err := os.Open(n)
+	if err != nil {
+		return nil, fmt.Errorf("opening file: %s\n", err.Error())
+	}
+	ts, _ := filepath.Abs(ks.Name())
+	dir := strings.Split(ts, "/")
+	p := parser.New(n, "/"+filepath.Join(dir[:len(dir)-1]...), ks)
+
+	return NewProcessor(p), nil
+}
+
 func (p *Processor) Run() {
 
 	go p.parser.Run()
@@ -179,19 +193,6 @@ func (p *Processor) absPath(s string) string {
 	} else {
 		return filepath.Join(p.parser.Path, s)
 	}
-}
-
-func NewProcessorFromFile(n string) (*Processor, error) {
-
-	ks, err := os.Open(n)
-	if err != nil {
-		return nil, fmt.Errorf("opening file: %s\n", err.Error())
-	}
-	ts, _ := filepath.Abs(ks.Name())
-	dir := strings.Split(ts, "/")
-	p := parser.New(n, "/"+filepath.Join(dir[:len(dir)-1]...), ks)
-
-	return NewProcessor(p), nil
 }
 
 func (p *Processor) makeTarget(f *ast.Func) (build.Target, error) {
