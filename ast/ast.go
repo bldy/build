@@ -138,6 +138,13 @@ type Error struct {
 	Error error
 }
 
-func (e *Error) isDecl() {
+func (e *Error) isDecl() {}
 
+type Loop struct {
+	Func  *Func
+	Range interface{}
+	Key   string
+	Node
 }
+
+func (e *Loop) isDecl() {}

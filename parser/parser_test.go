@@ -16,7 +16,6 @@ import (
 	"sevki.org/build/ast"
 	_ "sevki.org/build/targets/cc"
 	"sevki.org/build/token"
-	"sevki.org/lib/prettyprint"
 )
 
 func readAndParse(n string) (chan ast.Decl, error) {
@@ -379,7 +378,7 @@ func TestParseSliceIndex(t *testing.T) {
 		return
 	}
 	decl := <-decls
-	
+
 	switch decl.(type) {
 	case *ast.Assignment:
 
@@ -387,14 +386,28 @@ func TestParseSliceIndex(t *testing.T) {
 		t.Logf("%T", decl)
 		t.Fail()
 	}
-	decl= <-decls
+	decl = <-decls
 	switch decl.(type) {
 	case *ast.Assignment:
-		t.Log(prettyprint.AsJSON(decl.(*ast.Assignment)))
-	case *ast.Error :
+	case *ast.Error:
 		t.Log(decl.(*ast.Error).Error)
 	default:
 		t.Logf("%T", decl)
 		t.Fail()
 	}
+}
+func TestLoop(t *testing.T) {
+	decls, err := readAndParse("tests/loop.BUILD")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	decl := <-decls
+
+	switch decl.(type) {
+	case *ast.Loop:
+	default:
+		t.Fail()
+	}
+
 }

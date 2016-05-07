@@ -92,8 +92,58 @@ func parseDecl(p *Parser) stateFn {
 		return parseFunc
 	case token.String:
 		return parseVar
+	case token.LeftBrac:
+		return parseLoop
+	default:
+		return nil
 	}
-	return nil
+}
+
+func parseLoop(p *Parser) stateFn {
+	l := ast.Loop{}
+	l.SetStart(p.next())
+
+	if f, err := p.consumeFunc(); err != nil {
+		p.Error = err
+		return nil
+	} else {
+		l.Func = f
+	}
+	// advance for
+	if err := p.expects(p.next(), token.For); err != nil {
+		p.Error = err
+		return nil
+	}
+
+	t := p.next()
+	if err := p.expects(t, token.String); err != nil {
+		p.Error = err
+		return nil
+	} else {
+		l.Key = t.String()
+	}
+
+	// advance in
+	if err := p.expects(p.next(), token.In); err != nil {
+		p.Error = err
+		return nil
+	}
+
+	if node, err := p.consumeNode(); err != nil {
+		p.Error = err
+		return nil
+	} else {
+		l.Range = node
+	}
+
+	// advance ]
+	if err := p.expects(p.next(), token.RightBrac); err != nil {
+		p.Error = err
+		return nil
+	}
+
+	p.emit(&l)
+	return parseDecl
 }
 
 func parseFunc(p *Parser) stateFn {

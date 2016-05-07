@@ -283,6 +283,12 @@ func lexAlphaNumeric(l *Lexer) stateFn {
 		return lexAny
 	default:
 		switch l.input[l.start:l.pos] {
+		case "for":
+			l.emit(token.For)
+			break
+		case "in":
+			l.emit(token.In)
+			break
 		case "true":
 			l.emit(token.True)
 			break
