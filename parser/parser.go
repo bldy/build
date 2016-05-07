@@ -9,10 +9,9 @@ import (
 	"fmt"
 	"io"
 
-	"sevki.org/build/token"
-
 	"sevki.org/build/ast"
 	"sevki.org/build/lexer"
+	"sevki.org/build/token"
 )
 
 var (
@@ -68,13 +67,19 @@ func New(name, path string, r io.Reader) *Parser {
 	}
 	return p
 }
-
+func (p *Parser) emit(d ast.Decl) {
+	if p.Error != nil {
+		p.Decls <- &ast.Error{Error: p.Error}
+	} else {
+		p.Decls <- d
+	}
+}
 func (p *Parser) Run() {
 	p.next()
 	for p.state = parseDecl; p.state != nil; {
 		p.state = p.state(p)
 	}
-	p.Decls <- nil
+	p.emit(nil)
 	close(p.Decls)
 
 }
@@ -96,7 +101,7 @@ func parseFunc(p *Parser) stateFn {
 		p.Error = err
 		return nil
 	} else {
-		p.Decls <- f
+		p.emit(f)
 	}
 	return parseDecl
 }
@@ -124,7 +129,7 @@ func parseVar(p *Parser) stateFn {
 			}
 			a.SetEnd(t)
 			a.SetStart(p.curTok)
-			p.Decls <- &a
+			p.emit(&a)
 		}
 	}
 
@@ -154,8 +159,12 @@ func (p *Parser) consumeNode() (interface{}, error) {
 		r, err = p.consumeMap()
 	case token.Func:
 		r, err = p.consumeFunc()
+	case token.Int:
+		r, err = ast.NewBasicLit(p.next()), nil
 	default:
-		return nil, ErrConsumption
+		return nil, fmt.Errorf("unknown type %s\n%s",
+			p.peek().Type,
+			p.lexer.LineBuffer())
 	}
 REPROCESS:
 	switch p.peek().Type {
@@ -165,6 +174,9 @@ REPROCESS:
 	case token.LeftBrac:
 		r, err = p.consumeSliceFunc(r)
 		goto REPROCESS
+	}
+	if err != nil {
+		p.Error = err
 	}
 	return r, err
 }
@@ -243,6 +255,7 @@ func (p *Parser) consumeSliceFunc(v interface{}) (*ast.Func, error) {
 			return nil, err
 		}
 
+		f.Name = "slice"
 		if p.peek().Type == token.RightBrac {
 			f.Name = "index"
 			f.Params["index"] = node
@@ -250,14 +263,9 @@ func (p *Parser) consumeSliceFunc(v interface{}) (*ast.Func, error) {
 		} else if p.peek().Type == token.Colon {
 			// advance :
 			p.next()
+
 		} else {
 			return nil, fmt.Errorf("this is a malformed slice")
-		}
-		f.Name = "slice"
-
-		node, err = p.consumeNode()
-		if err != nil {
-			return nil, err
 		}
 
 		f.Params["start"] = node
@@ -275,6 +283,7 @@ func (p *Parser) consumeSliceFunc(v interface{}) (*ast.Func, error) {
 
 	}
 END:
+
 	// advance ]
 	f.SetEnd(p.next())
 	return f, nil

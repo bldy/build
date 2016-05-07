@@ -133,3 +133,11 @@ func (b BasicLit) Interface() interface{} {
 		return InterfaceConversionError
 	}
 }
+
+type Error struct {
+	Error error
+}
+
+func (e *Error) isDecl() {
+
+}

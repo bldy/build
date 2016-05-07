@@ -26,7 +26,7 @@ import (
 	"sevki.org/build/parser"
 	"sevki.org/build/preprocessor"
 	"sevki.org/build/util"
- )
+)
 
 type Processor struct {
 	vars    map[string]interface{}
@@ -95,12 +95,15 @@ func (p *Processor) Run() {
 				log.Fatal(err)
 			}
 		}
-
 		switch d.(type) {
+		case *ast.Error:
+			log.Printf(d.(*ast.Error).Error.Error())
 		case *ast.Func:
 			p.runFunc(d.(*ast.Func))
 		case *ast.Assignment:
 			p.doAssignment(d.(*ast.Assignment))
+		default:
+			//			log.Printf("%T", d)
 		}
 	}
 	p.Targets <- nil
@@ -112,12 +115,11 @@ func (p *Processor) doAssignment(a *ast.Assignment) {
 }
 func (p *Processor) unwrapFunc(f *ast.Func) {
 	f.Params = p.unwrapMap(f.Params)
- 
 
 	f.AnonParams = p.unwrapSlice(f.AnonParams)
 }
 func (p *Processor) unwrapSlice(slc []interface{}) []interface{} {
-	 
+
 	for i, v := range slc {
 		t := p.unwrapValue(v)
 		if t != nil {
@@ -140,7 +142,7 @@ func (p *Processor) unwrapValue(i interface{}) interface{} {
 	case *ast.BasicLit:
 		return i.(*ast.BasicLit).Interface()
 	case *ast.Variable:
- 		if v, ok := p.vars[i.(*ast.Variable).Key]; ok {
+		if v, ok := p.vars[i.(*ast.Variable).Key]; ok {
 			return v
 		} else {
 			log.Fatalf("variable %s is not present. make sure it's loaded properly or declared")
@@ -181,7 +183,7 @@ func (p *Processor) runFunc(f *ast.Func) {
 				fail()
 			}
 		}
- 		loadingProcessor, err := NewProcessorFromFile(p.absPath(filePath))
+		loadingProcessor, err := NewProcessorFromFile(p.absPath(filePath))
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -288,6 +290,7 @@ func (p *Processor) makeTarget(f *ast.Func) (build.Target, error) {
 
 func (p *Processor) funcReturns(f *ast.Func) interface{} {
 	p.unwrapFunc(f)
+
 	switch f.Name {
 	case "glob":
 		return p.glob(f)
@@ -295,6 +298,10 @@ func (p *Processor) funcReturns(f *ast.Func) interface{} {
 		return p.version(f)
 	case "addition":
 		return p.combineArrays(f)
+	case "slice":
+		return p.sliceArray(f)
+	case "index":
+		return p.indexArray(f)
 	case "env":
 		return p.env(f)
 	default:
@@ -315,6 +322,60 @@ func (p *Processor) combineArrays(f *ast.Func) interface{} {
 	return t
 }
 
+func (p *Processor) indexArray(f *ast.Func) interface{} {
+	index, hasIndex := f.Params["index"].(int)
+
+	if !hasIndex {
+		return nil
+	}
+
+	switch f.Params["var"].(type) {
+	case []interface{}:
+		return f.Params["var"].([]interface{})[index]
+	}
+
+	return nil
+}
+func (p *Processor) sliceArray(f *ast.Func) interface{} {
+	switch f.Params["var"].(type) {
+	case []interface{}:
+		return p.sliceInterfaceArray(f, f.Params["var"].([]interface{}))
+	case string:
+		return p.sliceString(f, f.Params["var"].(string))
+	}
+
+	return nil
+}
+
+func (p *Processor) sliceInterfaceArray(f *ast.Func, s []interface{}) interface{} {
+	start, hasStart := f.Params["start"].(int)
+	end, hasEnd := f.Params["end"].(int)
+	switch {
+	case hasStart && hasEnd:
+		return s[start:end]
+	case hasStart:
+		return s[start:]
+	case hasEnd:
+		return s[:end]
+	default:
+		return nil
+	}
+}
+
+func (p *Processor) sliceString(f *ast.Func, s string) interface{} {
+	start, hasStart := f.Params["start"].(int)
+	end, hasEnd := f.Params["end"].(int)
+	switch {
+	case hasStart && hasEnd:
+		return s[start:end]
+	case hasStart:
+		return s[start:]
+	case hasEnd:
+		return s[:end]
+	default:
+		return nil
+	}
+}
 func (p *Processor) glob(f *ast.Func) []string {
 	if !filepath.IsAbs(p.wd) {
 		return []string{fmt.Sprintf("Error parsing glob: %s is not an absolute path.", p.wd)}

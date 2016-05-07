@@ -138,7 +138,7 @@ func TestTarget(t *testing.T) {
 
 func TestTargetFromMacro(t *testing.T) {
 	copts := []string{
- 		"-std=c11",
+		"-std=c11",
 		"-fasm",
 		"-c",
 		"-ffreestanding",
@@ -159,7 +159,7 @@ func TestTargetFromMacro(t *testing.T) {
 		"-Wno-parentheses",
 		"-Wno-unknown-pragmas",
 	}
-	includes:=[]string{
+	includes := []string{
 		"//sys/include",
 		"//amd64/include",
 	}
@@ -188,7 +188,7 @@ func TestTargetFromMacro(t *testing.T) {
 
 func TestTargetFromMacroWithLoad(t *testing.T) {
 	copts := []string{
- 		"-std=c11",
+		"-std=c11",
 		"-fasm",
 		"-c",
 		"-ffreestanding",
@@ -209,7 +209,7 @@ func TestTargetFromMacroWithLoad(t *testing.T) {
 		"-Wno-parentheses",
 		"-Wno-unknown-pragmas",
 	}
-	includes:=[]string{
+	includes := []string{
 		"//sys/include",
 		"//amd64/include",
 	}
@@ -238,7 +238,7 @@ func TestTargetFromMacroWithLoad(t *testing.T) {
 
 func TestTargetFromMacroWithDoubleLoad(t *testing.T) {
 	copts := []string{
- 		"-std=c11",
+		"-std=c11",
 		"-fasm",
 		"-c",
 		"-ffreestanding",
@@ -259,12 +259,12 @@ func TestTargetFromMacroWithDoubleLoad(t *testing.T) {
 		"-Wno-parentheses",
 		"-Wno-unknown-pragmas",
 	}
-	includes:=[]string{
+	includes := []string{
 		"//sys/include",
 		"//amd64/include",
 	}
 	p, err := NewProcessorFromFile("tests/targetFromMacroWithDoubleLoadONE.BUILD")
-	if err != nil { 
+	if err != nil {
 		t.Fatal(err)
 	}
 	go p.Run()
@@ -284,4 +284,53 @@ func TestTargetFromMacroWithDoubleLoad(t *testing.T) {
 		}
 	}
 
+}
+
+func TestSliceStringVar(t *testing.T) {
+	p, err := NewProcessorFromFile("tests/sliceStringVar.BUILD")
+	if err != nil {
+		t.Fatal(err)
+	}
+	go p.Run()
+	targ := <-p.Targets
+	if targ.GetName() != "test" {
+		t.Fail()
+	}
+}
+
+func TestSliceStringWithStartVar(t *testing.T) {
+	p, err := NewProcessorFromFile("tests/sliceStringWithStartVar.BUILD")
+	if err != nil {
+		t.Fatal(err)
+	}
+	go p.Run()
+	targ := <-p.Targets
+	if targ.GetName() != "test" {
+		t.Fail()
+	}
+}
+
+func TestSliceStringWithEndVar(t *testing.T) {
+	p, err := NewProcessorFromFile("tests/sliceStringWithEndVar.BUILD")
+	if err != nil {
+		t.Fatal(err)
+	}
+	go p.Run()
+	targ := <-p.Targets
+	if targ.GetName() != "lib" {
+		t.Fail()
+	}
+}
+
+func TestArrayIndex(t *testing.T) {
+	p, err := NewProcessorFromFile("tests/arrayIndex.BUILD")
+	if err != nil {
+		t.Fatal(err)
+	}
+	go p.Run()
+	targ := <-p.Targets
+
+	if targ.GetName() != "help" {
+		t.Fail()
+	}
 }

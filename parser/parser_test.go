@@ -16,6 +16,7 @@ import (
 	"sevki.org/build/ast"
 	_ "sevki.org/build/targets/cc"
 	"sevki.org/build/token"
+	"sevki.org/lib/prettyprint"
 )
 
 func readAndParse(n string) (chan ast.Decl, error) {
@@ -289,7 +290,6 @@ func TestParseMap(t *testing.T) {
 		}
 	}
 }
-
 func TestParseMapInFunc(t *testing.T) {
 	decls, err := readAndParse("tests/mapinfunc.BUILD")
 	if err != nil {
@@ -347,7 +347,6 @@ func TestParseFunc(t *testing.T) {
 
 }
 
-
 func TestParseSmileyFunc(t *testing.T) {
 	decls, err := readAndParse("tests/☺☹☻.BUILD")
 	if err != nil {
@@ -360,15 +359,42 @@ func TestParseSmileyFunc(t *testing.T) {
 	case *ast.Func:
 		f := decl.(*ast.Func)
 		if f.Params["deps"].(*ast.Slice).Slice[0].(*ast.BasicLit).Interface() != ":☹☻☺" {
-		t.Fail()
-	}
-	if f.Params["name"].(*ast.BasicLit).Interface().(string) != "☹☺☻" {
-		t.Fail()
-	}
-	if f.Params["srcs"].(*ast.Slice).Slice[0].(*ast.BasicLit).Interface() != "☺☹☻.c" {
-		t.Fail()
-	}
+			t.Fail()
+		}
+		if f.Params["name"].(*ast.BasicLit).Interface().(string) != "☹☺☻" {
+			t.Fail()
+		}
+		if f.Params["srcs"].(*ast.Slice).Slice[0].(*ast.BasicLit).Interface() != "☺☹☻.c" {
+			t.Fail()
+		}
 	default:
+		t.Fail()
+	}
+}
+
+func TestParseSliceIndex(t *testing.T) {
+	decls, err := readAndParse("tests/sliceIndex.BUILD")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	decl := <-decls
+	
+	switch decl.(type) {
+	case *ast.Assignment:
+
+	default:
+		t.Logf("%T", decl)
+		t.Fail()
+	}
+	decl= <-decls
+	switch decl.(type) {
+	case *ast.Assignment:
+		t.Log(prettyprint.AsJSON(decl.(*ast.Assignment)))
+	case *ast.Error :
+		t.Log(decl.(*ast.Error).Error)
+	default:
+		t.Logf("%T", decl)
 		t.Fail()
 	}
 }
