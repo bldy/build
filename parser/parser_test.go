@@ -16,9 +16,9 @@ import (
 	"sevki.org/build/ast"
 	_ "sevki.org/build/targets/cc"
 	"sevki.org/build/token"
-)
+)	
 
-func readAndParse(n string) (chan ast.Decl, error) {
+func readAndParse(n string) (*Parser, error) {
 
 	ks, err := os.Open(n)
 	if err != nil {
@@ -30,16 +30,17 @@ func readAndParse(n string) (chan ast.Decl, error) {
 
 	go p.Run()
 
-	return p.Decls, nil
+	return p, nil
 
 }
 
 func TestParseSingleVar(t *testing.T) {
-	decls, err := readAndParse("tests/var.BUILD")
+	p, err := readAndParse("tests/var.BUILD")
 	if err != nil {
 		t.Error(err)
 	}
-	decl := <-decls
+
+	decl := <-p.Decls
 	switch decl.(type) {
 	case *ast.Assignment:
 		asgn := decl.(*ast.Assignment)
@@ -62,11 +63,11 @@ func TestParseSingleVar(t *testing.T) {
 }
 
 func TestParseBoolVar(t *testing.T) {
-	decls, err := readAndParse("tests/bool.BUILD")
+	p, err := readAndParse("tests/bool.BUILD")
 	if err != nil {
 		t.Error(err)
 	}
-	decl := <-decls
+	decl := <-p.Decls
 	switch decl.(type) {
 	case *ast.Assignment:
 		asgn := decl.(*ast.Assignment)
@@ -99,11 +100,11 @@ func TestParseSlice(t *testing.T) {
 		"-c",
 	}
 
-	decls, err := readAndParse("tests/slice.BUILD")
+	p, err := readAndParse("tests/slice.BUILD")
 	if err != nil {
 		t.Error(err)
 	}
-	decl := <-decls
+	decl := <-p.Decls
 	switch decl.(type) {
 	case *ast.Assignment:
 		asgn := decl.(*ast.Assignment)
@@ -141,11 +142,11 @@ func TestParseSliceWithOutComma(t *testing.T) {
 		"-c",
 	}
 
-	decls, err := readAndParse("tests/sliceWithOutLastComma.BUILD")
+	p, err := readAndParse("tests/sliceWithOutLastComma.BUILD")
 	if err != nil {
 		t.Error(err)
 	}
-	decl := <-decls
+	decl := <-p.Decls
 	switch decl.(type) {
 	case *ast.Assignment:
 		asgn := decl.(*ast.Assignment)
@@ -174,12 +175,12 @@ func TestParseSliceWithOutComma(t *testing.T) {
 
 func TestParseVarFunc(t *testing.T) {
 
-	decls, err := readAndParse("tests/varFunc.BUILD")
+	p, err := readAndParse("tests/varFunc.BUILD")
 	if err != nil {
 		t.Error(err)
 	}
 
-	decl := <-decls
+	decl := <-p.Decls
 	switch decl.(type) {
 	case *ast.Assignment:
 		asgn := decl.(*ast.Assignment)
@@ -209,12 +210,12 @@ func TestParseVarFunc(t *testing.T) {
 
 func TestParseAddition(t *testing.T) {
 
-	decls, err := readAndParse("tests/addition.BUILD")
+	p, err := readAndParse("tests/addition.BUILD")
 	if err != nil {
 		t.Error(err)
 	}
 
-	decl := <-decls
+	decl := <-p.Decls
 	switch decl.(type) {
 	case *ast.Assignment:
 		v := decl.(*ast.Assignment).Value
@@ -240,7 +241,7 @@ func TestParseAddition(t *testing.T) {
 		t.Fail()
 	}
 
-	decl = <-decls
+	decl = <-p.Decls
 	switch decl.(type) {
 	case *ast.Assignment:
 		v := decl.(*ast.Assignment).Value
@@ -268,13 +269,13 @@ func TestParseAddition(t *testing.T) {
 }
 
 func TestParseMap(t *testing.T) {
-	decls, err := readAndParse("tests/map.BUILD")
+	p, err := readAndParse("tests/map.BUILD")
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	decl := <-decls
+	decl := <-p.Decls
 	switch decl.(type) {
 	case *ast.Assignment:
 		v := decl.(*ast.Assignment).Value
@@ -290,12 +291,12 @@ func TestParseMap(t *testing.T) {
 	}
 }
 func TestParseMapInFunc(t *testing.T) {
-	decls, err := readAndParse("tests/mapinfunc.BUILD")
+	p, err := readAndParse("tests/mapinfunc.BUILD")
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	decl := <-decls
+	decl := <-p.Decls
 
 	switch decl.(type) {
 	case *ast.Func:
@@ -318,12 +319,12 @@ func TestParseMapInFunc(t *testing.T) {
 }
 
 func TestParseFunc(t *testing.T) {
-	decls, err := readAndParse("tests/func.BUILD")
+	p, err := readAndParse("tests/func.BUILD")
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	decl := <-decls
+	decl := <-p.Decls
 
 	switch decl.(type) {
 	case *ast.Func:
@@ -347,12 +348,12 @@ func TestParseFunc(t *testing.T) {
 }
 
 func TestParseSmileyFunc(t *testing.T) {
-	decls, err := readAndParse("tests/☺☹☻.BUILD")
+	p, err := readAndParse("tests/☺☹☻.BUILD")
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	decl := <-decls
+	decl := <-p.Decls
 
 	switch decl.(type) {
 	case *ast.Func:
@@ -372,12 +373,12 @@ func TestParseSmileyFunc(t *testing.T) {
 }
 
 func TestParseSliceIndex(t *testing.T) {
-	decls, err := readAndParse("tests/sliceIndex.BUILD")
+	p, err := readAndParse("tests/sliceIndex.BUILD")
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	decl := <-decls
+	decl := <-p.Decls
 
 	switch decl.(type) {
 	case *ast.Assignment:
@@ -386,7 +387,7 @@ func TestParseSliceIndex(t *testing.T) {
 		t.Logf("%T", decl)
 		t.Fail()
 	}
-	decl = <-decls
+	decl = <-p.Decls
 	switch decl.(type) {
 	case *ast.Assignment:
 	case *ast.Error:
@@ -397,17 +398,27 @@ func TestParseSliceIndex(t *testing.T) {
 	}
 }
 func TestLoop(t *testing.T) {
-	decls, err := readAndParse("tests/loop.BUILD")
+	p, err := readAndParse("tests/loop.BUILD")
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	decl := <-decls
+	decl := <-p.Decls
 
 	switch decl.(type) {
-	case *ast.Loop:
+	case *ast.Assignment:
 	default:
 		t.Fail()
 	}
 
+	decl = <-p.Decls
+
+	switch decl.(type) {
+	case *ast.Loop:
+		t.Log(decl.(*ast.Loop))
+	default:
+		t.Logf("%T", decl)
+		t.Logf("%s", p.Error)
+		t.Fail()
+	}
 }

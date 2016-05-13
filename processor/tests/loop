@@ -5,6 +5,6 @@ SOURCES= [
 ]
 
 [cc_library(
-	name=s[:4], 
-	srcs= [s],
+	name= f[:4], 
+	srcs= [f],
 ) for s in SOURCES]

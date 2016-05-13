@@ -3,8 +3,8 @@ SOURCES= [
 		"blackbird.c",
 		"get_back.c",
 ]
-
+ 
 [cc_library(
-	name=s[:4], 
-	srcs= [s],
-) for s in SOURCES]
+	name= f[:-2], 
+	srcs= [f],
+) for f in SOURCES]

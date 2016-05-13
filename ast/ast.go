@@ -15,12 +15,7 @@ import (
 var (
 	InterfaceConversionError = errors.New("Interface conversion error")
 )
-
-type File struct {
-	Path  string
-	Funcs []*Func
-	Vars  map[string]interface{}
-}
+ 
 type Decl interface {
 	isDecl()
 }

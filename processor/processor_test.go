@@ -334,3 +334,27 @@ func TestArrayIndex(t *testing.T) {
 		t.Fail()
 	}
 }
+
+func TestLoop(t *testing.T) {
+	p, err := NewProcessorFromFile("tests/loop.BUILD")
+	if err != nil {
+		t.Fatal(err)
+	}
+	go p.Run()
+	targ := <-p.Targets
+
+	if targ.GetName() != "help" {
+		t.Log(targ.GetName())
+		t.Fail()
+	}
+	targ = <-p.Targets
+
+	if targ.GetName() != "blackbird" {
+		t.Fail()
+	}
+	targ = <-p.Targets
+
+	if targ.GetName() != "get_back" {
+		t.Fail()
+	}
+}

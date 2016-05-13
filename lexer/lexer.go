@@ -167,6 +167,8 @@ func lexAny(l *Lexer) stateFn {
 			return lexAny
 		case unicode.IsDigit(r):
 			return lexInt
+		case r == '-':
+			return lexInt
 		case unicode.IsLetter(r):
 			return lexAlphaNumeric
 		case r == '#':

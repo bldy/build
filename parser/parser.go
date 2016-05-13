@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-
+ 
 	"sevki.org/build/ast"
 	"sevki.org/build/lexer"
 	"sevki.org/build/token"
@@ -16,6 +16,7 @@ import (
 
 var (
 	ErrConsumption = errors.New("consumption error")
+	ErrNotSlice    = errors.New("isFunc")
 )
 
 type Parser struct {
@@ -43,7 +44,6 @@ IGNORETOKEN:
 	case token.Newline:
 		goto IGNORETOKEN
 	}
-
 	tok := p.peekTok
 	p.peekTok = t
 	p.curTok = tok
@@ -87,6 +87,7 @@ func (p *Parser) Run() {
 type stateFn func(*Parser) stateFn
 
 func parseDecl(p *Parser) stateFn {
+
 	switch p.peek().Type {
 	case token.Func:
 		return parseFunc
@@ -94,7 +95,10 @@ func parseDecl(p *Parser) stateFn {
 		return parseVar
 	case token.LeftBrac:
 		return parseLoop
+	case token.EOF:
+		return nil
 	default:
+		p.errorf("unexpected token %s while parsing a decleration", p.peek().Type)
 		return nil
 	}
 }
@@ -217,6 +221,10 @@ func (p *Parser) consumeNode() (interface{}, error) {
 			p.lexer.LineBuffer())
 	}
 REPROCESS:
+	// only process modifiers at the end of the line
+	if p.curTok.Line != p.peekTok.Line {
+		return r, err
+	}
 	switch p.peek().Type {
 	case token.Plus:
 		r, err = p.consumeAddFunc(r)
@@ -277,7 +285,6 @@ func (p *Parser) consumeAddFunc(v interface{}) (*ast.Func, error) {
 }
 
 func (p *Parser) consumeSliceFunc(v interface{}) (*ast.Func, error) {
-
 	f := &ast.Func{
 		Params: make(map[string]interface{}),
 	}
@@ -286,7 +293,6 @@ func (p *Parser) consumeSliceFunc(v interface{}) (*ast.Func, error) {
 
 	// advance [
 	p.next()
-
 	f.Params["var"] = v
 	if p.peek().Type == token.Colon {
 		// advance :
@@ -331,6 +337,11 @@ func (p *Parser) consumeSliceFunc(v interface{}) (*ast.Func, error) {
 			return nil, fmt.Errorf("this is a malformed slice")
 		}
 
+	} else if p.peek().Type == token.Func {
+
+		return nil, nil
+	} else {
+		return nil, p.errorf("unknown type consuming a slice")
 	}
 END:
 
