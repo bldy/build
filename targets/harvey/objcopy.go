@@ -16,8 +16,8 @@ import (
 type ObjCopy struct {
 	Name         string   `objcopy:"name"`
 	Dependencies []string `objcopy:"deps"`
-	In           string   `objcopy:"in"`
-	Out          string   `objcopy:"out"`
+	In           string   `objcopy:"infile"`
+	Out          string   `objcopy:"outfile"`
 }
 
 func (oc *ObjCopy) GetName() string {

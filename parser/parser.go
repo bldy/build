@@ -98,7 +98,7 @@ func parseDecl(p *Parser) stateFn {
 	case token.EOF:
 		return nil
 	default:
-		p.errorf("unexpected token %s while parsing a decleration", p.peek().Type)
+		p.expects(p.peek(), token.Func, token.String, token.LeftBrac, token.EOF)
 		return nil
 	}
 }
