@@ -15,12 +15,7 @@ import (
 var (
 	InterfaceConversionError = errors.New("Interface conversion error")
 )
-
-type File struct {
-	Path  string
-	Funcs []*Func
-	Vars  map[string]interface{}
-}
+ 
 type Decl interface {
 	isDecl()
 }
@@ -138,6 +133,13 @@ type Error struct {
 	Error error
 }
 
-func (e *Error) isDecl() {
+func (e *Error) isDecl() {}
 
+type Loop struct {
+	Func  *Func
+	Range interface{}
+	Key   string
+	Node
 }
+
+func (e *Loop) isDecl() {}

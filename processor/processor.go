@@ -15,7 +15,6 @@ import (
 
 	"os"
 	"os/exec"
-
 	"regexp"
 
 	"strings"
@@ -95,6 +94,7 @@ func (p *Processor) Run() {
 				log.Fatal(err)
 			}
 		}
+
 		switch d.(type) {
 		case *ast.Error:
 			log.Printf(d.(*ast.Error).Error.Error())
@@ -102,40 +102,63 @@ func (p *Processor) Run() {
 			p.runFunc(d.(*ast.Func))
 		case *ast.Assignment:
 			p.doAssignment(d.(*ast.Assignment))
+		case *ast.Loop:
+			p.doLoop(d.(*ast.Loop))
 		default:
 			//			log.Printf("%T", d)
 		}
 	}
 	p.Targets <- nil
-
 }
+func (p *Processor) doLoop(l *ast.Loop) {
+	_range := p.unwrapValue(l.Range)
+	if _range == nil {
+		return
+	}
+	var tmp interface{}
+	exists := false
 
+	tmp, exists = p.vars[l.Key]
+
+	for _, v := range _range.([]interface{}) {
+		p.vars[l.Key] = v
+		p.runFunc(l.Func)
+
+	}
+	if exists {
+		p.vars[l.Key] = tmp
+	} else {
+		delete(p.vars, l.Key)
+
+	}
+}
 func (p *Processor) doAssignment(a *ast.Assignment) {
 	p.vars[a.Key] = p.unwrapValue(a.Value)
 }
-func (p *Processor) unwrapFunc(f *ast.Func) {
-	f.Params = p.unwrapMap(f.Params)
-
-	f.AnonParams = p.unwrapSlice(f.AnonParams)
+func (p *Processor) unwrapFunc(f *ast.Func) *ast.Func {
+	nf := *f
+	nf.Params = p.unwrapMap(f.Params)
+	nf.AnonParams = p.unwrapSlice(f.AnonParams)
+	return &nf
 }
-func (p *Processor) unwrapSlice(slc []interface{}) []interface{} {
-
-	for i, v := range slc {
+func (p *Processor) unwrapSlice(slc []interface{}) (ns []interface{}) {
+	for _, v := range slc {
 		t := p.unwrapValue(v)
 		if t != nil {
-			slc[i] = t
+			ns = append(ns, t)
 		} else {
 			log.Fatalf("unwrapping of value %v failed.", v)
 		}
 	}
-	return slc
+	return ns
 }
 
-func (p *Processor) unwrapMap(mp map[string]interface{}) map[string]interface{} {
-	for i, v := range mp {
-		mp[i] = p.unwrapValue(v)
+func (p *Processor) unwrapMap(mp map[string]interface{}) (nm map[string]interface{}) {
+	nm = make(map[string]interface{})
+	for k, v := range mp {
+		nm[k] = p.unwrapValue(v)
 	}
-	return mp
+	return nm
 }
 func (p *Processor) unwrapValue(i interface{}) interface{} {
 	switch i.(type) {
@@ -145,7 +168,7 @@ func (p *Processor) unwrapValue(i interface{}) interface{} {
 		if v, ok := p.vars[i.(*ast.Variable).Key]; ok {
 			return v
 		} else {
-			log.Fatalf("variable %s is not present. make sure it's loaded properly or declared")
+			log.Fatalf("variable %s is not present. make sure it's loaded properly or declared", i.(*ast.Variable).Key)
 		}
 		return nil
 	case *ast.Slice:
@@ -159,7 +182,7 @@ func (p *Processor) unwrapValue(i interface{}) interface{} {
 	}
 }
 func (p *Processor) runFunc(f *ast.Func) {
-	p.unwrapFunc(f)
+	f = p.unwrapFunc(f)
 	switch f.Name {
 	case "load":
 		fail := func() {
@@ -289,7 +312,7 @@ func (p *Processor) makeTarget(f *ast.Func) (build.Target, error) {
 }
 
 func (p *Processor) funcReturns(f *ast.Func) interface{} {
-	p.unwrapFunc(f)
+	f = p.unwrapFunc(f)
 
 	switch f.Name {
 	case "glob":
@@ -333,7 +356,6 @@ func (p *Processor) indexArray(f *ast.Func) interface{} {
 	case []interface{}:
 		return f.Params["var"].([]interface{})[index]
 	}
-
 	return nil
 }
 func (p *Processor) sliceArray(f *ast.Func) interface{} {
@@ -365,6 +387,10 @@ func (p *Processor) sliceInterfaceArray(f *ast.Func, s []interface{}) interface{
 func (p *Processor) sliceString(f *ast.Func, s string) interface{} {
 	start, hasStart := f.Params["start"].(int)
 	end, hasEnd := f.Params["end"].(int)
+	if end < 0 {
+		end = len(s) + end
+	}
+
 	switch {
 	case hasStart && hasEnd:
 		return s[start:end]

@@ -167,6 +167,8 @@ func lexAny(l *Lexer) stateFn {
 			return lexAny
 		case unicode.IsDigit(r):
 			return lexInt
+		case r == '-':
+			return lexInt
 		case unicode.IsLetter(r):
 			return lexAlphaNumeric
 		case r == '#':
@@ -283,6 +285,12 @@ func lexAlphaNumeric(l *Lexer) stateFn {
 		return lexAny
 	default:
 		switch l.input[l.start:l.pos] {
+		case "for":
+			l.emit(token.For)
+			break
+		case "in":
+			l.emit(token.In)
+			break
 		case "true":
 			l.emit(token.True)
 			break

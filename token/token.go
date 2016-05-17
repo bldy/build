@@ -48,6 +48,8 @@ const (
 	MultiLineString
 	TargetDecl
 	Func
+	For
+	In
 )
 
 func (t Token) String() string {

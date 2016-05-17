@@ -22,7 +22,7 @@ SOME_MAP = {
 	foo: "p",
 }
 
-XSTRING_SRCS = glob(["*.c"]) + C_FLAGS
+ XSTRING_SRCS = glob(["*.c"]) + C_FLAGS
 
 cc_library(
 	name="libxstring",

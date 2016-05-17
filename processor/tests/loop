@@ -1,0 +1,10 @@
+SOURCES= [
+		"help.c",
+		"blackbird.c",
+		"get_back.c",
+]
+
+[cc_library(
+	name= f[:4], 
+	srcs= [f],
+) for s in SOURCES]

@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-
+ 
 	"sevki.org/build/ast"
 	"sevki.org/build/lexer"
 	"sevki.org/build/token"
@@ -16,6 +16,7 @@ import (
 
 var (
 	ErrConsumption = errors.New("consumption error")
+	ErrNotSlice    = errors.New("isFunc")
 )
 
 type Parser struct {
@@ -43,7 +44,6 @@ IGNORETOKEN:
 	case token.Newline:
 		goto IGNORETOKEN
 	}
-
 	tok := p.peekTok
 	p.peekTok = t
 	p.curTok = tok
@@ -87,13 +87,67 @@ func (p *Parser) Run() {
 type stateFn func(*Parser) stateFn
 
 func parseDecl(p *Parser) stateFn {
+
 	switch p.peek().Type {
 	case token.Func:
 		return parseFunc
 	case token.String:
 		return parseVar
+	case token.LeftBrac:
+		return parseLoop
+	case token.EOF:
+		return nil
+	default:
+		p.expects(p.peek(), token.Func, token.String, token.LeftBrac, token.EOF)
+		return nil
 	}
-	return nil
+}
+
+func parseLoop(p *Parser) stateFn {
+	l := ast.Loop{}
+	l.SetStart(p.next())
+
+	if f, err := p.consumeFunc(); err != nil {
+		p.Error = err
+		return nil
+	} else {
+		l.Func = f
+	}
+	// advance for
+	if err := p.expects(p.next(), token.For); err != nil {
+		p.Error = err
+		return nil
+	}
+
+	t := p.next()
+	if err := p.expects(t, token.String); err != nil {
+		p.Error = err
+		return nil
+	} else {
+		l.Key = t.String()
+	}
+
+	// advance in
+	if err := p.expects(p.next(), token.In); err != nil {
+		p.Error = err
+		return nil
+	}
+
+	if node, err := p.consumeNode(); err != nil {
+		p.Error = err
+		return nil
+	} else {
+		l.Range = node
+	}
+
+	// advance ]
+	if err := p.expects(p.next(), token.RightBrac); err != nil {
+		p.Error = err
+		return nil
+	}
+
+	p.emit(&l)
+	return parseDecl
 }
 
 func parseFunc(p *Parser) stateFn {
@@ -167,6 +221,10 @@ func (p *Parser) consumeNode() (interface{}, error) {
 			p.lexer.LineBuffer())
 	}
 REPROCESS:
+	// only process modifiers at the end of the line
+	if p.curTok.Line != p.peekTok.Line {
+		return r, err
+	}
 	switch p.peek().Type {
 	case token.Plus:
 		r, err = p.consumeAddFunc(r)
@@ -227,7 +285,6 @@ func (p *Parser) consumeAddFunc(v interface{}) (*ast.Func, error) {
 }
 
 func (p *Parser) consumeSliceFunc(v interface{}) (*ast.Func, error) {
-
 	f := &ast.Func{
 		Params: make(map[string]interface{}),
 	}
@@ -236,7 +293,6 @@ func (p *Parser) consumeSliceFunc(v interface{}) (*ast.Func, error) {
 
 	// advance [
 	p.next()
-
 	f.Params["var"] = v
 	if p.peek().Type == token.Colon {
 		// advance :
@@ -281,6 +337,11 @@ func (p *Parser) consumeSliceFunc(v interface{}) (*ast.Func, error) {
 			return nil, fmt.Errorf("this is a malformed slice")
 		}
 
+	} else if p.peek().Type == token.Func {
+
+		return nil, nil
+	} else {
+		return nil, p.errorf("unknown type consuming a slice")
 	}
 END:
 
