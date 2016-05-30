@@ -100,10 +100,12 @@ RESTART:
 			}
 			goto RESTART /* to avoid out of bound errors, there may be no files
 			in the folder */
-		} else if filepath.Ext(file) == ext {
+		} 
+		 if filepath.Ext(file) != ext {
 			f.Close()
 			continue
 		}
+
 		fmt.Fprintf(h, "file %s\n", filepath.Join(pp, file))
 		n, _ := io.Copy(h, f)
 		fmt.Fprintf(h, "%d bytes\n", n)
