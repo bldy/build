@@ -39,10 +39,7 @@ type Lexer struct {
 
 func (l *Lexer) LineBuffer() string {
 	return string(l.buf)
-}
-func (l *Lexer) Pos() int {
-	return l.pos
-}
+} 
 func New(name string, r io.Reader) *Lexer {
 
 	l := &Lexer{
@@ -356,14 +353,7 @@ func isString(r rune) bool {
 func isAlphaNumeric(r rune) bool {
 	return isString(r) || unicode.IsDigit(r)
 }
-
-func isQuoteChar(r rune) bool {
-	return r == '"' ||
-		r == '\''
-}
-func isValidQuote(r rune) bool {
-	return isAlphaNumeric(r) || isSpace(r)
-}
+ 
 func isValidNumber(r rune) bool {
 	return unicode.IsDigit(r) ||
 		r == '-' ||

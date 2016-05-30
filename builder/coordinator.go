@@ -119,15 +119,15 @@ func (b *Builder) build(n *Node) (err error) {
 		logName = SCSSLOG
 	}
 	if logFile, err := os.Create(filepath.Join(outDir, logName)); err != nil {
-		log.Fatalf("error creating log for %s:", n.Target.GetName(), err.Error())
+		log.Fatalf("error creating log for %s: %s", n.Target.GetName(), err.Error())
 	} else {
 		errbytz, err := ioutil.ReadAll(context.Stdout())
 		if err != nil {
-			log.Fatalf("error reading log for %s:", n.Target.GetName(), err.Error())
+			log.Fatalf("error reading log for %s: %s", n.Target.GetName(), err.Error())
 		}
 		_, err = logFile.Write(errbytz)
 		if err != nil {
-			log.Fatalf("error writing log for %s:", n.Target.GetName(), err.Error())
+			log.Fatalf("error writing log for %s: %s", n.Target.GetName(), err.Error())
 		}
 		if buildErr != nil {
 			return fmt.Errorf("%s: \n%s", buildErr, errbytz)
