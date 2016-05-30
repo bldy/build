@@ -57,30 +57,7 @@ func New() (c Builder) {
 	c.ProjectPath = util.GetProjectPath()
 	return
 }
-
-type WorkGroupPublic struct {
-	Waiters int
-	wg      sync.WaitGroup
-	sync.Mutex
-}
-
-func (wg *WorkGroupPublic) Add(i int) {
-	wg.Lock()
-	defer wg.Unlock()
-	wg.Waiters += i
-	wg.wg.Add(i)
-
-}
-
-func (wg *WorkGroupPublic) Wait() {
-	wg.wg.Wait()
-}
-func (wg *WorkGroupPublic) Done() {
-	wg.Lock()
-	defer wg.Unlock()
-	wg.Waiters = wg.Waiters - 1
-}
-
+ 
 type Node struct {
 	IsRoot   bool
 	Target   build.Target
@@ -181,7 +158,6 @@ func (n *Node) HashNode() []byte {
 	var bn ByName
 	for _, e := range n.Children {
 		bn = append(bn, e)
-
 	}
 	sort.Sort(bn)
 	for _, e := range bn {

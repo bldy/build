@@ -30,6 +30,10 @@ func init() {
 	}
 }
 
+// Getenv returns the envinroment variable. It looks for the envinroment 
+// variable in the following order. It checks if the current shell session has
+// an envinroment variable, checks if it's set in the OS specific section in 
+// the .build file, and checks it for common in the .build config file.
 func Getenv(s string) string {
 	if os.Getenv(s) != "" {
 		return os.Getenv(s)
@@ -133,7 +137,7 @@ func (c *Context) Create(name string) (*os.File, error) {
 	return os.Create(filepath.Join(c.wd, name))
 }
 
-// Create creates and returns a new file with the given name in the context
+// Open creates and returns a new file with the given name in the context
 func (c *Context) Open(name string) (*os.File, error) {
 	if filepath.IsAbs(name) {
 		return os.Open(name)

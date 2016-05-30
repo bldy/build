@@ -5,16 +5,14 @@
 package parser // import "sevki.org/build/parser"
 
 import (
-	"crypto/sha1"
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 
- 	"sevki.org/build/token"
+	"sevki.org/build/token"
 	"sevki.org/build/util"
 )
 
@@ -32,19 +30,6 @@ func caller() (call string, file string, line int) {
 
 }
 
-func firstCaller() (call, file string, line int) {
-	var caller uintptr
-	caller, file, line, _ = runtime.Caller(1)
-	name := strings.Split(runtime.FuncForPC(caller).Name(), ".")
-	callName := name[len(name)-1]
-
-	if len(call) < 8 {
-		return callName, file, line
-	} else {
-		return callName[7:], file, line
-	}
-
-}
 func arrow(buf string, tok token.Token) string {
 	ret := ""
 	for i := 0; i < len(string(buf)); i++ {
@@ -89,15 +74,6 @@ func (p *Parser) expects(tok token.Token, expected ...token.Type) error {
 	)
 }
 
-func (p *Parser) panic(message string) {
-	p.errorf("%s\nIllegal element '%s' (of type %s) at line %d, character %d\n",
-		message,
-		p.curTok.Text,
-		p.curTok.Type,
-		p.curTok.Line,
-		p.lexer.Pos(),
-	)
-}
 //
 //func ReadBuildFile(url TargetURL, wd string) (i *ast.File, err error) {
 //
@@ -193,12 +169,3 @@ a target url can only start with a '//' or a ':' for relative targets.`
 
 	return
 }
-
-func (t TargetURL) hash() []byte {
-	h := sha1.New()
-	io.WriteString(h, t.Package)
-	io.WriteString(h, t.Target)
-	return h.Sum(nil)
-}
-
-// BUG(sevki): these are buggy as shite

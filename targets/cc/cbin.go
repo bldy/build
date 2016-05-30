@@ -47,13 +47,13 @@ func (cb *CBin) Hash() []byte {
 
 func (cb *CBin) Build(c *build.Context) error {
 	c.Println(prettyprint.AsJSON(cb))
-	params := []string{}
+	params := []string{"-c"}
 	params = append(params, cb.CompilerOptions...)
 	params = append(params, cb.Sources...)
 
 	params = append(params, cb.Includes.Includes()...)
 
-	if err := c.Exec(Compiler(), CCENV, params); err != nil {
+	if err := c.Exec(Compiler(),CCENV, params); err != nil {
 		return fmt.Errorf(err.Error())
 	}
 

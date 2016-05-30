@@ -60,7 +60,7 @@ func (cl *CLib) Build(c *build.Context) error {
 	params = append(params, cl.Sources...)
 	params = append(params, cl.Includes.Includes()...)
 
-	if err := c.Exec(Compiler(), CCENV, params); err != nil {
+	if err := c.Exec(Compiler(),  CCENV, params); err != nil {
 		c.Println(err.Error())
 		return fmt.Errorf(cl.buf.String())
 	}

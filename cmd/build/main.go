@@ -16,12 +16,10 @@ import (
 	"flag"
 
 	"sevki.org/build/builder"
-	_ "sevki.org/build/targets/apple"
-	_ "sevki.org/build/targets/build"
+ 	_ "sevki.org/build/targets/build"
 	_ "sevki.org/build/targets/cc"
 	_ "sevki.org/build/targets/harvey"
-	_ "sevki.org/build/targets/js"
-	_ "sevki.org/build/targets/yacc"
+ 	_ "sevki.org/build/targets/yacc"
 	"sevki.org/build/term"
 	"sevki.org/lib/prettyprint"
 )
