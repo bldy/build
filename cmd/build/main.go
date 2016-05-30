@@ -52,6 +52,10 @@ func main() {
 	case "serve":
 		target = flag.Args()[1]
 		server(target)
+	case "nuke":
+		target = flag.Args()[1]
+		os.RemoveAll("/tmp/build")
+		execute(target)
 	case "query":
 		target = flag.Args()[1]
 		query(target)
