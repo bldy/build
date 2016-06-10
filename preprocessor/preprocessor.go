@@ -36,3 +36,28 @@ func (dlc *DuplicateLoadChecker) Process(d ast.Decl) (ast.Decl, error) {
 	}
 	return d, nil
 }
+
+type DuplicateTargetNameChecker struct {
+	Seen map[string]*ast.Func
+}
+
+func (dlc *DuplicateTargetNameChecker) Process(d ast.Decl) (ast.Decl, error) {
+
+	switch d.(type) {
+	case *ast.Func:
+		f := d.(*ast.Func)
+		if f.Name != "load" {
+			file := f.Params["name"].(*ast.BasicLit).Value
+			if exst, ok := dlc.Seen[file]; ok {
+				dupeErr := `Target %s is declared more then once at these locations:
+	 ./%s:%d: 
+	 ./%s:%d: `
+
+				return nil, fmt.Errorf(dupeErr, file, f.File, f.Start.Line, exst.File, exst.Start.Line)
+			} else {
+				dlc.Seen[file] = f
+			}
+		}
+	}
+	return d, nil
+}

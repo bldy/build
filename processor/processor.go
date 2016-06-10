@@ -83,6 +83,9 @@ func (p *Processor) Run() {
 		&preprocessor.DuplicateLoadChecker{
 			Seen: make(map[string]*ast.Func),
 		},
+		&preprocessor.DuplicateTargetNameChecker{
+			Seen: make(map[string]*ast.Func),
+		},
 	}
 
 	for d = <-p.parser.Decls; d != nil; d = <-p.parser.Decls {
@@ -253,6 +256,7 @@ func (p *Processor) makeTarget(f *ast.Func) (build.Target, error) {
 	if v, ok := p.vars[f.Name]; ok {
 		switch v.(type) {
 		case *ast.Func:
+
 			macro := v.(*ast.Func)
 			f.Name = macro.Name
 			for k, v := range macro.Params {
