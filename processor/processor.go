@@ -30,7 +30,7 @@ import (
 type Processor struct {
 	vars    map[string]interface{}
 	wd      string
-	targs   map[string]build.Target
+	seen   map[string]*ast.Func
 	parser  *parser.Parser
 	Targets chan build.Target
 }
@@ -40,6 +40,7 @@ func NewProcessor(p *parser.Parser) *Processor {
 		vars:    make(map[string]interface{}),
 		parser:  p,
 		Targets: make(chan build.Target),
+		seen: make(map[string]*ast.Func),
 	}
 }
 func NewProcessorFromURL(url parser.TargetURL, wd string) (*Processor, error) {
@@ -81,9 +82,6 @@ func (p *Processor) Run() {
 	// Define a set of preprocessors
 	preprocessors := []preprocessor.PreProcessor{
 		&preprocessor.DuplicateLoadChecker{
-			Seen: make(map[string]*ast.Func),
-		},
-		&preprocessor.DuplicateTargetNameChecker{
 			Seen: make(map[string]*ast.Func),
 		},
 	}
@@ -271,7 +269,7 @@ func (p *Processor) makeTarget(f *ast.Func) (build.Target, error) {
 	payload := make(map[string]interface{})
 
 	for key, fn := range f.Params {
-
+	
 		field, err := internal.GetFieldByTag(f.Name, key, ttype)
 		if err != nil {
 			return nil, err
@@ -293,7 +291,18 @@ func (p *Processor) makeTarget(f *ast.Func) (build.Target, error) {
 		}
 
 		payload[field.Name] = i
+		if key == "name" {
+			name := i.(string)
+			if exst, ok := p.seen[name]; ok {
+				dupeErr := `Target %s is declared more then once at these locations:
+	 %s:%d: 
+	 %s:%d: `
 
+				return nil, fmt.Errorf(dupeErr, name, f.File, f.Start.Line, exst.File, exst.Start.Line)
+			} else {
+				p.seen[name] = f
+			}
+		}
 	}
 
 	//BUG(sevki): this is a very hacky way of doing this but it seems to be safer don't mind.
