@@ -54,7 +54,6 @@ func (b *Builder) build(n *Node) (err error) {
 	var buildErr error
 
 	nodeHash := fmt.Sprintf("%s-%x", n.Target.GetName(), n.HashNode())
-
 	outDir := filepath.Join(
 		"/tmp",
 		"build",
@@ -112,7 +111,10 @@ func (b *Builder) build(n *Node) (err error) {
 	}
 
 	context := build.NewContext(outDir)
+	n.Start = time.Now().UnixNano()
+
 	buildErr = n.Target.Build(context)
+	n.End = time.Now().UnixNano()
 
 	logName := FAILLOG
 	if buildErr == nil {
@@ -125,6 +127,7 @@ func (b *Builder) build(n *Node) (err error) {
 		if err != nil {
 			log.Fatalf("error reading log for %s: %s", n.Target.GetName(), err.Error())
 		}
+		n.Output = string(errbytz)
 		_, err = logFile.Write(errbytz)
 		if err != nil {
 			log.Fatalf("error writing log for %s: %s", n.Target.GetName(), err.Error())
@@ -246,6 +249,7 @@ const (
 	Pending
 	Started
 	Fatal
+	Warning
 	Building
 )
 

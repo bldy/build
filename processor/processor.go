@@ -294,7 +294,7 @@ func (p *Processor) makeTarget(f *ast.Func) (build.Target, error) {
 		if key == "name" {
 			name := i.(string)
 			if exst, ok := p.seen[name]; ok {
-				dupeErr := `Target %s is declared more then once at these locations:
+				dupeErr := `Target %s is declared more than once at these locations:
 	 %s:%d: 
 	 %s:%d: `
 

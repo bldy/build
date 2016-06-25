@@ -13,7 +13,6 @@ import (
 
 	tm "github.com/buger/goterm"
 	"sevki.org/build/builder"
-	nstime "sevki.org/lib/time"
 )
 
 var (
@@ -69,7 +68,7 @@ func Run(done chan bool) {
 		if !verbose {
 			tm.MoveCursor(1, 1)
 			header := fmt.Sprintf("Building (%s)",
-				nstime.NsReadable(time.Since(stated).Nanoseconds()),
+				time.Since(stated).String(),
 			)
 			termPrintln(header)
 		}
@@ -89,7 +88,7 @@ func Run(done chan bool) {
 				s := fmt.Sprintf("%s %s (%s)",
 					pbr,
 					update.Target,
-					nstime.NsReadable(ts.Nanoseconds()),
+					ts.String(),
 				)
 				termPrintln(s)
 			case builder.Fail:

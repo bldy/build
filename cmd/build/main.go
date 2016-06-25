@@ -15,18 +15,19 @@ import (
 
 	"flag"
 
+	"sevki.org/build"
 	"sevki.org/build/builder"
- 	_ "sevki.org/build/targets/build"
+	_ "sevki.org/build/targets/build"
 	_ "sevki.org/build/targets/cc"
 	_ "sevki.org/build/targets/harvey"
- 	_ "sevki.org/build/targets/yacc"
+	_ "sevki.org/build/targets/yacc"
 	"sevki.org/build/term"
 	"sevki.org/lib/prettyprint"
 )
 
 var (
-	build = "version"
-	usage = `usage: build target
+	buildVer = "version"
+	usage    = `usage: build target
 
 We require that you run this application inside a git project.
 All the targets are relative to the git project. 
@@ -49,12 +50,9 @@ func main() {
 	case "version":
 		version()
 		return
-	case "serve":
-		target = flag.Args()[1]
-		server(target)
-	case "nuke":	
+	case "nuke":
 		os.RemoveAll("/tmp/build")
-		if len(flag.Args()) >=2 {
+		if len(flag.Args()) >= 2 {
 			target = flag.Args()[1]
 			execute(target)
 		}
@@ -77,7 +75,7 @@ func printUsage() {
 
 }
 func version() {
-	fmt.Printf("Build %s", build)
+	fmt.Printf("Build %s", buildVer)
 	os.Exit(0)
 }
 func doneMessage(s string) {
@@ -151,6 +149,14 @@ func execute(t string) {
 			}
 		case err := <-c.Error:
 			<-done
+			f, _ := os.Create("/tmp/build.json")
+			g := Graph{
+				Targets: make(map[string]build.Target),
+				Outputs: make(map[string]string),
+				Root:    c.Root,
+			}
+			makeGraph(g.Root, &g)
+			fmt.Fprintf(f, prettyprint.AsJSON(g))
 			log.Fatal(err)
 			os.Exit(1)
 		case <-c.Timeout:
@@ -161,7 +167,32 @@ func execute(t string) {
 FIN:
 	term.Exit()
 	<-done
+	f, _ := os.Create("/tmp/build.json")
+	g := Graph{
+		Targets: make(map[string]build.Target),
+		Outputs: make(map[string]string),
+		Root:    c.Root,
+	}
+	makeGraph(g.Root, &g)
+	fmt.Fprintf(f, prettyprint.AsJSON(g))
 	os.Exit(0)
+}
+
+func makeGraph(n *builder.Node, g *Graph) {
+	if _, exists := g.Targets[n.Url.String()]; !exists {
+		g.Targets[n.Url.String()] = n.Target
+		g.Outputs[n.Url.String()] = n.Output
+		for _, c := range n.Children {
+			makeGraph(c, g)
+		}
+	}
+
+}
+
+type Graph struct {
+	Root    *builder.Node
+	Outputs map[string]string
+	Targets map[string]build.Target
 }
 
 func compare(a, b []byte) bool {

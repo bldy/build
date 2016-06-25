@@ -7,6 +7,7 @@ package builder // import "sevki.org/build/builder"
 
 import (
 	"crypto/sha1"
+	"fmt"
 	"log"
 	"os"
 	"sort"
@@ -18,7 +19,7 @@ import (
 	"sevki.org/build"
 	"sevki.org/build/parser"
 	"sevki.org/build/postprocessor"
- 	"sevki.org/build/processor"
+	"sevki.org/build/processor"
 	"sevki.org/build/util"
 )
 
@@ -57,19 +58,22 @@ func New() (c Builder) {
 	c.ProjectPath = util.GetProjectPath()
 	return
 }
- 
+
 type Node struct {
-	IsRoot   bool
-	Target   build.Target
-	Children map[string]*Node
-	Parents  map[string]*Node `json:"-"`
-	Url      parser.TargetURL
-	wg       sync.WaitGroup
-	Status   STATUS
-	Output   string
-	once     sync.Once
+	IsRoot     bool         `json:"-"`
+	Target     build.Target `json:"-"`
+	Type       string
+	Parents    map[string]*Node `json:"-"`
+	Url        parser.TargetURL
+	wg         sync.WaitGroup
+	Status     STATUS
+	Start, End int64
+	Hash       string
+	Output     string `json:"-"`
+	once       sync.Once
 	sync.Mutex
-	hash []byte
+	Children map[string]*Node
+	hash     []byte
 }
 
 func (b *Builder) getTarget(url parser.TargetURL) (n *Node) {
@@ -77,14 +81,14 @@ func (b *Builder) getTarget(url parser.TargetURL) (n *Node) {
 	if gnode, ok := b.Nodes[url.String()]; ok {
 		return gnode
 	} else {
- 		p, err :=processor.NewProcessorFromURL(url, b.Wd)
+		p, err := processor.NewProcessorFromURL(url, b.Wd)
 		if err != nil {
 			log.Fatal(err)
 		}
 		go p.Run()
-		// bug(sevki): this is a really bad way of doing this, there should me 
+		// bug(sevki): this is a really bad way of doing this, there should me
 		// some caching mechanism for this, it is yet to come !!
-		for t := <- p.Targets; t != nil; t = <-p.Targets   {
+		for t := <-p.Targets; t != nil; t = <-p.Targets {
 			if t.GetName() != url.Target {
 				continue
 			}
@@ -95,6 +99,7 @@ func (b *Builder) getTarget(url parser.TargetURL) (n *Node) {
 
 			node := Node{
 				Target:   t,
+				Type:     fmt.Sprintf("%T", t)[1:],
 				Children: make(map[string]*Node),
 				Parents:  make(map[string]*Node),
 				once:     sync.Once{},
@@ -164,6 +169,7 @@ func (n *Node) HashNode() []byte {
 		h.Write(e.HashNode())
 	}
 	n.hash = h.Sum(nil)
+	n.Hash = fmt.Sprintf("%x",n.hash)
 	return n.hash
 }
 
