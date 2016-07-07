@@ -137,6 +137,9 @@ func execute(t string) {
 	go term.Listen(c.Updates, cpus, *verbose)
 	go term.Run(done)
 
+
+
+
 	go c.Execute(time.Second, cpus)
 	for {
 		select {
@@ -149,14 +152,7 @@ func execute(t string) {
 			}
 		case err := <-c.Error:
 			<-done
-			f, _ := os.Create("/tmp/build.json")
-			g := Graph{
-				Targets: make(map[string]build.Target),
-				Outputs: make(map[string]string),
-				Root:    c.Root,
-			}
-			makeGraph(g.Root, &g)
-			fmt.Fprintf(f, prettyprint.AsJSON(g))
+
 			log.Fatal(err)
 			os.Exit(1)
 		case <-c.Timeout:
@@ -167,14 +163,7 @@ func execute(t string) {
 FIN:
 	term.Exit()
 	<-done
-	f, _ := os.Create("/tmp/build.json")
-	g := Graph{
-		Targets: make(map[string]build.Target),
-		Outputs: make(map[string]string),
-		Root:    c.Root,
-	}
-	makeGraph(g.Root, &g)
-	fmt.Fprintf(f, prettyprint.AsJSON(g))
+
 	os.Exit(0)
 }
 
