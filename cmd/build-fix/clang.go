@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 
 	"github.com/go-clang/v3.7/clang"
 )
@@ -23,7 +24,9 @@ func doe(err error) {
 }
 
 func fixit(src string, flags []string, w bool) {
-
+	if !filepath.IsAbs(src) {
+		return
+	}
 	idx := clang.NewIndex(0, 1)
 	defer idx.Dispose()
 
