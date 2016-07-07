@@ -30,7 +30,7 @@ import (
 type Processor struct {
 	vars    map[string]interface{}
 	wd      string
-	seen   map[string]*ast.Func
+	seen    map[string]*ast.Func
 	parser  *parser.Parser
 	Targets chan build.Target
 }
@@ -40,7 +40,7 @@ func NewProcessor(p *parser.Parser) *Processor {
 		vars:    make(map[string]interface{}),
 		parser:  p,
 		Targets: make(chan build.Target),
-		seen: make(map[string]*ast.Func),
+		seen:    make(map[string]*ast.Func),
 	}
 }
 func NewProcessorFromURL(url parser.TargetURL, wd string) (*Processor, error) {
@@ -269,7 +269,7 @@ func (p *Processor) makeTarget(f *ast.Func) (build.Target, error) {
 	payload := make(map[string]interface{})
 
 	for key, fn := range f.Params {
-	
+
 		field, err := internal.GetFieldByTag(f.Name, key, ttype)
 		if err != nil {
 			return nil, err
@@ -416,8 +416,9 @@ func (p *Processor) sliceString(f *ast.Func, s string) interface{} {
 	}
 }
 func (p *Processor) glob(f *ast.Func) []string {
-	if !filepath.IsAbs(p.wd) {
-		return []string{fmt.Sprintf("Error parsing glob: %s is not an absolute path.", p.wd)}
+	wd := p.parser.Path
+	if !filepath.IsAbs(wd) {
+		log.Fatalf("Error parsing glob: %s is not an absolute path.", wd)
 	}
 
 	var files []string
@@ -441,7 +442,7 @@ func (p *Processor) glob(f *ast.Func) []string {
 
 		switch s.(type) {
 		case string:
-			globPtrn = filepath.Clean(filepath.Join(p.wd, s.(string)))
+			globPtrn = filepath.Clean(filepath.Join(wd, s.(string)))
 			log.Println(globPtrn)
 		default:
 			return nil
@@ -452,19 +453,22 @@ func (p *Processor) glob(f *ast.Func) []string {
 		if err != nil {
 			return []string{"Error parsing glob: %s"}
 		}
+
+		for _, f := range globFiles {
+			f, _ := filepath.Rel(util.GetProjectPath(), f)
+			f = fmt.Sprintf("//%s", f)
+		}
 	RESIZED:
 		for i, f := range globFiles {
-			t, _ := filepath.Rel(util.GetProjectPath(), f)
-			t = fmt.Sprintf("//%s", t)
 			for _, x := range excludes {
-				if x.Match([]byte(t)) {
+				if x.Match([]byte(f)) {
 					globFiles = append(globFiles[:i], globFiles[i+1:]...)
 					goto RESIZED
 				}
 			}
-			globFiles[i] = t
-
+			globFiles[i] = f
 		}
+
 		files = append(files, globFiles...)
 	}
 	return files
@@ -480,7 +484,7 @@ func (p *Processor) env(f *ast.Func) string {
 func (p *Processor) version(f *ast.Func) string {
 
 	if out, err := exec.Command("git",
-		"--git-dir="+util.GetGitDir(p.wd)+".git",
+		"--git-dir="+util.GetGitDir(p.parser.Path)+".git",
 		"describe",
 		"--always").Output(); err != nil {
 		return err.Error()
