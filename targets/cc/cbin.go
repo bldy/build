@@ -23,6 +23,9 @@ type CBin struct {
 	CompilerOptions CompilerFlags `cxx_binary:"compiler_flags" cc_binary:"copts"`
 	LinkerOptions   []string      `cxx_binary:"linker_flags" cc_binary:"linkopts"`
 	LinkerFile      string        `cxx_binary:"ld" cc_binary:"ld" build:"path"`
+	Static          bool          `cxx_binary:"linkstatic" cc_binary:"linkstatic"`
+	Strip           bool          `cxx_binary:"strip" cc_binary:"strip"`
+	AlwaysLink      bool          `cxx_binary:"alwayslink" cc_binary:"alwayslink"`
 }
 
 func split(s string, c string) string {
@@ -53,7 +56,7 @@ func (cb *CBin) Build(c *build.Context) error {
 
 	params = append(params, cb.Includes.Includes()...)
 
-	if err := c.Exec(Compiler(),CCENV, params); err != nil {
+	if err := c.Exec(Compiler(), CCENV, params); err != nil {
 		return fmt.Errorf(err.Error())
 	}
 
@@ -62,6 +65,7 @@ func (cb *CBin) Build(c *build.Context) error {
 	if cb.LinkerFile != "" {
 		ldparams = append(ldparams, cb.LinkerFile)
 	}
+
 	// This is done under the assumption that each src file put in this thing
 	// here will comeout as a .o file
 	for _, f := range cb.Sources {
@@ -69,22 +73,42 @@ func (cb *CBin) Build(c *build.Context) error {
 		ldparams = append(ldparams, fmt.Sprintf("%s.o", fname[:strings.LastIndex(fname, ".")]))
 	}
 
-	ldparams = append(ldparams, "-L", "lib")
-
+	haslib := false
 	for _, dep := range cb.Dependencies {
 		d := split(dep, ":")
 		if len(d) < 3 {
 			continue
 		}
 		if d[:3] == "lib" {
-			ldparams = append(ldparams, fmt.Sprintf("-l%s", d[3:]))
+			if cb.AlwaysLink {
+				ldparams = append(ldparams, fmt.Sprintf("%s.a", d))
+			} else {
+				if !haslib {
+					ldparams = append(ldparams, "-L", "lib")
+					haslib = true
+				}
+				ldparams = append(ldparams, fmt.Sprintf("-l%s", d[3:]))
+			}
+		}
+
+		// kernel specific
+		if len(d) < 4 {
+			continue
+		}
+		if d[:4] == "klib" {
+			ldparams = append(ldparams, fmt.Sprintf("%s.a", d))
 		}
 	}
 
 	if err := c.Exec(Linker(), CCENV, ldparams); err != nil {
 		return fmt.Errorf(err.Error())
 	}
-
+	if cb.Strip {
+		sparams := []string{"-o", cb.Name, cb.Name}
+		if err := c.Exec(Stripper(), nil, sparams); err != nil {
+			return fmt.Errorf(err.Error())
+		}
+	}
 	return nil
 }
 

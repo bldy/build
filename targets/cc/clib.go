@@ -5,13 +5,10 @@
 package cc // import "sevki.org/build/targets/cc"
 
 import (
-	"bytes"
 	"crypto/sha1"
-	"io"
-
-	"strings"
-
 	"fmt"
+	"io"
+	"strings"
 
 	"sevki.org/build/util"
 
@@ -28,10 +25,8 @@ type CLib struct {
 	Headers         []string      `cxx_library:"exported_headers" cc_library:"hdrs" build:"path"`
 	CompilerOptions CompilerFlags `cxx_library:"compiler_flags" cc_library:"copts"`
 	LinkerOptions   []string      `cxx_library:"linker_flags" cc_library:"linkopts"`
-	LinkShared      bool
-	LinkStatic      bool
-	Source          string
-	buf             bytes.Buffer
+	LinkStatic      bool          `cxx_library:"linkstatic" cc_library:"linkstatic"`
+	AlwaysLink      bool          `cxx_library:"alwayslink" cc_library:"alwayslink"`
 }
 
 func (cl *CLib) Hash() []byte {
@@ -44,9 +39,6 @@ func (cl *CLib) Hash() []byte {
 	util.HashFiles(h, []string(cl.Sources))
 	util.HashStrings(h, cl.CompilerOptions)
 	util.HashStrings(h, cl.LinkerOptions)
-	if cl.LinkShared {
-		io.WriteString(h, "shared")
-	}
 	if cl.LinkStatic {
 		io.WriteString(h, "static")
 	}
@@ -60,9 +52,8 @@ func (cl *CLib) Build(c *build.Context) error {
 	params = append(params, cl.Sources...)
 	params = append(params, cl.Includes.Includes()...)
 
-	if err := c.Exec(Compiler(),  CCENV, params); err != nil {
-		c.Println(err.Error())
-		return fmt.Errorf(cl.buf.String())
+	if err := c.Exec(Compiler(), CCENV, params); err != nil {
+		return fmt.Errorf(err.Error())
 	}
 
 	libName := fmt.Sprintf("%s.a", cl.Name)
@@ -76,8 +67,7 @@ func (cl *CLib) Build(c *build.Context) error {
 	}
 
 	if err := c.Exec(Archiver(), CCENV, params); err != nil {
-		c.Println(err.Error())
-		return fmt.Errorf(cl.buf.String())
+		return fmt.Errorf(err.Error())
 	}
 
 	return nil
@@ -85,9 +75,11 @@ func (cl *CLib) Build(c *build.Context) error {
 func (cl *CLib) Installs() map[string]string {
 	exports := make(map[string]string)
 	libName := fmt.Sprintf("%s.a", cl.Name)
-
-	exports[filepath.Join("lib", libName)] = libName
-
+	if cl.AlwaysLink {
+		exports[libName] = libName
+	} else {
+		exports[filepath.Join("lib", libName)] = libName
+	}
 	return exports
 }
 func (cl *CLib) GetName() string {
@@ -96,11 +88,4 @@ func (cl *CLib) GetName() string {
 
 func (cl *CLib) GetDependencies() []string {
 	return cl.Dependencies
-}
-func (cl *CLib) GetSource() string {
-	return cl.Source
-}
-
-func (cl *CLib) Reader() io.Reader {
-	return &cl.buf
 }

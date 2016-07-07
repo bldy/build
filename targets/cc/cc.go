@@ -79,6 +79,14 @@ func Linker() string {
 	}
 }
 
+// Had to be done
+func Stripper() string {
+	if tpfx := build.Getenv("TOOLPREFIX"); tpfx == "" {
+		return "strip"
+	} else {
+		return fmt.Sprintf("%s%s", tpfx, "strip")
+	}
+}
 type CompilerFlags []string
 
 type Includes []string
