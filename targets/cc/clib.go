@@ -49,8 +49,8 @@ func (cl *CLib) Build(c *build.Context) error {
 	params := []string{"-c"}
 	params = append(params, cl.CompilerOptions...)
 	params = append(params, cl.LinkerOptions...)
-	params = append(params, cl.Sources...)
 	params = append(params, cl.Includes.Includes()...)
+	params = append(params, cl.Sources...)
 
 	if err := c.Exec(Compiler(), CCENV, params); err != nil {
 		return fmt.Errorf(err.Error())
