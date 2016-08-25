@@ -36,6 +36,9 @@ func init() {
 		log.Fatal(err)
 	}
 
+	if err := internal.Register("old_build", OldBuild{}); err != nil {
+		log.Fatal(err)
+	}
 	if err := internal.Register("data_to_c", DataToC{}); err != nil {
 		log.Fatal(err)
 	}
