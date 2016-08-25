@@ -169,7 +169,7 @@ func (p *Processor) unwrapValue(i interface{}) interface{} {
 		if v, ok := p.vars[i.(*ast.Variable).Key]; ok {
 			return v
 		} else {
-			log.Fatalf("variable %s is not present. make sure it's loaded properly or declared", i.(*ast.Variable).Key)
+			log.Fatalf("variable %s is not present in %s. make sure it's loaded properly or declared", i.(*ast.Variable).Key, p.parser.Path)
 		}
 		return nil
 	case *ast.Slice:
