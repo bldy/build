@@ -6,6 +6,7 @@ package builder // import "sevki.org/build/builder"
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -13,11 +14,10 @@ import (
 
 	"io/ioutil"
 
-	"sevki.org/build/util"
-
 	"strings"
 
 	"sevki.org/build"
+	"sevki.org/build/util"
 )
 
 const (
@@ -191,46 +191,8 @@ func (b *Builder) work(jq chan *Node, workerNumber int) {
 					}
 				})
 			} else {
-				buildOut := filepath.Join(
-					util.GetProjectPath(),
-					"build_out",
-				)
-				os.RemoveAll(buildOut)
-				if err := os.MkdirAll(
-					buildOut,
-					os.ModeDir|os.ModePerm,
-				); err != nil {
-					log.Fatalf("linking job %s failed: %s", job.Target.GetName(), err.Error())
-				}
+				install(job)
 
-				for dst, src := range job.Target.Installs() {
-					target := filepath.Base(dst)
-					targetDir := strings.TrimRight(dst, target)
-
-					buildOutTarget := filepath.Join(
-						buildOut,
-						targetDir,
-					)
-					if err := os.MkdirAll(
-						buildOutTarget,
-						os.ModeDir|os.ModePerm,
-					); err != nil {
-						log.Fatalf("linking job %s failed: %s", job.Target.GetName(), err.Error())
-					}
-
-					os.Symlink(
-						filepath.Join(
-							"/tmp",
-							"build",
-							fmt.Sprintf("%s-%x", job.Target.GetName(), job.HashNode()),
-							src,
-						),
-						filepath.Join(
-							buildOutTarget,
-							target,
-						),
-					)
-				}
 				b.Done <- job
 				close(b.Done)
 				return
@@ -264,4 +226,74 @@ func (b *Builder) visit(n *Node) {
 	n.wg.Wait()
 
 	b.BuildQueue <- n
+}
+
+func install(job *Node) error {
+	buildOut := ""
+	if build.Getenv("BUILD_OUT") != "" {
+		buildOut = build.Getenv("BUILD_OUT")
+	} else {
+		buildOut = filepath.Join(
+			util.GetProjectPath(),
+			"build_out",
+		)
+	}
+	os.RemoveAll(buildOut)
+	if err := os.MkdirAll(
+		buildOut,
+		os.ModeDir|os.ModePerm,
+	); err != nil {
+		log.Fatalf("copying job %s failed: %s", job.Target.GetName(), err.Error())
+	}
+
+	for dst, src := range job.Target.Installs() {
+
+		target := filepath.Base(dst)
+		targetDir := strings.TrimRight(dst, target)
+
+		buildOutTarget := filepath.Join(
+			buildOut,
+			targetDir,
+		)
+		if err := os.MkdirAll(
+			buildOutTarget,
+			os.ModeDir|os.ModePerm,
+		); err != nil {
+			log.Fatalf("linking job %s failed: %s", job.Target.GetName(), err.Error())
+		}
+		srcp, _ := filepath.EvalSymlinks(
+			filepath.Join(
+				TMP,
+				"build",
+				fmt.Sprintf("%s-%x", job.Target.GetName(), job.HashNode()),
+				src,
+			))
+
+		dstp := filepath.Join(
+			buildOutTarget,
+			target,
+		)
+
+		in, err := os.Open(srcp)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer in.Close()
+		out, err := os.Create(dstp)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer func() {
+			if err := out.Close(); err != nil {
+				log.Fatal(err)
+			}
+		}()
+
+		if _, err := io.Copy(out, in); err != nil {
+			log.Fatal(err)
+		}
+
+	}
+
+	return nil
 }
