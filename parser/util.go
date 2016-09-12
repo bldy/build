@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -121,7 +122,7 @@ type TargetURL struct {
 func split(s string, c string, cutc bool) (string, string) {
 	i := strings.Index(s, c)
 	if i < 0 {
-		return "", s
+		return s, ""
 	}
 	if cutc {
 		return s[:i], s[i+len(c):]
@@ -140,32 +141,27 @@ func (u TargetURL) BuildDir(wd, p string) string {
 	}
 }
 func NewTargetURLFromString(u string) (tu TargetURL) {
-
 	switch {
-	case u[:2] == "//":
+	case strings.HasPrefix(u, "//"):
 		u = u[2:]
-		break
-	case u[0] == ':':
-		if wd, err := os.Getwd(); err == nil {
-			rel, err := filepath.Rel(util.GetProjectPath(), wd)
-			if err == nil {
-				tu.Package = rel
-			} else {
-				log.Fatal(err)
-			}
-
-		} else {
+		tu.Package, tu.Target = split(u, ":", true)
+	case strings.HasPrefix(u, ":"):
+		u = u[1:]
+		fallthrough
+	default:
+		tu.Target = u
+		wd, err := os.Getwd()
+		if err != nil {
 			log.Fatal(err)
 		}
-
-		break
-	default:
-		errorf := `'%s' is not a valid target.
-a target url can only start with a '//' or a ':' for relative targets.`
-
-		log.Fatalf(errorf, u)
+		tu.Package, err = filepath.Rel(util.GetProjectPath(), wd)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
-	tu.Package, tu.Target = split(u, ":", true)
+	if tu.Target == "" {
+		tu.Target = path.Base(tu.Package)
+	}
 
 	return
 }
