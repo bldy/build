@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 
 	"sevki.org/build"
+	"sevki.org/build/util"
 )
 
 type Strip struct {
@@ -34,7 +35,7 @@ func (s *Strip) Hash() []byte {
 
 // Had to be done
 func Stripper() string {
-	if tpfx := build.Getenv("TOOLPREFIX"); tpfx == "" {
+	if tpfx := util.Getenv("TOOLPREFIX"); tpfx == "" {
 		return "strip"
 	} else {
 		return fmt.Sprintf("%s%s", tpfx, "strip")

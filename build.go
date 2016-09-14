@@ -14,8 +14,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-
-	"sevki.org/build/util"
 )
 
 // Target defines the interface that rules must implement for becoming build targets.
@@ -48,9 +46,6 @@ func NewContext(dir string) *Context {
 		logger: log.New(&buf, "", log.Lmicroseconds),
 		buf:    &buf,
 	}
-}
-func Getenv(s string) string {
-	return util.Getenv(s)
 }
 func (c *Context) Stdout() io.Reader {
 	return c.buf
