@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 
 	"sevki.org/build"
+	"sevki.org/build/util"
 )
 
 type ObjCopy struct {
@@ -38,7 +39,7 @@ func (oc *ObjCopy) Hash() []byte {
 
 // Had to be done
 func Copier() string {
-	if tpfx := build.Getenv("TOOLPREFIX"); tpfx == "" {
+	if tpfx := util.Getenv("TOOLPREFIX"); tpfx == "" {
 		return "objcopy"
 	} else {
 		return fmt.Sprintf("%s%s", tpfx, "objcopy")
