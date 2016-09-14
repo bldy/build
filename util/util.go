@@ -10,16 +10,44 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
+
+	ini "github.com/vaughan0/go-ini"
 )
 
 var (
+	file ini.File
+
 	pp = ""
 )
 
 func init() {
 	wd, _ := os.Getwd()
 	pp = GetGitDir(wd)
+
+	var err error
+	if file, err = ini.LoadFile(filepath.Join(GetProjectPath(), ".build")); err == nil {
+		if err != nil {
+			log.Fatalf("error: %v", err)
+		}
+	}
+}
+
+// Getenv returns the envinroment variable. It looks for the envinroment
+// variable in the following order. It checks if the current shell session has
+// an envinroment variable, checks if it's set in the OS specific section in
+// the .build file, and checks it for common in the .build config file.
+func Getenv(s string) string {
+	if os.Getenv(s) != "" {
+		return os.Getenv(s)
+	} else if val, exists := file.Get(runtime.GOOS, s); exists {
+		return val
+	} else if val, exists := file.Get("", s); exists {
+		return val
+	} else {
+		return ""
+	}
 }
 func GetProjectPath() (ProjectPath string) {
 	return pp
@@ -40,7 +68,7 @@ RESTART:
 		if !filepath.IsAbs(file) {
 			continue
 		}
-		if filepath.Base(file) == "build_out" {
+		if filepath.Base(file) == BuildOut() {
 			continue
 		}
 
@@ -68,6 +96,17 @@ RESTART:
 	}
 }
 
+func BuildOut() string {
+	if Getenv("BUILD_OUT") != "" {
+		return Getenv("BUILD_OUT")
+	} else {
+		return filepath.Join(
+			GetProjectPath(),
+			"build_out",
+		)
+	}
+}
+
 // HashFilesWithExt will hash files collecetion represented as a string array,
 // If the string in the array is directory it will the directory contents to the array
 // if the string isn't an absolute path, it will assume that it's a export from a dependency
@@ -79,7 +118,7 @@ RESTART:
 		if !filepath.IsAbs(file) {
 			continue
 		}
-		if filepath.Base(file) == "build_out" {
+		if filepath.Base(file) == BuildOut() {
 			continue
 		}
 		f, err := os.Open(file)
@@ -100,8 +139,8 @@ RESTART:
 			}
 			goto RESTART /* to avoid out of bound errors, there may be no files
 			in the folder */
-		} 
-		 if filepath.Ext(file) != ext {
+		}
+		if filepath.Ext(file) != ext {
 			f.Close()
 			continue
 		}

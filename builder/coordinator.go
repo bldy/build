@@ -229,15 +229,7 @@ func (b *Builder) visit(n *Node) {
 }
 
 func install(job *Node) error {
-	buildOut := ""
-	if build.Getenv("BUILD_OUT") != "" {
-		buildOut = build.Getenv("BUILD_OUT")
-	} else {
-		buildOut = filepath.Join(
-			util.GetProjectPath(),
-			"build_out",
-		)
-	}
+	buildOut := util.BuildOut()
 	os.RemoveAll(buildOut)
 	if err := os.MkdirAll(
 		buildOut,

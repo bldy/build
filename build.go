@@ -6,45 +6,17 @@
 package build // import "sevki.org/build"
 import (
 	"bytes"
+	"context"
 	"io"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"sync"
 
-	ini "github.com/vaughan0/go-ini"
 	"sevki.org/build/util"
 )
-
-var file ini.File
-
-func init() {
-	var err error
-	if file, err = ini.LoadFile(filepath.Join(util.GetProjectPath(), ".build")); err == nil {
-		if err != nil {
-			log.Fatalf("error: %v", err)
-		}
-	}
-}
-
-// Getenv returns the envinroment variable. It looks for the envinroment 
-// variable in the following order. It checks if the current shell session has
-// an envinroment variable, checks if it's set in the OS specific section in 
-// the .build file, and checks it for common in the .build config file.
-func Getenv(s string) string {
-	if os.Getenv(s) != "" {
-		return os.Getenv(s)
-	} else if val, exists := file.Get(runtime.GOOS, s); exists {
-		return val
-	} else if val, exists := file.Get("", s); exists {
-		return val
-	} else {
-		return ""
-	}
-}
 
 // Target defines the interface that rules must implement for becoming build targets.
 type Target interface {
@@ -77,7 +49,9 @@ func NewContext(dir string) *Context {
 		buf:    &buf,
 	}
 }
-
+func Getenv(s string) string {
+	return util.Getenv(s)
+}
 func (c *Context) Stdout() io.Reader {
 	return c.buf
 }
@@ -130,6 +104,17 @@ func (c *Context) Exec(cmd string, env, params []string) error {
 
 	wg.Wait()
 	return nil
+}
+
+// Run executes a command writing it's outputs to the context
+func (c *Context) Run(ctx context.Context, cmd string, env, params []string) *exec.Cmd {
+	c.Println(strings.Join(append([]string{cmd}, params...), " "))
+
+	x := exec.CommandContext(ctx, cmd, params...)
+
+	x.Dir = c.wd
+	x.Env = env
+	return x
 }
 
 // Create creates and returns a new file with the given name in the context
