@@ -14,5 +14,6 @@ reviewers:
   members:
   - rminnich
   - sevki
+  - hdonnay
   name: Harvey-OS/core
   required: 1
