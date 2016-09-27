@@ -41,9 +41,6 @@ type Builder struct {
 	Timeout     chan bool
 	Updates     chan Update
 	Root, ptr   *Node
-	ingress     chan *Node
-	egress      chan *Node
-	m           sync.Mutex
 	pq          *p
 }
 
@@ -51,8 +48,6 @@ func New() (c Builder) {
 	c.Nodes = make(map[string]*Node)
 	c.Error = make(chan error)
 	c.Done = make(chan *Node)
-	c.ingress = make(chan *Node)
-	c.egress = make(chan *Node)
 	c.Updates = make(chan Update)
 	var err error
 	c.Wd, err = os.Getwd()
@@ -71,6 +66,7 @@ type Node struct {
 	Parents    map[string]*Node `json:"-"`
 	Url        parser.TargetURL
 	Worker     string
+	Priority   int
 	wg         sync.WaitGroup
 	Status     STATUS
 	Start, End int64
@@ -82,12 +78,15 @@ type Node struct {
 	hash     []byte
 }
 
-func (n *Node) Priority() int {
+func (n *Node) priority() int {
+if n.Priority < 0 {
 	p := 0
 	for _, c := range n.Parents {
-		p += c.Priority() + 1
+		p += c.priority() + 1
 	}
-	return p
+n.Priority = p
+}
+	return n.Priority
 }
 func (b *Builder) getTarget(url parser.TargetURL) (n *Node) {
 
@@ -119,6 +118,7 @@ func (b *Builder) getTarget(url parser.TargetURL) (n *Node) {
 				wg:       sync.WaitGroup{},
 				Status:   Pending,
 				Url:      xu,
+				Priority: -1,
 			}
 
 			post := postprocessor.New(url.Package)
