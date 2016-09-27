@@ -29,6 +29,7 @@ type Update struct {
 	Status    STATUS
 	Worker    int
 }
+
 type Builder struct {
 	Origin      string
 	Wd          string
@@ -40,21 +41,25 @@ type Builder struct {
 	Timeout     chan bool
 	Updates     chan Update
 	Root, ptr   *Node
-	BuildQueue  chan *Node
+	ingress     chan *Node
+	egress      chan *Node
+	m           sync.Mutex
+	pq          *p
 }
 
 func New() (c Builder) {
 	c.Nodes = make(map[string]*Node)
 	c.Error = make(chan error)
 	c.Done = make(chan *Node)
-	c.BuildQueue = make(chan *Node)
+	c.ingress = make(chan *Node)
+	c.egress = make(chan *Node)
 	c.Updates = make(chan Update)
 	var err error
 	c.Wd, err = os.Getwd()
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	c.pq = newP()
 	c.ProjectPath = util.GetProjectPath()
 	return
 }
@@ -65,6 +70,7 @@ type Node struct {
 	Type       string
 	Parents    map[string]*Node `json:"-"`
 	Url        parser.TargetURL
+	Worker     string
 	wg         sync.WaitGroup
 	Status     STATUS
 	Start, End int64
@@ -76,6 +82,13 @@ type Node struct {
 	hash     []byte
 }
 
+func (n *Node) Priority() int {
+	p := 0
+	for _, c := range n.Parents {
+		p += c.Priority() + 1
+	}
+	return p
+}
 func (b *Builder) getTarget(url parser.TargetURL) (n *Node) {
 
 	if gnode, ok := b.Nodes[url.String()]; ok {
@@ -169,7 +182,7 @@ func (n *Node) HashNode() []byte {
 		h.Write(e.HashNode())
 	}
 	n.hash = h.Sum(nil)
-	n.Hash = fmt.Sprintf("%x",n.hash)
+	n.Hash = fmt.Sprintf("%x", n.hash)
 	return n.hash
 }
 
