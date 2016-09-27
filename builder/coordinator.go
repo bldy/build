@@ -26,11 +26,23 @@ const (
 	TMP     = "/tmp"
 )
 
+func (b *Builder) runQueue() {
+	job := <-b.ingress
+	b.pq.push(job)
+	for {
+		select {
+		case job := <-b.ingress:
+
+			b.pq.push(job)
+		}
+	}
+}
+
 func (b *Builder) Execute(d time.Duration, r int) {
+	go b.runQueue()
 
 	for i := 0; i < r; i++ {
-
-		go b.work(b.BuildQueue, i)
+		go b.work(b.egress, i)
 		b.Updates <- Update{
 			Worker:    i,
 			TimeStamp: time.Now(),
@@ -143,62 +155,61 @@ func (b *Builder) build(n *Node) (err error) {
 func (b *Builder) work(jq chan *Node, workerNumber int) {
 
 	for {
-		select {
-		case job := <-jq:
-			if job.Status != Pending {
-				continue
-			}
-			job.Lock()
-			defer job.Unlock()
+		job := b.pq.pop()
+		job.Worker = fmt.Sprintf("%d", workerNumber)
+		if job.Status != Pending {
+			continue
+		}
+		job.Lock()
+		defer job.Unlock()
 
-			job.Status = Building
+		job.Status = Building
+
+		b.Updates <- Update{
+			Worker:    workerNumber,
+			TimeStamp: time.Now(),
+			Target:    job.Url.String(),
+			Status:    Started,
+		}
+		buildErr := b.build(job)
+
+		if buildErr != nil {
+			job.Status = Fail
+			b.Updates <- Update{
+				Worker:    workerNumber,
+				TimeStamp: time.Now(),
+				Target:    job.Url.String(),
+				Status:    Fail,
+			}
+
+			b.Error <- buildErr
+
+		} else {
+			job.Status = Success
 
 			b.Updates <- Update{
 				Worker:    workerNumber,
 				TimeStamp: time.Now(),
 				Target:    job.Url.String(),
-				Status:    Started,
+				Status:    Success,
 			}
-			buildErr := b.build(job)
-
-			if buildErr != nil {
-				job.Status = Fail
-				b.Updates <- Update{
-					Worker:    workerNumber,
-					TimeStamp: time.Now(),
-					Target:    job.Url.String(),
-					Status:    Fail,
-				}
-
-				b.Error <- buildErr
-
-			} else {
-				job.Status = Success
-
-				b.Updates <- Update{
-					Worker:    workerNumber,
-					TimeStamp: time.Now(),
-					Target:    job.Url.String(),
-					Status:    Success,
-				}
-			}
-
-			if !job.IsRoot {
-				b.Done <- job
-				job.once.Do(func() {
-					for _, parent := range job.Parents {
-						parent.wg.Done()
-					}
-				})
-			} else {
-				install(job)
-
-				b.Done <- job
-				close(b.Done)
-				return
-			}
-
 		}
+
+		if !job.IsRoot {
+			b.Done <- job
+			job.once.Do(func() {
+				for _, parent := range job.Parents {
+					parent.wg.Done()
+				}
+			})
+		} else {
+			install(job)
+
+			b.Done <- job
+			close(b.Done)
+			return
+		}
+
 	}
 
 }
@@ -224,8 +235,7 @@ func (b *Builder) visit(n *Node) {
 	}
 
 	n.wg.Wait()
-
-	b.BuildQueue <- n
+	b.pq.push(n)
 }
 
 func install(job *Node) error {
