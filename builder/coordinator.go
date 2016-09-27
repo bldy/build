@@ -26,23 +26,10 @@ const (
 	TMP     = "/tmp"
 )
 
-func (b *Builder) runQueue() {
-	job := <-b.ingress
-	b.pq.push(job)
-	for {
-		select {
-		case job := <-b.ingress:
-
-			b.pq.push(job)
-		}
-	}
-}
-
 func (b *Builder) Execute(d time.Duration, r int) {
-	go b.runQueue()
 
 	for i := 0; i < r; i++ {
-		go b.work(b.egress, i)
+		go b.work(i)
 		b.Updates <- Update{
 			Worker:    i,
 			TimeStamp: time.Now(),
@@ -152,7 +139,7 @@ func (b *Builder) build(n *Node) (err error) {
 	return buildErr
 }
 
-func (b *Builder) work(jq chan *Node, workerNumber int) {
+func (b *Builder) work(  workerNumber int) {
 
 	for {
 		job := b.pq.pop()
