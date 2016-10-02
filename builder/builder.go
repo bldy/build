@@ -79,13 +79,13 @@ type Node struct {
 }
 
 func (n *Node) priority() int {
-if n.Priority < 0 {
-	p := 0
-	for _, c := range n.Parents {
-		p += c.priority() + 1
+	if n.Priority < 0 {
+		p := 0
+		for _, c := range n.Parents {
+			p += c.priority() + 1
+		}
+		n.Priority = p
 	}
-n.Priority = p
-}
 	return n.Priority
 }
 func (b *Builder) getTarget(url parser.TargetURL) (n *Node) {
@@ -165,6 +165,7 @@ func (b *Builder) Add(t string) *Node {
 }
 
 func (n *Node) HashNode() []byte {
+
 	// node hashes should not change after a build,
 	// they should be deterministic, therefore they should and can be cached.
 	if len(n.hash) > 0 {
