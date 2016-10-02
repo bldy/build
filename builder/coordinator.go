@@ -139,7 +139,7 @@ func (b *Builder) build(n *Node) (err error) {
 	return buildErr
 }
 
-func (b *Builder) work(  workerNumber int) {
+func (b *Builder) work(workerNumber int) {
 
 	for {
 		job := b.pq.pop()
@@ -222,6 +222,7 @@ func (b *Builder) visit(n *Node) {
 	}
 
 	n.wg.Wait()
+	n.priority()
 	b.pq.push(n)
 }
 
