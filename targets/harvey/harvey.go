@@ -35,7 +35,9 @@ func init() {
 	if err := internal.Register("elf_to_c", ElfToC{}); err != nil {
 		log.Fatal(err)
 	}
-
+	if err := internal.Register("qemu", Qemu{}); err != nil {
+		log.Fatal(err)
+	}
 	if err := internal.Register("old_build", OldBuild{}); err != nil {
 		log.Fatal(err)
 	}
