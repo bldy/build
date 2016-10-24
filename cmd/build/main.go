@@ -19,6 +19,7 @@ import (
 	"sevki.org/build/builder"
 	_ "sevki.org/build/targets/build"
 	_ "sevki.org/build/targets/cc"
+	_ "sevki.org/build/targets/golang"
 	_ "sevki.org/build/targets/harvey"
 	_ "sevki.org/build/targets/yacc"
 	"sevki.org/build/term"
@@ -136,9 +137,6 @@ func execute(t string) {
 
 	go term.Listen(c.Updates, cpus, *verbose)
 	go term.Run(done)
-
-
-
 
 	go c.Execute(time.Second, cpus)
 	for {
