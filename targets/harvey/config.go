@@ -60,13 +60,18 @@ func (k *Config) Build(c *build.Context) error {
 	var rootnames []string
 	for _, dep := range k.Dependencies {
 		name := split(dep, ":")
-		code, err := data2c(name, filepath.Join("bin", name), c)
+		path := filepath.Join("bin", name)
+		if name == "factotum" {
+			path = filepath.Join("bin", "auth/factotum")
+		}
+		code, err := data2c(name, path, c)
 
 		if err != nil {
 			return err
 		}
 		rootcodes = append(rootcodes, code)
 		rootnames = append(rootnames, name)
+
 	}
 	for _, p := range k.RamFiles {
 		name := filepath.Base(p)

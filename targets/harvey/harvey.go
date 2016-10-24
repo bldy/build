@@ -11,7 +11,7 @@ import (
 )
 
 func init() {
-	if err := internal.Register("kernel", Kernel{}); err != nil {
+	if err := internal.Register("move", Move{}); err != nil {
 		log.Fatal(err)
 	}
 	if err := internal.Register("config", Config{}); err != nil {

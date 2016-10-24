@@ -8,40 +8,32 @@ import (
 	"sevki.org/build"
 )
 
-type Kernel struct {
-	Name         string            `kernel:"name"`
-	Dependencies []string          `kernel:"deps"`
-	RamFiles     []string          `kernel:"ramfiles" build:"path"`
-	Code         []string          `kernel:"code"`
-	Dev          []string          `kernel:"dev"`
-	Ip           []string          `kernel:"ip"`
-	Link         []string          `kernel:"link"`
-	Sd           []string          `kernel:"sd"`
-	Uart         []string          `kernel:"uart"`
-	VGA          []string          `kernel:"vga"`
-	Exports      map[string]string `kernel:"installs"`
+type Move struct {
+	Name         string            `move:"name"`
+	Dependencies []string          `move:"deps"`
+	Exports      map[string]string `move:"installs"`
 }
 
-func (k *Kernel) Hash() []byte {
+func (m *Move) Hash() []byte {
 
 	h := sha1.New()
 
-	io.WriteString(h, k.Name)
+	io.WriteString(h, m.Name)
 	return h.Sum(nil)
 }
 
-func (k *Kernel) Build(c *build.Context) error {
+func (m *Move) Build(c *build.Context) error {
 
 	return nil
 }
 
-func (k *Kernel) Installs() map[string]string {
-	return k.Exports
+func (m *Move) Installs() map[string]string {
+	return m.Exports
 }
 
-func (k *Kernel) GetName() string {
-	return k.Name
+func (m *Move) GetName() string {
+	return m.Name
 }
-func (k *Kernel) GetDependencies() []string {
-	return k.Dependencies
+func (m *Move) GetDependencies() []string {
+	return m.Dependencies
 }
