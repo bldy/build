@@ -9,7 +9,7 @@ before_install:
   - go get github.com/tcnksm/ghr
 install:
   - export GOPATH="$HOME/gopath"
-  - mkdir -p "$GOPATH/src/github.com/bldy/build"
+  - mkdir -p "$GOPATH/src/github.com/bldy/"
   - mv "$TRAVIS_BUILD_DIR" "$GOPATH/src/github.com/bldy/build"
   - go get -v -t -d sevki.org/build/...
 script:
