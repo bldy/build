@@ -8,16 +8,14 @@ before_install:
   - go get github.com/mitchellh/gox
   - go get github.com/tcnksm/ghr
 install:
-  - export GOPATH="$HOME/gopath"
-  - mkdir -p "$GOPATH/src/sevki.org/"
-  - mv "$TRAVIS_BUILD_DIR" "$GOPATH/src/sevki.org/build"
-  - go get -v -t -d sevki.org/build/...
+  - go get -v -t -d github.com/bldy/build/...
 script:
-  - go test -v sevki.org/build/lexer
-  - go test -v sevki.org/build/internal
-  - go test -v sevki.org/build/parser
-  - go test -v sevki.org/build/preprocessor
-  - go test -v sevki.org/build/processor
+  - go test -v github.com/bldy/build/lexer
+  - go test -v github.com/bldy/build/internal
+  - go test -v github.com/bldy/build/parser
+  - go test -v github.com/bldy/build/preprocessor
+  - go test -v github.com/bldy/build/processor
 after_success:
   - cd "$GOPATH/src/sevki.org/build/cmd/build"
   - if [ "$TRAVIS_PULL_REQUEST" == 0] || ["$TRAVIS_BRANCH" == "master" ]; then gox -output "dist/{{.OS}}_{{.Arch}}_{{.Dir}}"; ghr --username sevki --token $GITHUB_TOKEN --replace --prerelease --debug `git describe --always`  dist/; fi
+ 

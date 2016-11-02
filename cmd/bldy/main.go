@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main // import "sevki.org/build/cmd/build"
+package main
 
 import (
 	"fmt"
@@ -15,14 +15,14 @@ import (
 
 	"flag"
 
-	"sevki.org/build"
-	"sevki.org/build/builder"
-	_ "sevki.org/build/targets/build"
-	_ "sevki.org/build/targets/cc"
-	_ "sevki.org/build/targets/golang"
-	_ "sevki.org/build/targets/harvey"
-	_ "sevki.org/build/targets/yacc"
-	"sevki.org/build/term"
+	"github.com/bldy/build"
+	"github.com/bldy/build/builder"
+	_ "github.com/bldy/build/targets/build"
+	_ "github.com/bldy/build/targets/cc"
+	_ "github.com/bldy/build/targets/golang"
+	_ "github.com/bldy/build/targets/harvey"
+	_ "github.com/bldy/build/targets/yacc"
+	"github.com/bldy/build/term"
 	"sevki.org/lib/prettyprint"
 )
 

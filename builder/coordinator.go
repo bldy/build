@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package builder // import "sevki.org/build/builder"
+package builder
 
 import (
 	"fmt"
@@ -16,8 +16,8 @@ import (
 
 	"strings"
 
-	"sevki.org/build"
-	"sevki.org/build/util"
+	"github.com/bldy/build"
+	"github.com/bldy/build/util"
 )
 
 const (

@@ -6,8 +6,8 @@ import (
 
 	"strings"
 
-	"sevki.org/build"
-	"sevki.org/build/util"
+	"github.com/bldy/build"
+	"github.com/bldy/build/util"
 )
 import "os"
 

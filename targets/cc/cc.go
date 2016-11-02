@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package cc // import "sevki.org/build/targets/cc"
+package cc
 
 import (
 	"fmt"
@@ -13,8 +13,8 @@ import (
 
 	"os"
 
-	"sevki.org/build/internal"
-	"sevki.org/build/util"
+	"github.com/bldy/build/internal"
+	"github.com/bldy/build/util"
 )
 
 var (

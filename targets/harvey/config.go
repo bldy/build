@@ -11,11 +11,11 @@ import (
 	"io"
 	"strings"
 
-	"sevki.org/build/util"
+	"github.com/bldy/build/util"
 
 	"path/filepath"
 
-	"sevki.org/build"
+	"github.com/bldy/build"
 )
 
 type Config struct {

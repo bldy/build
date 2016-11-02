@@ -2,16 +2,16 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package parser // import "sevki.org/build/parser"
+package parser
 
 import (
 	"errors"
 	"fmt"
 	"io"
- 
-	"sevki.org/build/ast"
-	"sevki.org/build/lexer"
-	"sevki.org/build/token"
+
+	"github.com/bldy/build/ast"
+	"github.com/bldy/build/lexer"
+	"github.com/bldy/build/token"
 )
 
 var (

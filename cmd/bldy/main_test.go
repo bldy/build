@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main // import "sevki.org/build/cmd/build"
+package main
 
 import (
 	"fmt"
@@ -11,9 +11,9 @@ import (
 	"path/filepath"
 	"testing"
 
- 	"sevki.org/build/builder"
+	"github.com/bldy/build/builder"
 )
- 
+
 func TestBuild(t *testing.T) {
 
 	wd, _ := os.Getwd()
@@ -22,20 +22,20 @@ func TestBuild(t *testing.T) {
 		ProjectPath: filepath.Join(wd, "tests/libxstring"),
 		Error:       make(chan error),
 		Timeout:     make(chan bool),
-  	}
+	}
 
 	if c.ProjectPath == "" {
 		fmt.Fprintf(os.Stderr, "You need to be in a git project.\n\n")
 		printUsage()
 	}
- 
+
 	go c.Execute(0, 3)
 
 	for i := 0; i < c.Total; i++ {
 
 		select {
- 
- 		case err := <-c.Error:
+
+		case err := <-c.Error:
 			failMessage(err.Error())
 			t.Fail()
 			continue

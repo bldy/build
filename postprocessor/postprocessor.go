@@ -3,7 +3,8 @@
 // license that can be found in the LICENSE file.
 
 // Package builder parses build graphs and coordinates builds
-package postprocessor // import "sevki.org/build/postprocessor"
+package postprocessor
+
 import (
 	"fmt"
 	"log"
@@ -11,8 +12,8 @@ import (
 	"reflect"
 	"strings"
 
-	"sevki.org/build"
-	"sevki.org/build/util"
+	"github.com/bldy/build"
+	"github.com/bldy/build/util"
 )
 
 type PostProcessor struct {

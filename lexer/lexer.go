@@ -4,7 +4,7 @@
 
 //go:generate stringer -type Type
 
-package lexer // import "sevki.org/build/lexer"
+package lexer
 
 import (
 	"bufio"
@@ -14,7 +14,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"sevki.org/build/token"
+	"github.com/bldy/build/token"
 )
 
 const eof = -1
@@ -39,7 +39,7 @@ type Lexer struct {
 
 func (l *Lexer) LineBuffer() string {
 	return string(l.buf)
-} 
+}
 func New(name string, r io.Reader) *Lexer {
 
 	l := &Lexer{
@@ -353,7 +353,7 @@ func isString(r rune) bool {
 func isAlphaNumeric(r rune) bool {
 	return isString(r) || unicode.IsDigit(r)
 }
- 
+
 func isValidNumber(r rune) bool {
 	return unicode.IsDigit(r) ||
 		r == '-' ||

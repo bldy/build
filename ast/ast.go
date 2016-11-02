@@ -3,19 +3,19 @@
 // license that can be found in the LICENSE file.
 
 // Package ast defines build data structures.
-package ast // import "sevki.org/build/ast"
+package ast
 
 import (
 	"errors"
 	"strconv"
 
-	"sevki.org/build/token"
+	"github.com/bldy/build/token"
 )
 
 var (
 	InterfaceConversionError = errors.New("Interface conversion error")
 )
- 
+
 type Decl interface {
 	isDecl()
 }

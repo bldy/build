@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"sevki.org/build/util"
+	"github.com/bldy/build/util"
 
 	"reflect"
 

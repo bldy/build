@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package parser // import "sevki.org/build/parser"
+package parser
 
 import (
 	"fmt"
@@ -13,9 +13,9 @@ import (
 
 	"strings"
 
-	"sevki.org/build/ast"
-	_ "sevki.org/build/targets/cc"
-	"sevki.org/build/token"
+	"github.com/bldy/build/ast"
+	_ "github.com/bldy/build/targets/cc"
+	"github.com/bldy/build/token"
 )
 
 func readAndParse(n string) (*Parser, error) {
