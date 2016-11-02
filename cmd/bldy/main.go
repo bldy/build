@@ -36,7 +36,7 @@ If you are in a subfoler we will traverse the parent folders until we hit a .git
 `
 )
 var (
-	verbose = flag.Bool("v", false, "more verbose output")
+	progressbar = flag.Bool("p", false, "Show a progress bar (note: it can hide errors)")
 )
 
 func main() {
@@ -135,14 +135,14 @@ func execute(t string) {
 		os.Exit(1)
 	}()
 
-	go term.Listen(c.Updates, cpus, *verbose)
+	go term.Listen(c.Updates, cpus, *progressbar)
 	go term.Run(done)
 
 	go c.Execute(time.Second, cpus)
 	for {
 		select {
 		case done := <-c.Done:
-			if *verbose {
+			if !*progressbar {
 				doneMessage(done.Url.String())
 			}
 			if done.IsRoot {
