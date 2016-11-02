@@ -19,7 +19,7 @@ var (
 	statuses    map[int]builder.Update
 	worderCount int
 	stated      time.Time
-	verbose     bool
+	progressbar     bool
 	exit        bool
 )
 
@@ -30,9 +30,9 @@ func init() {
 func Exit() {
 	exit = true
 }
-func Listen(updates chan builder.Update, i int, v bool) {
+func Listen(updates chan builder.Update, i int, p bool) {
 	worderCount = i
-	verbose = v
+	progressbar = p
 	statuses = make(map[int]builder.Update)
 	for k := 0; k < i; k++ {
 		statuses[k] = builder.Update{
@@ -56,7 +56,7 @@ func failMessage(s string) {
 
 func Run(done chan bool) {
 
-	if !verbose {
+	if progressbar {
 		tm.Clear() // Clear current screen
 	}
 
@@ -65,7 +65,7 @@ func Run(done chan bool) {
 
 	for {
 		time.Sleep(time.Millisecond)
-		if !verbose {
+		if progressbar {
 			tm.MoveCursor(1, 1)
 			header := fmt.Sprintf("Building (%s)",
 				time.Since(stated).String(),
@@ -74,7 +74,7 @@ func Run(done chan bool) {
 		}
 
 		for worker, update := range statuses {
-			if !verbose {
+			if progressbar {
 				tm.MoveCursor(worker+2, 1)
 			}
 
@@ -103,12 +103,12 @@ func Run(done chan bool) {
 			}
 
 		}
-		if !verbose {
+		if progressbar {
 			tm.Flush() // Call it every time at the end of rendering
 		}
 		if exit {
 			if failed {
-				if !verbose {
+				if progressbar {
 					tm.MoveCursor(worderCount+2, 1)
 					failMessage(failedUpdate.Target)
 					tm.Flush()
@@ -121,7 +121,7 @@ func Run(done chan bool) {
 	}
 }
 func termPrintln(s string) {
-	if verbose {
+	if !progressbar {
 		//		log.Println(s)
 		return
 	}
