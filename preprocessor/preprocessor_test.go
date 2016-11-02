@@ -2,12 +2,12 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package preprocessor // import "sevki.org/build/preprocessor"
+package preprocessor
 
 import (
 	"testing"
 
-	"sevki.org/build/ast"
+	"github.com/bldy/build/ast"
 )
 
 func TestDuplicateLoadChecker(t *testing.T) {
@@ -15,14 +15,14 @@ func TestDuplicateLoadChecker(t *testing.T) {
 		Seen: make(map[string]*ast.Func),
 	}
 	var params []interface{}
-	params  = append(params, &ast.BasicLit{Value:"filesomething"})
+	params = append(params, &ast.BasicLit{Value: "filesomething"})
 	dlc.Process(&ast.Func{
-		Name: "load",
-		AnonParams : params,
+		Name:       "load",
+		AnonParams: params,
 	})
 	_, err := dlc.Process(&ast.Func{
-		Name: "load",
-		AnonParams : params,
+		Name:       "load",
+		AnonParams: params,
 	})
 	if err == nil {
 		t.Fail()

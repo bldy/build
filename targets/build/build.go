@@ -2,12 +2,12 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package build // import "sevki.org/build/targets/build"
+package build
 
 import (
 	"log"
 
-	"sevki.org/build/internal"
+	"github.com/bldy/build/internal"
 )
 
 func init() {

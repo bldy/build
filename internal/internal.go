@@ -4,7 +4,7 @@
 
 // Package internal is used for registering types in build, it had no clear place
 // in other packages to go which is why it gets it's own package
-package internal // import "sevki.org/build/internal"
+package internal
 
 import (
 	"fmt"

@@ -2,12 +2,13 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package processor // import "sevki.org/build/processor"
+package processor
+
 import (
 	"os"
 	"testing"
 
-	"sevki.org/build/targets/cc"
+	"github.com/bldy/build/targets/cc"
 )
 
 func TestSimpleAssignment(t *testing.T) {

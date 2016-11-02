@@ -4,8 +4,7 @@
 
 //go:generate stringer -type Type
 
-package token // import "sevki.org/build/token"
- 
+package token
 
 type Token struct {
 	Type  Type
@@ -16,7 +15,6 @@ type Token struct {
 }
 
 type Type int
-
 
 const (
 	EOF Type = iota

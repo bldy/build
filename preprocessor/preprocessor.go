@@ -2,11 +2,12 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package preprocessor // import "sevki.org/build/preprocessor"
+package preprocessor
+
 import (
 	"fmt"
 
-	"sevki.org/build/ast"
+	"github.com/bldy/build/ast"
 )
 
 type PreProcessor interface {

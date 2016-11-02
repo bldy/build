@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package cc // import "sevki.org/build/targets/cc"
+package cc
 
 import (
 	"crypto/sha1"
@@ -10,11 +10,11 @@ import (
 	"io"
 	"strings"
 
-	"sevki.org/build/util"
+	"github.com/bldy/build/util"
 
 	"path/filepath"
 
-	"sevki.org/build"
+	"github.com/bldy/build"
 )
 
 type CLib struct {

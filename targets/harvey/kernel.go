@@ -5,7 +5,7 @@ import (
 
 	"io"
 
-	"sevki.org/build"
+	"github.com/bldy/build"
 )
 
 type Move struct {

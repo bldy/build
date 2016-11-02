@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package cc // import "sevki.org/build/targets/yacc"
+package cc
 
 import (
 	"bytes"
@@ -18,9 +18,9 @@ import (
 
 	"fmt"
 
-	"sevki.org/build"
-	"sevki.org/build/internal"
-	"sevki.org/build/util"
+	"github.com/bldy/build"
+	"github.com/bldy/build/internal"
+	"github.com/bldy/build/util"
 )
 
 var YaccVersion = ""

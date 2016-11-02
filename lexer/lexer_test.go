@@ -2,14 +2,14 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package lexer // import "sevki.org/build/lexer"
+package lexer
 
 import (
 	"fmt"
 	"os"
 	"testing"
 
-	"sevki.org/build/token"
+	"github.com/bldy/build/token"
 )
 
 func TestMap(t *testing.T) {

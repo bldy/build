@@ -9,8 +9,8 @@ import (
 
 	"path/filepath"
 
-	"sevki.org/build"
-	"sevki.org/build/util"
+	"github.com/bldy/build"
+	"github.com/bldy/build/util"
 	"sevki.org/lib/prettyprint"
 )
 

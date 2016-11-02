@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package processor // import "sevki.org/build/processor"
+package processor
 
 import (
 	"bytes"
@@ -19,12 +19,12 @@ import (
 
 	"strings"
 
-	"sevki.org/build"
-	"sevki.org/build/ast"
-	"sevki.org/build/internal"
-	"sevki.org/build/parser"
-	"sevki.org/build/preprocessor"
-	"sevki.org/build/util"
+	"github.com/bldy/build"
+	"github.com/bldy/build/ast"
+	"github.com/bldy/build/internal"
+	"github.com/bldy/build/parser"
+	"github.com/bldy/build/preprocessor"
+	"github.com/bldy/build/util"
 )
 
 type Processor struct {

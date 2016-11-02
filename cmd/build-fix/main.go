@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"os"
 
-	_ "sevki.org/build/targets/build"
-	"sevki.org/build/targets/cc"
-	_ "sevki.org/build/targets/harvey"
-	_ "sevki.org/build/targets/yacc"
+	_ "github.com/bldy/build/targets/build"
+	"github.com/bldy/build/targets/cc"
+	_ "github.com/bldy/build/targets/harvey"
+	_ "github.com/bldy/build/targets/yacc"
 
-	"sevki.org/build/builder"
+	"github.com/bldy/build/builder"
 )
 
 var write = flag.Bool("w", false, "Write back?")

@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // package term handles terminal display statuses
-package term // import "sevki.org/build/term"
+package term
 
 // BUG(sevki): this needs a complete rewrite with the drawterm
 
@@ -11,8 +11,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/bldy/build/builder"
 	tm "github.com/buger/goterm"
-	"sevki.org/build/builder"
 )
 
 var (

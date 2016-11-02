@@ -2,7 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package golang // import "sevki.org/build/targets/golang"
+package golang
+
 import (
 	"crypto/sha1"
 	"fmt"
@@ -10,8 +11,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"sevki.org/build"
-	"sevki.org/build/util"
+	"github.com/bldy/build"
+	"github.com/bldy/build/util"
 )
 
 type GoBuild struct {

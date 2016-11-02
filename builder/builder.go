@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Package builder parses build graphs and coordinates builds
-package builder // import "sevki.org/build/builder"
+package builder
 
 import (
 	"crypto/sha1"
@@ -16,11 +16,11 @@ import (
 
 	"sync"
 
-	"sevki.org/build"
-	"sevki.org/build/parser"
-	"sevki.org/build/postprocessor"
-	"sevki.org/build/processor"
-	"sevki.org/build/util"
+	"github.com/bldy/build"
+	"github.com/bldy/build/parser"
+	"github.com/bldy/build/postprocessor"
+	"github.com/bldy/build/processor"
+	"github.com/bldy/build/util"
 )
 
 type Update struct {

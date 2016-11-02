@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package parser // import "sevki.org/build/parser"
+package parser
 
 import (
 	"fmt"
@@ -13,8 +13,8 @@ import (
 	"runtime"
 	"strings"
 
-	"sevki.org/build/token"
-	"sevki.org/build/util"
+	"github.com/bldy/build/token"
+	"github.com/bldy/build/util"
 )
 
 func caller() (call string, file string, line int) {

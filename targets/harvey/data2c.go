@@ -7,7 +7,7 @@ import (
 
 	"io/ioutil"
 
-	"sevki.org/build"
+	"github.com/bldy/build"
 )
 
 type DataToC struct {
