@@ -34,9 +34,9 @@ func (cl *CLib) Hash() []byte {
 
 	io.WriteString(h, CCVersion)
 	io.WriteString(h, cl.Name)
-	util.HashFiles(h, cl.Includes)
 	io.WriteString(h, "clib")
-	util.HashFiles(h, []string(cl.Sources))
+	util.HashFilesWithExt(h, []string(cl.Includes), ".h")
+	util.HashFilesWithExt(h, cl.Sources, ".c")
 	util.HashStrings(h, cl.CompilerOptions)
 	util.HashStrings(h, cl.LinkerOptions)
 	if cl.LinkStatic {
