@@ -167,7 +167,7 @@ func (b *Builder) Add(t string) *Node {
 func (n *Node) HashNode() []byte {
 
 	// node hashes should not change after a build,
-	// they should be deterministic, therefore they should and can be cached.
+	// they should be deterministic, therefore they can and should be cached.
 	if len(n.hash) > 0 {
 		return n.hash
 	}

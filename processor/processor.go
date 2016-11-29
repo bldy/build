@@ -242,11 +242,14 @@ func (p *Processor) runFunc(f *ast.Func) {
 }
 
 func (p *Processor) absPath(s string) string {
+	var r string
 	if strings.TrimLeft(s, "//") != s {
-		return filepath.Join(util.GetProjectPath(), strings.Trim(s, "//"))
+		r = filepath.Join(util.GetProjectPath(), strings.Trim(s, "//"))
 	} else {
-		return filepath.Join(p.parser.Path, s)
+		r = filepath.Join(p.parser.Path, s)
 	}
+	r = os.Expand(r, util.Getenv)
+	return r
 }
 
 func (p *Processor) makeTarget(f *ast.Func) (build.Target, error) {
@@ -305,7 +308,7 @@ func (p *Processor) makeTarget(f *ast.Func) (build.Target, error) {
 		}
 	}
 
-	//BUG(sevki): this is a very hacky way of doing this but it seems to be safer don't mind.
+	//BUG(sevki): this is a very hacky way of doing this but it seems to be safer.
 	var bytz []byte
 	buf := bytes.NewBuffer(bytz)
 
