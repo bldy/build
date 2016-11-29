@@ -481,7 +481,7 @@ func (p *Processor) env(f *ast.Func) string {
 	if len(f.AnonParams) != 1 {
 		return ""
 	}
-	return os.Getenv(f.AnonParams[0].(string))
+	return util.Getenv(f.AnonParams[0].(string))
 }
 
 func (p *Processor) version(f *ast.Func) string {
