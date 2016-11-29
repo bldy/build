@@ -8,6 +8,7 @@ package postprocessor
 import (
 	"fmt"
 	"log"
+	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -125,13 +126,16 @@ func (pp *PostProcessor) absPath(s string) string {
 	if len(s) < 2 {
 		log.Fatalf("%s is invalid", s)
 	}
+	var r string
 	switch {
 	case s[:2] == "//":
-		return filepath.Join(pp.projectPath, strings.Trim(s, "//"))
+		r = filepath.Join(pp.projectPath, strings.Trim(s, "//"))
 	default:
 		if filepath.IsAbs(s) {
 			return s
 		}
-		return filepath.Join(pp.projectPath, pp.packagePath, s)
+		r = filepath.Join(pp.projectPath, pp.packagePath, s)
 	}
+	r = os.Expand(r, util.Getenv)
+	return r
 }
