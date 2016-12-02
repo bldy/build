@@ -5,7 +5,7 @@ import (
 
 	"io"
 
-	"github.com/bldy/build"
+	"bldy.build/build"
 )
 
 type Move struct {

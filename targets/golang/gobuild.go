@@ -11,8 +11,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/bldy/build"
-	"github.com/bldy/build/util"
+	"bldy.build/build"
+	"bldy.build/build/util"
 )
 
 type GoBuild struct {

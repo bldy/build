@@ -16,11 +16,11 @@ import (
 
 	"sync"
 
-	"github.com/bldy/build"
-	"github.com/bldy/build/parser"
-	"github.com/bldy/build/postprocessor"
-	"github.com/bldy/build/processor"
-	"github.com/bldy/build/util"
+	"bldy.build/build"
+	"bldy.build/build/parser"
+	"bldy.build/build/postprocessor"
+	"bldy.build/build/processor"
+	"bldy.build/build/util"
 )
 
 type Update struct {
@@ -28,6 +28,7 @@ type Update struct {
 	Target    string
 	Status    STATUS
 	Worker    int
+	Cached    bool
 }
 
 type Builder struct {
@@ -39,7 +40,7 @@ type Builder struct {
 	Done        chan *Node
 	Error       chan error
 	Timeout     chan bool
-	Updates     chan Update
+	Updates     chan *Node
 	Root, ptr   *Node
 	pq          *p
 }
@@ -48,7 +49,7 @@ func New() (c Builder) {
 	c.Nodes = make(map[string]*Node)
 	c.Error = make(chan error)
 	c.Done = make(chan *Node)
-	c.Updates = make(chan Update)
+	c.Updates = make(chan *Node)
 	var err error
 	c.Wd, err = os.Getwd()
 	if err != nil {
@@ -69,6 +70,7 @@ type Node struct {
 	Priority   int
 	wg         sync.WaitGroup
 	Status     STATUS
+	Cached     bool
 	Start, End int64
 	Hash       string
 	Output     string `json:"-"`

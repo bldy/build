@@ -4,7 +4,7 @@
 
 package build
 
-import "github.com/bldy/build"
+import "bldy.build/build"
 
 type Group struct {
 	Name         string   `group:"name"`

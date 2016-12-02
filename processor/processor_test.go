@@ -8,7 +8,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/bldy/build/targets/cc"
+	"bldy.build/build/targets/cc"
 )
 
 func TestSimpleAssignment(t *testing.T) {

@@ -18,9 +18,9 @@ import (
 
 	"fmt"
 
-	"github.com/bldy/build"
-	"github.com/bldy/build/internal"
-	"github.com/bldy/build/util"
+	"bldy.build/build"
+	"bldy.build/build/internal"
+	"bldy.build/build/util"
 )
 
 var YaccVersion = ""

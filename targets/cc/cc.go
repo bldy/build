@@ -13,8 +13,8 @@ import (
 
 	"os"
 
-	"github.com/bldy/build/internal"
-	"github.com/bldy/build/util"
+	"bldy.build/build/internal"
+	"bldy.build/build/util"
 )
 
 var (

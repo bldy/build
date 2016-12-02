@@ -16,8 +16,8 @@ import (
 
 	"strings"
 
-	"github.com/bldy/build"
-	"github.com/bldy/build/util"
+	"bldy.build/build"
+	"bldy.build/build/util"
 )
 
 const (
@@ -30,11 +30,7 @@ func (b *Builder) Execute(d time.Duration, r int) {
 
 	for i := 0; i < r; i++ {
 		go b.work(i)
-		b.Updates <- Update{
-			Worker:    i,
-			TimeStamp: time.Now(),
-			Status:    Pending,
-		}
+
 	}
 
 	go func() {
@@ -60,6 +56,7 @@ func (b *Builder) build(n *Node) (err error) {
 	)
 	// check if this node was build before
 	if _, err := os.Lstat(outDir); !os.IsNotExist(err) {
+		n.Cached = true
 		if file, err := os.Open(filepath.Join(outDir, FAILLOG)); err == nil {
 			errString, _ := ioutil.ReadAll(file)
 			return fmt.Errorf("%s", errString)
@@ -152,34 +149,18 @@ func (b *Builder) work(workerNumber int) {
 
 		job.Status = Building
 
-		b.Updates <- Update{
-			Worker:    workerNumber,
-			TimeStamp: time.Now(),
-			Target:    job.Url.String(),
-			Status:    Started,
-		}
+		b.Updates <- job
 		buildErr := b.build(job)
 
 		if buildErr != nil {
 			job.Status = Fail
-			b.Updates <- Update{
-				Worker:    workerNumber,
-				TimeStamp: time.Now(),
-				Target:    job.Url.String(),
-				Status:    Fail,
-			}
-
+			b.Updates <- job
 			b.Error <- buildErr
 
 		} else {
 			job.Status = Success
 
-			b.Updates <- Update{
-				Worker:    workerNumber,
-				TimeStamp: time.Now(),
-				Target:    job.Url.String(),
-				Status:    Success,
-			}
+			b.Updates <- job
 		}
 
 		if !job.IsRoot {

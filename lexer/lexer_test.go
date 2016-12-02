@@ -9,7 +9,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/bldy/build/token"
+	"bldy.build/build/token"
 )
 
 func TestMap(t *testing.T) {

@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"os"
 
-	_ "github.com/bldy/build/targets/build"
-	"github.com/bldy/build/targets/cc"
-	_ "github.com/bldy/build/targets/harvey"
-	_ "github.com/bldy/build/targets/yacc"
+	_ "bldy.build/build/targets/build"
+	"bldy.build/build/targets/cc"
+	_ "bldy.build/build/targets/harvey"
+	_ "bldy.build/build/targets/yacc"
 
-	"github.com/bldy/build/builder"
+	"bldy.build/build/builder"
 )
 
 var write = flag.Bool("w", false, "Write back?")

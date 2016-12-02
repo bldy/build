@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/bldy/build/util"
+	"bldy.build/build/util"
 
 	"reflect"
 

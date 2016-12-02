@@ -7,7 +7,7 @@ import (
 
 	"io/ioutil"
 
-	"github.com/bldy/build"
+	"bldy.build/build"
 )
 
 type DataToC struct {

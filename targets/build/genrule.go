@@ -6,8 +6,8 @@ import (
 
 	"strings"
 
-	"github.com/bldy/build"
-	"github.com/bldy/build/util"
+	"bldy.build/build"
+	"bldy.build/build/util"
 )
 import "os"
 

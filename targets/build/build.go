@@ -7,7 +7,7 @@ package build
 import (
 	"log"
 
-	"github.com/bldy/build/internal"
+	"bldy.build/build/internal"
 )
 
 func init() {
