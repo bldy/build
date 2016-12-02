@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/bldy/build/ast"
-	"github.com/bldy/build/lexer"
-	"github.com/bldy/build/token"
+	"bldy.build/build/ast"
+	"bldy.build/build/lexer"
+	"bldy.build/build/token"
 )
 
 var (

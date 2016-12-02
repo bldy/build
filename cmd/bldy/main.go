@@ -15,14 +15,14 @@ import (
 
 	"flag"
 
-	"github.com/bldy/build"
-	"github.com/bldy/build/builder"
-	_ "github.com/bldy/build/targets/build"
-	_ "github.com/bldy/build/targets/cc"
-	_ "github.com/bldy/build/targets/golang"
-	_ "github.com/bldy/build/targets/harvey"
-	_ "github.com/bldy/build/targets/yacc"
-	"github.com/bldy/build/term"
+	"bldy.build/build"
+	"bldy.build/build/builder"
+	_ "bldy.build/build/targets/build"
+	_ "bldy.build/build/targets/cc"
+	_ "bldy.build/build/targets/golang"
+	_ "bldy.build/build/targets/harvey"
+	_ "bldy.build/build/targets/yacc"
+	"bldy.build/build/term"
 	"sevki.org/lib/prettyprint"
 )
 

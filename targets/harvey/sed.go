@@ -9,7 +9,7 @@ import (
 	"io"
 	"os/exec"
 
-	"github.com/bldy/build"
+	"bldy.build/build"
 )
 
 type Sed struct {

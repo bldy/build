@@ -13,8 +13,8 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/bldy/build/token"
-	"github.com/bldy/build/util"
+	"bldy.build/build/token"
+	"bldy.build/build/util"
 )
 
 func caller() (call string, file string, line int) {

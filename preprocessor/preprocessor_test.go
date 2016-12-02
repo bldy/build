@@ -7,7 +7,7 @@ package preprocessor
 import (
 	"testing"
 
-	"github.com/bldy/build/ast"
+	"bldy.build/build/ast"
 )
 
 func TestDuplicateLoadChecker(t *testing.T) {

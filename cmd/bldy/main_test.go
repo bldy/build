@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/bldy/build/builder"
+	"bldy.build/build/builder"
 )
 
 func TestBuild(t *testing.T) {

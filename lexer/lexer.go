@@ -14,7 +14,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/bldy/build/token"
+	"bldy.build/build/token"
 )
 
 const eof = -1

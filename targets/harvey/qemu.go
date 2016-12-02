@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/bldy/build"
+	"bldy.build/build"
 )
 
 type Qemu struct {

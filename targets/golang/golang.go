@@ -9,7 +9,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/bldy/build/internal"
+	"bldy.build/build/internal"
 )
 
 var (

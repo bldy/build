@@ -19,12 +19,12 @@ import (
 
 	"strings"
 
-	"github.com/bldy/build"
-	"github.com/bldy/build/ast"
-	"github.com/bldy/build/internal"
-	"github.com/bldy/build/parser"
-	"github.com/bldy/build/preprocessor"
-	"github.com/bldy/build/util"
+	"bldy.build/build"
+	"bldy.build/build/ast"
+	"bldy.build/build/internal"
+	"bldy.build/build/parser"
+	"bldy.build/build/preprocessor"
+	"bldy.build/build/util"
 )
 
 type Processor struct {

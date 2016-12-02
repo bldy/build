@@ -11,11 +11,11 @@ import (
 	"io"
 	"strings"
 
-	"github.com/bldy/build/util"
+	"bldy.build/build/util"
 
 	"path/filepath"
 
-	"github.com/bldy/build"
+	"bldy.build/build"
 )
 
 type Config struct {

@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/bldy/build/builder"
+	"bldy.build/build/builder"
 	tm "github.com/buger/goterm"
 )
 
@@ -19,7 +19,7 @@ var (
 	statuses    map[int]builder.Update
 	worderCount int
 	stated      time.Time
-	progressbar     bool
+	progressbar bool
 	exit        bool
 )
 

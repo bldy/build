@@ -13,7 +13,7 @@ import (
 
 	"github.com/nu7hatch/gouuid"
 
-	"github.com/bldy/build"
+	"bldy.build/build"
 )
 
 type OldBuild struct {

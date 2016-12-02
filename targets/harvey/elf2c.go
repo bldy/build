@@ -9,7 +9,7 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/bldy/build"
+	"bldy.build/build"
 )
 
 type ElfToC struct {
