@@ -2,20 +2,12 @@ language: go
 go:
   - 1.7
   - tip
-env:
-  - "PATH=/home/travis/gopath/bin:$PATH"
-before_install:
-  - go get github.com/mitchellh/gox
-  - go get github.com/tcnksm/ghr
+go_import_path: bldy.build/build
 install:
-  - go get -v -t -d github.com/bldy/build/...
+  - go get -v -t -d bldy.build/build/...
 script:
-  - go test -v github.com/bldy/build/lexer
-  - go test -v github.com/bldy/build/internal
-  - go test -v github.com/bldy/build/parser
-  - go test -v github.com/bldy/build/preprocessor
-  - go test -v github.com/bldy/build/processor
-after_success:
-  - cd "$GOPATH/src/sevki.org/build/cmd/build"
-  - if [ "$TRAVIS_PULL_REQUEST" == 0] || ["$TRAVIS_BRANCH" == "master" ]; then gox -output "dist/{{.OS}}_{{.Arch}}_{{.Dir}}"; ghr --username sevki --token $GITHUB_TOKEN --replace --prerelease --debug `git describe --always`  dist/; fi
- 
+  - go test -v bldy.build/build/lexer
+  - go test -v bldy.build/build/internal
+  - go test -v bldy.build/build/parser
+  - go test -v bldy.build/build/preprocessor
+  - go test -v bldy.build/build/processor
