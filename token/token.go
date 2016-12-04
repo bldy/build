@@ -48,6 +48,7 @@ const (
 	Func
 	For
 	In
+	Name
 )
 
 func (t Token) String() string {

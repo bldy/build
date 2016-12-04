@@ -267,12 +267,27 @@ func lexComment(l *Lexer) stateFn {
 	return lexAny
 }
 
+func (l *Lexer) peekIgnoreWhiteSpace() rune {
+	spaces := 0
+	for isSpace(l.peek()) {
+		spaces++
+		l.next()
+	}
+	t := l.peek()
+
+	for ; spaces != 0; spaces-- {
+		l.backup()
+	}
+	return t
+}
+
 // lexSpace scans a run of space characters.
 // One space has already been seen.
 func lexAlphaNumeric(l *Lexer) stateFn {
 	for isAlphaNumeric(l.peek()) {
 		l.next()
 	}
+
 	// Do we need this special case? it certainly makes
 	// stuff easier but variables don't have this luxury
 	// should variables start with let or var?
@@ -281,6 +296,10 @@ func lexAlphaNumeric(l *Lexer) stateFn {
 		l.emit(token.Func)
 		return lexAny
 	default:
+		if l.peekIgnoreWhiteSpace() == '=' {
+			l.emit(token.Name)
+			return lexAny
+		}
 		switch l.input[l.start:l.pos] {
 		case "for":
 			l.emit(token.For)
