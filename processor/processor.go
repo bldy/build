@@ -333,6 +333,8 @@ func (p *Processor) funcReturns(f *ast.Func) interface{} {
 	switch f.Name {
 	case "glob":
 		return p.glob(f)
+	case "printf":
+		return p.printf(f)
 	case "version":
 		return p.version(f)
 	case "addition":
@@ -418,6 +420,15 @@ func (p *Processor) sliceString(f *ast.Func, s string) interface{} {
 		return nil
 	}
 }
+func (p *Processor) printf(f *ast.Func) string {
+	format := f.AnonParams[0]
+	switch format.(type) {
+	case string:
+		return fmt.Sprintf(format.(string), f.AnonParams[1:]...)
+	}
+
+	return "Invalid formatting"
+}
 func (p *Processor) glob(f *ast.Func) []string {
 	wd := p.parser.Path
 	if !filepath.IsAbs(wd) {
@@ -485,7 +496,6 @@ func (p *Processor) env(f *ast.Func) string {
 }
 
 func (p *Processor) version(f *ast.Func) string {
-
 	if out, err := exec.Command("git",
 		"--git-dir="+util.GetGitDir(p.parser.Path)+".git",
 		"describe",

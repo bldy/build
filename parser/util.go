@@ -17,6 +17,9 @@ import (
 	"bldy.build/build/util"
 )
 
+func init() {
+	log.SetPrefix("parser: ")
+}
 func caller() (call string, file string, line int) {
 	var caller uintptr
 	caller, file, line, _ = runtime.Caller(2)

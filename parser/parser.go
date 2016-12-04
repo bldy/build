@@ -91,14 +91,14 @@ func parseDecl(p *Parser) stateFn {
 	switch p.peek().Type {
 	case token.Func:
 		return parseFunc
-	case token.String:
+	case token.Name:
 		return parseVar
 	case token.LeftBrac:
 		return parseLoop
 	case token.EOF:
 		return nil
 	default:
-		p.expects(p.peek(), token.Func, token.String, token.LeftBrac, token.EOF)
+		p.expects(p.peek(), token.Func, token.Name, token.LeftBrac, token.EOF)
 		return nil
 	}
 }
@@ -163,7 +163,7 @@ func parseFunc(p *Parser) stateFn {
 func parseVar(p *Parser) stateFn {
 	t := p.next()
 
-	if err := p.expects(t, token.String); err != nil {
+	if err := p.expects(t, token.Name); err != nil {
 		p.Error = err
 		return nil
 	}
@@ -352,13 +352,13 @@ END:
 func (p *Parser) consumeParams(f *ast.Func) error {
 	for {
 		switch p.peek().Type {
-		case token.Quote, token.LeftBrac, token.Func:
+		case token.Quote, token.LeftBrac, token.Func, token.String:
 			if n, err := p.consumeNode(); err != nil {
 				return err
 			} else {
 				f.AnonParams = append(f.AnonParams, n)
 			}
-		case token.String:
+		case token.Name:
 			t := p.next()
 			if f.Params == nil {
 				f.Params = make(map[string]interface{})
@@ -397,8 +397,8 @@ func (p *Parser) consumeParams(f *ast.Func) error {
 		} else {
 			return err
 		}
-
 	}
+
 }
 func (p *Parser) consumeMap() (*ast.Map, error) {
 	t := p.next()
@@ -435,6 +435,7 @@ func (p *Parser) consumeMap() (*ast.Map, error) {
 }
 func (p *Parser) consumeFunc() (*ast.Func, error) {
 	t := p.next()
+
 	if err := p.expects(t, token.Func); err != nil {
 		return nil, err
 	}
@@ -447,11 +448,11 @@ func (p *Parser) consumeFunc() (*ast.Func, error) {
 		Line:  t.Line,
 		Index: t.Start,
 	}
-
 	t = p.next()
 	if err := p.expects(t, token.LeftParen); err != nil {
 		return nil, err
 	}
+
 	p.consumeParams(&f)
 	return &f, nil
 }
