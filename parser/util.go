@@ -17,20 +17,12 @@ import (
 	"bldy.build/build/util"
 )
 
-func init() {
-	log.SetPrefix("parser: ")
-}
 func caller() (call string, file string, line int) {
 	var caller uintptr
 	caller, file, line, _ = runtime.Caller(2)
 	name := strings.Split(runtime.FuncForPC(caller).Name(), ".")
 	callName := name[len(name)-1]
-
-	if len(callName) < 8 {
-		return callName, file, line
-	} else {
-		return callName[7:], file, line
-	}
+	return strings.Trim(callName, "parse"), file, line
 
 }
 
