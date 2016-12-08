@@ -15,7 +15,6 @@ import (
 
 	"os"
 	"os/exec"
-	"regexp"
 
 	"strings"
 
@@ -33,6 +32,7 @@ type Processor struct {
 	seen    map[string]*ast.Func
 	parser  *parser.Parser
 	Targets chan build.Target
+	l       *log.Logger
 }
 
 func NewProcessor(p *parser.Parser) *Processor {
@@ -41,6 +41,7 @@ func NewProcessor(p *parser.Parser) *Processor {
 		parser:  p,
 		Targets: make(chan build.Target),
 		seen:    make(map[string]*ast.Func),
+		l:       log.New(os.Stdout, "processor: ", 0),
 	}
 }
 func NewProcessorFromURL(url parser.TargetURL, wd string) (*Processor, error) {
@@ -92,13 +93,13 @@ func (p *Processor) Run() {
 			var err error
 			d, err = pp.Process(d)
 			if err != nil {
-				log.Fatal(err)
+				p.l.Fatal(err)
 			}
 		}
 
 		switch d.(type) {
 		case *ast.Error:
-			log.Printf(d.(*ast.Error).Error.Error())
+			p.l.Printf(d.(*ast.Error).Error.Error())
 		case *ast.Func:
 			p.runFunc(d.(*ast.Func))
 		case *ast.Assignment:
@@ -106,7 +107,6 @@ func (p *Processor) Run() {
 		case *ast.Loop:
 			p.doLoop(d.(*ast.Loop))
 		default:
-			//			log.Printf("%T", d)
 		}
 	}
 	p.Targets <- nil
@@ -124,7 +124,6 @@ func (p *Processor) doLoop(l *ast.Loop) {
 	for _, v := range _range.([]interface{}) {
 		p.vars[l.Key] = v
 		p.runFunc(l.Func)
-
 	}
 	if exists {
 		p.vars[l.Key] = tmp
@@ -148,7 +147,7 @@ func (p *Processor) unwrapSlice(slc []interface{}) (ns []interface{}) {
 		if t != nil {
 			ns = append(ns, t)
 		} else {
-			log.Fatalf("unwrapping of value %v failed.", v)
+			p.l.Fatalf("unwrapping of value %v failed.", v)
 		}
 	}
 	return ns
@@ -169,7 +168,7 @@ func (p *Processor) unwrapValue(i interface{}) interface{} {
 		if v, ok := p.vars[i.(*ast.Variable).Key]; ok {
 			return v
 		} else {
-			log.Fatalf("variable %s is not present in %s. make sure it's loaded properly or declared", i.(*ast.Variable).Key, p.parser.Path)
+			p.l.Fatalf("variable %s is not present in %s. make sure it's loaded properly or declared", i.(*ast.Variable).Key, p.parser.Path)
 		}
 		return nil
 	case *ast.Slice:
@@ -187,7 +186,7 @@ func (p *Processor) runFunc(f *ast.Func) {
 	switch f.Name {
 	case "load":
 		fail := func() {
-			log.Fatal("should be used like so; load(file, var...)")
+			p.l.Fatal("should be used like so; load(file, var...)")
 		}
 
 		filePath := ""
@@ -209,7 +208,7 @@ func (p *Processor) runFunc(f *ast.Func) {
 		}
 		loadingProcessor, err := NewProcessorFromFile(p.absPath(filePath))
 		if err != nil {
-			log.Fatal(err)
+			p.l.Fatal(err)
 		}
 		go loadingProcessor.Run()
 
@@ -333,8 +332,8 @@ func (p *Processor) funcReturns(f *ast.Func) interface{} {
 	switch f.Name {
 	case "glob":
 		return p.glob(f)
-	case "printf":
-		return p.printf(f)
+	case "fmt":
+		return p.format(f)
 	case "version":
 		return p.version(f)
 	case "addition":
@@ -420,7 +419,7 @@ func (p *Processor) sliceString(f *ast.Func, s string) interface{} {
 		return nil
 	}
 }
-func (p *Processor) printf(f *ast.Func) string {
+func (p *Processor) format(f *ast.Func) string {
 	format := f.AnonParams[0]
 	switch format.(type) {
 	case string:
@@ -428,64 +427,6 @@ func (p *Processor) printf(f *ast.Func) string {
 	}
 
 	return "Invalid formatting"
-}
-func (p *Processor) glob(f *ast.Func) []string {
-	wd := p.parser.Path
-	if !filepath.IsAbs(wd) {
-		log.Fatalf("Error parsing glob: %s is not an absolute path.", wd)
-	}
-
-	var files []string
-	var excludes []*regexp.Regexp
-
-	if len(f.AnonParams) != 1 {
-		return []string{"Error parsing glob: proper usage is like so glob(include, exclude=[], exclude_directories=1)"}
-	}
-
-	if exs, ok := f.Params["exclude"]; ok {
-
-		for _, ex := range exs.([]interface{}) {
-			r, _ := regexp.Compile(ex.(string))
-			excludes = append(excludes, r)
-		}
-	}
-
-	//BUG(sevki): put some type checking here
-	for _, s := range f.AnonParams[0].([]interface{}) {
-		globPtrn := ""
-
-		switch s.(type) {
-		case string:
-			globPtrn = filepath.Clean(filepath.Join(wd, s.(string)))
-			log.Println(globPtrn)
-		default:
-			return nil
-		}
-
-		globFiles, err := filepath.Glob(globPtrn)
-
-		if err != nil {
-			return []string{"Error parsing glob: %s"}
-		}
-
-		for _, f := range globFiles {
-			f, _ := filepath.Rel(util.GetProjectPath(), f)
-			f = fmt.Sprintf("//%s", f)
-		}
-	RESIZED:
-		for i, f := range globFiles {
-			for _, x := range excludes {
-				if x.Match([]byte(f)) {
-					globFiles = append(globFiles[:i], globFiles[i+1:]...)
-					goto RESIZED
-				}
-			}
-			globFiles[i] = f
-		}
-
-		files = append(files, globFiles...)
-	}
-	return files
 }
 
 func (p *Processor) env(f *ast.Func) string {
