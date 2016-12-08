@@ -70,6 +70,7 @@ func (l *Lexer) run() {
 	for l.state = lexAny; l.state != nil; {
 		l.state = l.state(l)
 	}
+	l.emit(token.EOF)
 	close(l.Tokens)
 }
 
@@ -201,6 +202,9 @@ func lexAny(l *Lexer) stateFn {
 			return lexAny
 		case r == ',':
 			l.emit(token.Comma)
+			return lexAny
+		case r == '%':
+			l.emit(token.Fmt)
 			return lexAny
 		case r == '=':
 			l.emit(token.Equal)

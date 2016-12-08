@@ -8,6 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
+	"os"
 
 	"bldy.build/build/ast"
 	"bldy.build/build/lexer"
@@ -20,14 +22,21 @@ var (
 )
 
 type Parser struct {
-	name    string
-	Path    string
-	lexer   *lexer.Lexer
-	Decls   chan ast.Decl
-	state   stateFn
-	peekTok token.Token
-	curTok  token.Token
-	Error   error
+	name        string
+	Path        string
+	lexer       *lexer.Lexer
+	Decls       chan ast.Decl
+	state       stateFn
+	peekPeekTok token.Token
+	peekTok     token.Token
+	curTok      token.Token
+	backupToken *token.Token
+	Error       error
+	l           *log.Logger
+}
+
+func (p *Parser) peekPeek() token.Token {
+	return p.peekPeekTok
 }
 
 func (p *Parser) peek() token.Token {
@@ -44,13 +53,14 @@ IGNORETOKEN:
 	case token.Newline:
 		goto IGNORETOKEN
 	}
+	pTok := p.peekPeekTok
 	tok := p.peekTok
-	p.peekTok = t
+	p.peekPeekTok = t
+	p.peekTok = pTok
 	p.curTok = tok
 
 	return tok
 }
-
 func (p *Parser) errorf(format string, args ...interface{}) error {
 	p.curTok = token.Token{Type: token.Error}
 	p.peekTok = token.Token{Type: token.EOF}
@@ -64,7 +74,9 @@ func New(name, path string, r io.Reader) *Parser {
 		Path:  path,
 		lexer: lexer.New(name, r),
 		Decls: make(chan ast.Decl),
+		l:     log.New(os.Stdout, "parser: ", 0),
 	}
+	p.next()
 	return p
 }
 func (p *Parser) emit(d ast.Decl) {
@@ -226,6 +238,9 @@ REPROCESS:
 		return r, err
 	}
 	switch p.peek().Type {
+	case token.Fmt:
+		r, err = p.consumeFmtFunc(r)
+		goto REPROCESS
 	case token.Plus:
 		r, err = p.consumeAddFunc(r)
 		goto REPROCESS
@@ -237,6 +252,61 @@ REPROCESS:
 		p.Error = err
 	}
 	return r, err
+}
+
+func (p *Parser) consumeFmtFunc(v interface{}) (*ast.Func, error) {
+	f := &ast.Func{
+		Name: "fmt",
+	}
+
+	f.File = p.name
+	f.SetStart(p.curTok)
+	line := p.curTok.Line
+	f.AnonParams = []interface{}{v}
+	if err := p.expects(p.next(), token.Fmt); err != nil {
+		return nil, err
+	}
+	for {
+		if p.peek().Line != line {
+			break
+		}
+
+		switch p.peek().Type {
+		case token.String:
+			t := p.next()
+			v := ast.Variable{Key: t.String()}
+			v.SetStart(t)
+			v.SetEnd(t)
+			f.AnonParams = append(
+				f.AnonParams,
+				&v,
+			)
+		case token.Quote:
+			f.AnonParams = append(
+				f.AnonParams,
+				ast.NewBasicLit(p.next()),
+			)
+		}
+		/*
+		* in a state like this
+		*
+		* 	name = "%s.cc_binary" % name,
+		*
+		* where curTok points is name, peekTok is name, we need to know if the
+		* token that comes after this is another argument for for fmt or if it's the next
+		* token for an array
+		* this isn't a big problem for named params in a function but it is for arrays,
+		* or anonparams which essentially makes it an array.
+		 */
+		if p.peek().Type == token.Comma && p.peekPeek().Line == line {
+			p.next()
+		} else {
+			break
+		}
+	}
+
+	f.SetEnd(p.curTok)
+	return f, nil
 }
 
 func (p *Parser) consumeAddFunc(v interface{}) (*ast.Func, error) {

@@ -208,6 +208,121 @@ func TestParseVarFunc(t *testing.T) {
 
 }
 
+func TestParseFmtFunc(t *testing.T) {
+
+	p, err := readAndParse("tests/fmtfunc.BUILD")
+	if err != nil {
+		t.Error(err)
+	}
+
+	decl := <-p.Decls
+
+	switch decl.(type) {
+	case *ast.Func:
+		v := decl.(*ast.Func).Params["name"]
+		switch v.(type) {
+		case *ast.Func:
+			f := v.(*ast.Func)
+			if f.Name != "fmt" {
+				t.Logf("%s is wrong function", f.Name)
+				t.Fail()
+			}
+
+			if f.AnonParams[0].(*ast.BasicLit).Value != "%s.cc_binary" {
+				t.Log("Was Expeting %s.cc_binary ")
+				t.Fail()
+			}
+			if f.AnonParams[1].(*ast.Variable).Key != "name" {
+				t.Log("Was Expeting name ")
+				t.Fail()
+			}
+
+		default:
+			t.Logf("was expectin a function not a %T", v)
+			t.Fail()
+		}
+	default:
+		t.Logf("was expeting an func got %T", decl)
+		t.Fail()
+	}
+
+}
+func TestParseFmtFuncInLoop(t *testing.T) {
+
+	p, err := readAndParse("tests/fmtfuncinloop.BUILD")
+	if err != nil {
+		t.Error(err)
+	}
+
+	decl := <-p.Decls
+
+	switch decl.(type) {
+	case *ast.Loop:
+		loopfunc := decl.(*ast.Loop).Func
+		v := loopfunc.Params["name"]
+		switch v.(type) {
+		case *ast.Func:
+			f := v.(*ast.Func)
+			if f.Name != "fmt" {
+				t.Logf("%s is wrong function", f.Name)
+				t.Fail()
+			}
+			if f.AnonParams[0].(*ast.BasicLit).Value != "%s.cc_binary" {
+				t.Log("Was Expeting %s.cc_binary ")
+				t.Fail()
+			}
+			if f.AnonParams[1].(*ast.Variable).Key != "name" {
+				t.Log("Was Expeting name ")
+				t.Fail()
+			}
+		}
+	default:
+		t.Logf("was expeting an func got %T", decl)
+		t.Fail()
+	}
+
+}
+
+func TestParseFmt(t *testing.T) {
+
+	p, err := readAndParse("tests/fmt.BUILD")
+	if err != nil {
+		t.Error(err)
+	}
+
+	decl := <-p.Decls
+
+	switch decl.(type) {
+	case *ast.Assignment:
+		v := decl.(*ast.Assignment).Value
+		switch v.(type) {
+		case *ast.Func:
+			f := v.(*ast.Func)
+			if f.Name != "fmt" {
+				t.Logf("%s is wrong function", f.Name)
+				t.Fail()
+			}
+
+			if f.AnonParams[0].(*ast.BasicLit).Value != "%s.cc_binary" {
+				t.Log("Was Expeting %s.cc_binary ")
+				t.Fail()
+			}
+			if f.AnonParams[1].(*ast.Variable).Key != "name" {
+				t.Log("Was Expeting name ")
+				t.Fail()
+			}
+
+		default:
+			t.Logf("was expectin a function not a %T", v)
+			t.Fail()
+		}
+	default:
+		t.Logf("was expeting an assignment got %T", decl)
+		t.Fail()
+	}
+
+}
+
 func TestParseAddition(t *testing.T) {
 
 	p, err := readAndParse("tests/addition.BUILD")
@@ -415,7 +530,6 @@ func TestLoop(t *testing.T) {
 
 	switch decl.(type) {
 	case *ast.Loop:
-		t.Log(decl.(*ast.Loop))
 	default:
 		t.Logf("%T", decl)
 		t.Logf("%s", p.Error)
@@ -446,7 +560,7 @@ func TestTargetURLParse(t *testing.T) {
 
 	for _, exp := range tbl {
 		tu := NewTargetURLFromString(exp.URL)
-		t.Log(tu)
+
 		if exp, got := exp.Package, tu.Package; exp != got {
 			t.Fatalf("exp: %s, got: %s", exp, got)
 		}
