@@ -158,6 +158,7 @@ func parseLoop(p *Parser) stateFn {
 		return nil
 	}
 
+	l.SetEnd(p.curTok)
 	p.emit(&l)
 	return parseDecl
 }
@@ -169,6 +170,7 @@ func parseFunc(p *Parser) stateFn {
 	} else {
 		p.emit(f)
 	}
+
 	return parseDecl
 }
 
@@ -505,25 +507,22 @@ func (p *Parser) consumeMap() (*ast.Map, error) {
 }
 func (p *Parser) consumeFunc() (*ast.Func, error) {
 	t := p.next()
-
 	if err := p.expects(t, token.Func); err != nil {
 		return nil, err
 	}
+
 	f := ast.Func{
 		Name: t.String(),
 	}
-
+	f.SetStart(p.curTok)
 	f.File = p.name
-	f.Start = ast.Position{
-		Line:  t.Line,
-		Index: t.Start,
-	}
 	t = p.next()
 	if err := p.expects(t, token.LeftParen); err != nil {
 		return nil, err
 	}
 
 	p.consumeParams(&f)
+	f.SetEnd(p.curTok)
 	return &f, nil
 }
 
