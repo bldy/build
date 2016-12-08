@@ -49,6 +49,7 @@ const (
 	For
 	In
 	Name
+	Fmt
 )
 
 func (t Token) String() string {
