@@ -61,10 +61,6 @@ func (cb *CBin) Build(c *build.Context) error {
 	}
 
 	ldparams := []string{"-o", cb.Name}
-	ldparams = append(ldparams, cb.LinkerOptions...)
-	if cb.LinkerFile != "" {
-		ldparams = append(ldparams, cb.LinkerFile)
-	}
 
 	// This is done under the assumption that each src file put in this thing
 	// here will comeout as a .o file
@@ -73,6 +69,10 @@ func (cb *CBin) Build(c *build.Context) error {
 		ldparams = append(ldparams, fmt.Sprintf("%s.o", fname[:strings.LastIndex(fname, ".")]))
 	}
 
+	ldparams = append(ldparams, cb.LinkerOptions...)
+	if cb.LinkerFile != "" {
+		ldparams = append(ldparams, cb.LinkerFile)
+	}
 	haslib := false
 	for _, dep := range cb.Dependencies {
 		d := split(dep, ":")
