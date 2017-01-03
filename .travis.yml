@@ -11,3 +11,4 @@ script:
   - go test -v bldy.build/build/parser
   - go test -v bldy.build/build/preprocessor
   - go test -v bldy.build/build/processor
+  - go test -v bldy.build/build/url
