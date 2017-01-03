@@ -5,16 +5,10 @@
 package parser
 
 import (
-	"fmt"
-	"log"
-	"os"
-	"path"
-	"path/filepath"
 	"runtime"
 	"strings"
 
 	"bldy.build/build/token"
-	"bldy.build/build/util"
 )
 
 func caller() (call string, file string, line int) {
@@ -70,93 +64,3 @@ func (p *Parser) expects(tok token.Token, expected ...token.Type) error {
 	)
 }
 
-//
-//func ReadBuildFile(url TargetURL, wd string) (i *ast.File, err error) {
-//
-//	BUILDPATH := filepath.Join(url.BuildDir(wd, util.GetProjectPath()), "BUILD")
-//	BUCKPATH := filepath.Join(url.BuildDir(wd, util.GetProjectPath()), "BUCK")
-//
-//	var FILEPATH string
-//
-//	if _, err := os.Stat(BUCKPATH); err == nil {
-//		FILEPATH = BUCKPATH
-//	} else if _, err := os.Stat(BUILDPATH); err == nil {
-//		FILEPATH = BUILDPATH
-//	} else {
-//		return nil, err
-//	}
-//
-//	i = &ast.File{}
-//	ks, _ := os.Open(FILEPATH)
-//	if err := New("BUILD", url.BuildDir(wd, util.GetProjectPath()), ks).Decode(i); err != nil {
-//		return nil, err
-//	}
-//	return i, nil
-//}
-
-//
-//func ReadFile(path string) (i *ast.File, err error) {
-//	i = &ast.File{}
-//
-//	ks, err := os.Open(path)
-//
-//	if err != nil {
-//		return nil, err
-//	}
-//	if err := New("BUILD", path, ks).Decode(i); err != nil {
-//		return nil, err
-//	}
-//	return i, nil
-//}
-
-type TargetURL struct {
-	Package string
-	Target  string
-}
-
-func split(s string, c string, cutc bool) (string, string) {
-	i := strings.Index(s, c)
-	if i < 0 {
-		return s, ""
-	}
-	if cutc {
-		return s[:i], s[i+len(c):]
-	}
-	return s[:i], s[i:]
-}
-
-func (u TargetURL) String() string {
-	return fmt.Sprintf("//%s:%s", u.Package, u.Target)
-}
-func (u TargetURL) BuildDir(wd, p string) string {
-	if u.Package == "" {
-		return wd
-	} else {
-		return filepath.Join(p, u.Package)
-	}
-}
-func NewTargetURLFromString(u string) (tu TargetURL) {
-	switch {
-	case strings.HasPrefix(u, "//"):
-		u = u[2:]
-		tu.Package, tu.Target = split(u, ":", true)
-	case strings.HasPrefix(u, ":"):
-		u = u[1:]
-		fallthrough
-	default:
-		tu.Target = u
-		wd, err := os.Getwd()
-		if err != nil {
-			log.Fatal(err)
-		}
-		tu.Package, err = filepath.Rel(util.GetProjectPath(), wd)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
-	if tu.Target == "" {
-		tu.Target = path.Base(tu.Package)
-	}
-
-	return
-}

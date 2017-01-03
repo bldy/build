@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"reflect"
 
+	"bldy.build/build/url"
+
 	"log"
 
 	"os"
@@ -44,7 +46,7 @@ func NewProcessor(p *parser.Parser) *Processor {
 		l:       log.New(os.Stdout, "processor: ", 0),
 	}
 }
-func NewProcessorFromURL(url parser.TargetURL, wd string) (*Processor, error) {
+func NewProcessorFromURL(url url.URL, wd string) (*Processor, error) {
 
 	BUILDPATH := filepath.Join(url.BuildDir(wd, util.GetProjectPath()), "BUILD")
 	BUCKPATH := filepath.Join(url.BuildDir(wd, util.GetProjectPath()), "BUCK")
