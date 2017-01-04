@@ -6,9 +6,6 @@ go_import_path: bldy.build/build
 install:
   - go get -v -t -d bldy.build/build/...
 script:
-  - go test -v bldy.build/build/lexer
-  - go test -v bldy.build/build/internal
-  - go test -v bldy.build/build/parser
-  - go test -v bldy.build/build/preprocessor
-  - go test -v bldy.build/build/processor
-  - go test -v bldy.build/build/url
+  - ./test.sh
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
