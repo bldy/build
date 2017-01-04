@@ -85,6 +85,7 @@ RESTART:
 			for _, x := range fs {
 				fsm = append(fsm, (filepath.Join(file, x.Name())))
 			}
+			f.Close()
 			goto RESTART /* to avoid out of bound errors, there may be no files
 			in the folder */
 		}

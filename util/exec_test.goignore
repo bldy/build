@@ -12,6 +12,7 @@ import (
 )
 
 func TestPass(t *testing.T) {
+func(){
 	var stdOut, stdErr bytes.Buffer
 	if err := Exec(
 		&stdOut,
@@ -22,6 +23,7 @@ func TestPass(t *testing.T) {
 	); err != nil {
 		t.Error(err)
 	}
+}()
 }
 
 func TestFail(t *testing.T) {
