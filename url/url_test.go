@@ -33,10 +33,10 @@ func TestTargetURLParse(t *testing.T) {
 		url := Parse(exp.URL)
 
 		if exp, got := exp.Package, url.Package; exp != got {
-			t.Fatalf("exp: %s, got: %s", exp, got)
+			t.Errorf("expected package %q, got %q", exp, got)
 		}
 		if exp, got := exp.Target, url.Target; exp != got {
-			t.Fatalf("exp: %s, got: %s", exp, got)
+			t.Errorf("expected target %q, got %q", exp, got)
 		}
 	}
 }
