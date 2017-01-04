@@ -17,9 +17,9 @@ import (
 	"sync"
 
 	"bldy.build/build"
-	"bldy.build/build/parser"
 	"bldy.build/build/postprocessor"
 	"bldy.build/build/processor"
+	"bldy.build/build/url"
 	"bldy.build/build/util"
 )
 
@@ -65,7 +65,7 @@ type Node struct {
 	Target     build.Target `json:"-"`
 	Type       string
 	Parents    map[string]*Node `json:"-"`
-	Url        parser.TargetURL
+	Url        url.URL
 	Worker     string
 	Priority   int
 	wg         sync.WaitGroup
@@ -90,12 +90,12 @@ func (n *Node) priority() int {
 	}
 	return n.Priority
 }
-func (b *Builder) getTarget(url parser.TargetURL) (n *Node) {
+func (b *Builder) getTarget(u url.URL) (n *Node) {
 
-	if gnode, ok := b.Nodes[url.String()]; ok {
+	if gnode, ok := b.Nodes[u.String()]; ok {
 		return gnode
 	} else {
-		p, err := processor.NewProcessorFromURL(url, b.Wd)
+		p, err := processor.NewProcessorFromURL(u, b.Wd)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -103,11 +103,11 @@ func (b *Builder) getTarget(url parser.TargetURL) (n *Node) {
 		// bug(sevki): this is a really bad way of doing this, there should me
 		// some caching mechanism for this, it is yet to come !!
 		for t := <-p.Targets; t != nil; t = <-p.Targets {
-			if t.GetName() != url.Target {
+			if t.GetName() != u.Target {
 				continue
 			}
-			xu := parser.TargetURL{
-				Package: url.Package,
+			xu := url.URL{
+				Package: u.Package,
 				Target:  t.GetName(),
 			}
 
@@ -123,7 +123,7 @@ func (b *Builder) getTarget(url parser.TargetURL) (n *Node) {
 				Priority: -1,
 			}
 
-			post := postprocessor.New(url.Package)
+			post := postprocessor.New(u.Package)
 
 			err := post.ProcessDependencies(node.Target)
 			if err != nil {
@@ -148,14 +148,14 @@ func (b *Builder) getTarget(url parser.TargetURL) (n *Node) {
 			}
 
 			b.Nodes[xu.String()] = &node
-			if t.GetName() == url.Target {
+			if t.GetName() == u.Target {
 				n = &node
 			}
 
 		}
 
 		if n == nil {
-			log.Fatalf("we couldn't find target %s", url.String())
+			log.Fatalf("we couldn't find target %s", u.String())
 		}
 		return n
 	}
@@ -163,7 +163,7 @@ func (b *Builder) getTarget(url parser.TargetURL) (n *Node) {
 }
 
 func (b *Builder) Add(t string) *Node {
-	return b.getTarget(parser.NewTargetURLFromString(t))
+	return b.getTarget(url.Parse(t))
 }
 
 func (n *Node) HashNode() []byte {

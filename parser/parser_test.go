@@ -536,36 +536,3 @@ func TestLoop(t *testing.T) {
 		t.Fail()
 	}
 }
-
-// Test that all valid urls get parsed into proper (package, target) pairs.
-func TestTargetURLParse(t *testing.T) {
-	tbl := []struct {
-		URL     string
-		Package string
-		Target  string
-	}{
-		// These should all be equivalent
-		{"//parser:parser", "parser", "parser"},
-		{"//parser:", "parser", "parser"},
-		{"//parser", "parser", "parser"},
-		{":parser", "parser", "parser"},
-		{"parser", "parser", "parser"},
-		// This might not be valid if specified in a BUILD file, but the rules
-		// say we should get a result
-		{"", "parser", "parser"},
-		// test a tiny target
-		{":*", "parser", "*"},
-		{"*", "parser", "*"},
-	}
-
-	for _, exp := range tbl {
-		tu := NewTargetURLFromString(exp.URL)
-
-		if exp, got := exp.Package, tu.Package; exp != got {
-			t.Fatalf("exp: %s, got: %s", exp, got)
-		}
-		if exp, got := exp.Target, tu.Target; exp != got {
-			t.Fatalf("exp: %s, got: %s", exp, got)
-		}
-	}
-}
