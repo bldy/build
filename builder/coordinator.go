@@ -9,6 +9,8 @@ import (
 	"io"
 	"log"
 	"os"
+	"os/user"
+	"path"
 	"path/filepath"
 	"time"
 
@@ -21,10 +23,21 @@ import (
 )
 
 const (
-	SCSSLOG   = "success"
-	FAILLOG   = "fail"
-	BLDYCACHE = "~/.cache/bldy"
+	SCSSLOG = "success"
+	FAILLOG = "fail"
 )
+
+var (
+	BLDYCACHE = bldyCache()
+)
+
+func bldyCache() string {
+	usr, err := user.Current()
+	if err != nil {
+		log.Fatal(err)
+	}
+	return path.Join(usr.HomeDir, "/.cache/bldy")
+}
 
 func (b *Builder) Execute(d time.Duration, r int) {
 
