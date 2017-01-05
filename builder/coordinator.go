@@ -21,9 +21,9 @@ import (
 )
 
 const (
-	SCSSLOG = "success"
-	FAILLOG = "fail"
-	TMP     = "/tmp"
+	SCSSLOG   = "success"
+	FAILLOG   = "fail"
+	BLDYCACHE = "~/.cache/bldy"
 )
 
 func (b *Builder) Execute(d time.Duration, r int) {
@@ -50,8 +50,7 @@ func (b *Builder) build(n *Node) (err error) {
 
 	nodeHash := fmt.Sprintf("%s-%x", n.Target.GetName(), n.HashNode())
 	outDir := filepath.Join(
-		"/tmp",
-		"build",
+		BLDYCACHE,
 		nodeHash,
 	)
 	// check if this node was build before
@@ -91,8 +90,7 @@ func (b *Builder) build(n *Node) (err error) {
 				}
 				os.Symlink(
 					filepath.Join(
-						"/tmp",
-						"build",
+						BLDYCACHE,
 						fmt.Sprintf("%s-%x", e.Target.GetName(), e.HashNode()),
 						src,
 					),
@@ -233,8 +231,7 @@ func install(job *Node) error {
 		}
 		srcp, _ := filepath.EvalSymlinks(
 			filepath.Join(
-				TMP,
-				"build",
+				BLDYCACHE,
 				fmt.Sprintf("%s-%x", job.Target.GetName(), job.HashNode()),
 				src,
 			))
