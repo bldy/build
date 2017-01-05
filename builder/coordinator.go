@@ -209,7 +209,6 @@ func (b *Builder) visit(n *Node) {
 
 func install(job *Node) error {
 	buildOut := util.BuildOut()
-	os.RemoveAll(buildOut)
 	if err := os.MkdirAll(
 		buildOut,
 		os.ModeDir|os.ModePerm,
