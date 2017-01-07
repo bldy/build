@@ -77,7 +77,7 @@ func (pp *PostProcessor) ProcessPaths(t build.Target, deps []build.Target) error
 		f := r.Field(i)
 
 		tag := f.Tag.Get("build")
-		if tag != "path" {
+		if !(tag == "path" || tag == "expand") {
 			continue
 		}
 
@@ -91,7 +91,15 @@ func (pp *PostProcessor) ProcessPaths(t build.Target, deps []build.Target) error
 			}
 			return false
 		}
-
+		exp := func(s string) string {
+			if tag == "path" {
+				return pp.absPath(s)
+			}
+			if tag == "expand" {
+				return os.Expand(s, util.Getenv)
+			}
+			return s
+		}
 		switch n.Kind() {
 		case reflect.String:
 			s := n.Interface().(string)
@@ -101,7 +109,7 @@ func (pp *PostProcessor) ProcessPaths(t build.Target, deps []build.Target) error
 			if s == "" {
 				continue
 			}
-			n.SetString(pp.absPath(s))
+			n.SetString(exp(s))
 		case reflect.Slice:
 			switch n.Type().Elem().Kind() {
 			case reflect.String:
@@ -110,7 +118,23 @@ func (pp *PostProcessor) ProcessPaths(t build.Target, deps []build.Target) error
 					if isExported(s) {
 						continue
 					}
-					strs[i] = pp.absPath(s)
+					strs[i] = exp(s)
+				}
+				n.Set(reflect.ValueOf(strs))
+			}
+		case reflect.Map:
+			switch n.Type().Elem().Kind() {
+			case reflect.String:
+				strs := n.Convert(reflect.TypeOf(map[string]string{})).Interface().(map[string]string)
+				for k, v := range strs {
+					if isExported(k) {
+						continue
+					}
+					delete(strs, k)
+
+					k, v = exp(k), exp(v)
+
+					strs[k] = v
 				}
 				n.Set(reflect.ValueOf(strs))
 			}
