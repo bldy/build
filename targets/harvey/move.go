@@ -45,6 +45,8 @@ func (m *Move) Installs() map[string]string {
 			installs[fmt.Sprintf("%s/bin/%s", util.Getenv("ARCH"), u.Target)] = fmt.Sprintf("bin/%s", u.Target)
 		}
 	}
+	// These are special cases, there is rightnow only 3 of them so
+	// it's realy not a problem to put them all here like this.
 	for k, v := range m.Exports {
 		installs[k] = v
 	}
