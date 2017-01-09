@@ -33,7 +33,7 @@ func (m *Move) Installs() map[string]string {
 	for _, d := range m.Dependencies {
 		u := url.Parse(d)
 
-		// Lest figure out where things go
+		// Lets figure out where things go
 		// first the libraries
 		if len(u.Target) > 3 && u.Target[:3] == "lib" {
 			installs[fmt.Sprintf("%s/lib/%s.a", util.Getenv("ARCH"), u.Target)] = fmt.Sprintf("lib/%s.a", u.Target)
