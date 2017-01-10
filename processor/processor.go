@@ -65,15 +65,14 @@ func NewProcessorFromURL(url url.URL, wd string) (*Processor, error) {
 }
 
 func NewProcessorFromFile(n string) (*Processor, error) {
-
 	ks, err := os.Open(n)
+
 	if err != nil {
 		return nil, fmt.Errorf("opening file: %s\n", err.Error())
 	}
 	ts, _ := filepath.Abs(ks.Name())
 	dir := strings.Split(ts, "/")
 	p := parser.New(n, "/"+filepath.Join(dir[:len(dir)-1]...), ks)
-
 	return NewProcessor(p), nil
 }
 
@@ -187,50 +186,7 @@ func (p *Processor) runFunc(f *ast.Func) {
 	f = p.unwrapFunc(f)
 	switch f.Name {
 	case "load":
-		fail := func() {
-			p.l.Fatal("should be used like so; load(file, var...)")
-		}
-
-		filePath := ""
-		var varsToImport []string
-		// Check paramter types
-		for i, param := range f.AnonParams {
-			switch param.(type) {
-			case string:
-				v := param.(string)
-				if i == 0 {
-					filePath = v
-				} else {
-					varsToImport = append(varsToImport, v)
-				}
-				break
-			default:
-				fail()
-			}
-		}
-		loadingProcessor, err := NewProcessorFromFile(p.absPath(filePath))
-		if err != nil {
-			p.l.Fatal(err)
-		}
-		go loadingProcessor.Run()
-
-		for d := <-loadingProcessor.Targets; d != nil; d = <-loadingProcessor.Targets {
-		}
-		if err != nil {
-			log.Fatal(err)
-		}
-		if p.vars == nil {
-			p.vars = make(map[string]interface{})
-		}
-
-		for _, v := range varsToImport {
-			if val, ok := loadingProcessor.vars[v]; ok {
-				p.vars[v] = val
-			} else {
-				log.Fatalf("%s is not present at %s. Please check the file and try again.", v, filePath)
-			}
-		}
-
+		p.load(f)
 	default:
 		targ, err := p.makeTarget(f)
 		if err != nil {
@@ -258,7 +214,6 @@ func (p *Processor) makeTarget(f *ast.Func) (build.Target, error) {
 	if v, ok := p.vars[f.Name]; ok {
 		switch v.(type) {
 		case *ast.Func:
-
 			macro := v.(*ast.Func)
 			f.Name = macro.Name
 			for k, v := range macro.Params {
