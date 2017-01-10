@@ -9,6 +9,7 @@ import "bldy.build/build"
 type Group struct {
 	Name         string   `group:"name"`
 	Dependencies []string `group:"deps"`
+	Exports      map[string]string
 }
 
 func (g *Group) Hash() []byte {
@@ -17,7 +18,6 @@ func (g *Group) Hash() []byte {
 }
 
 func (g *Group) Build(c *build.Context) error {
-
 	return nil
 }
 
@@ -29,5 +29,5 @@ func (g *Group) GetDependencies() []string {
 	return g.Dependencies
 }
 func (g *Group) Installs() map[string]string {
-	return nil
+	return g.Exports
 }
