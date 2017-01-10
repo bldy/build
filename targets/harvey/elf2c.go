@@ -45,7 +45,7 @@ func (etc *ElfToC) Build(c *build.Context) error {
 	fileName := ""
 
 	if xf, err := c.Open(etc.Elf); err != nil {
-		return fmt.Errorf("open :%s", err.Error())
+		return fmt.Errorf("open couldn't find %s: %s", etc.Elf, err.Error())
 	} else {
 		fileName = xf.Name()
 		xf.Close()

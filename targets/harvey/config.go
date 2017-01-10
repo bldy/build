@@ -126,7 +126,7 @@ func data2c(name string, path string, c *build.Context) (string, error) {
 	var file *os.File
 	var err error
 	if file, err = c.Open(path); err != nil {
-		return "", fmt.Errorf("open :%s", err.Error())
+		return "", fmt.Errorf("open couldn't find %s: %s", path, err.Error())
 
 	}
 
