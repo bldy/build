@@ -68,7 +68,7 @@ func (p *Parser) errorf(format string, args ...interface{}) error {
 	return p.Error
 }
 
-func New(name, path string, r io.Reader) *Parser {
+func New(name, path string, r io.ReadCloser) *Parser {
 	p := &Parser{
 		name:  name,
 		Path:  path,

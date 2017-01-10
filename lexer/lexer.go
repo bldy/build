@@ -26,6 +26,7 @@ type stateFn func(*Lexer) stateFn
 type Lexer struct {
 	Tokens chan token.Token // channel of scanned items
 	r      io.ByteReader
+	c      io.Closer
 	done   bool
 	name   string // the name of the input; used only for error reports
 	buf    []byte
@@ -40,17 +41,16 @@ type Lexer struct {
 func (l *Lexer) LineBuffer() string {
 	return string(l.buf)
 }
-func New(name string, r io.Reader) *Lexer {
-
+func New(name string, r io.ReadCloser) *Lexer {
 	l := &Lexer{
 		r:      bufio.NewReader(r),
+		c:      r,
 		name:   name,
 		line:   1,
 		Tokens: make(chan token.Token),
 	}
 	go l.run()
 	return l
-
 }
 
 // errorf returns an error token and continues to scan.
@@ -71,6 +71,7 @@ func (l *Lexer) run() {
 		l.state = l.state(l)
 	}
 	l.emit(token.EOF)
+	l.c.Close()
 	close(l.Tokens)
 }
 
