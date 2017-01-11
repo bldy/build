@@ -16,6 +16,8 @@ import (
 
 	"sync"
 
+	bldytrg "bldy.build/build/targets/build"
+
 	"bldy.build/build"
 	"bldy.build/build/postprocessor"
 	"bldy.build/build/processor"
@@ -132,10 +134,21 @@ func (b *Builder) getTarget(u url.URL) (n *Node) {
 
 			var deps []build.Target
 
+			//group is a special case
+			var group *bldytrg.Group
+			switch node.Target.(type) {
+			case *bldytrg.Group:
+				group = node.Target.(*bldytrg.Group)
+				group.Exports = make(map[string]string)
+			}
 			for _, d := range node.Target.GetDependencies() {
 				c := b.Add(d)
 				node.wg.Add(1)
-
+				if group != nil {
+					for dst, _ := range c.Target.Installs() {
+						group.Exports[dst] = dst
+					}
+				}
 				deps = append(deps, c.Target)
 
 				node.Children[d] = c

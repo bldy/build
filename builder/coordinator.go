@@ -43,7 +43,6 @@ func (b *Builder) Execute(d time.Duration, r int) {
 
 	for i := 0; i < r; i++ {
 		go b.work(i)
-
 	}
 
 	go func() {
@@ -84,7 +83,6 @@ func (b *Builder) build(n *Node) (err error) {
 		if e.Status == Fail {
 			buildErr = fmt.Errorf("dependency %s failed to build", e.Target.GetName())
 		} else {
-
 			for dst, src := range e.Target.Installs() {
 
 				target := filepath.Base(dst)
