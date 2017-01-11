@@ -155,11 +155,11 @@ func (pp *PostProcessor) absPath(s string) string {
 	case s[:2] == "//":
 		r = filepath.Join(pp.projectPath, strings.Trim(s, "//"))
 	default:
-                r = os.Expand(s, util.Getenv)
-                if filepath.IsAbs(r) {
-                        return r
-                }
-                r = filepath.Join(pp.projectPath, pp.packagePath, s)
+		r = os.Expand(s, util.Getenv)
+		if filepath.IsAbs(r) {
+			return r
+		}
+		r = filepath.Join(pp.projectPath, pp.packagePath, s)
 	}
 	r = os.Expand(r, util.Getenv)
 	return r
