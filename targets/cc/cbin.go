@@ -26,6 +26,7 @@ type CBin struct {
 	Static          bool          `cxx_binary:"linkstatic" cc_binary:"linkstatic"`
 	Strip           bool          `cxx_binary:"strip" cc_binary:"strip"`
 	AlwaysLink      bool          `cxx_binary:"alwayslink" cc_binary:"alwayslink"`
+	Install         *string       `cxx_binary:"install" cc_binary:"install"`
 }
 
 func split(s string, c string) string {
@@ -49,6 +50,7 @@ func (cb *CBin) Hash() []byte {
 }
 
 func (cb *CBin) Build(c *build.Context) error {
+
 	c.Println(prettyprint.AsJSON(cb))
 	params := []string{"-c"}
 	params = append(params, cb.CompilerOptions...)
@@ -114,9 +116,11 @@ func (cb *CBin) Build(c *build.Context) error {
 
 func (cb *CBin) Installs() map[string]string {
 	exports := make(map[string]string)
-
-	exports[filepath.Join("bin", cb.Name)] = cb.Name
-
+	if cb.Install != nil {
+		exports[*cb.Install] = cb.Name
+	} else {
+		exports[filepath.Join("bin", cb.Name)] = cb.Name
+	}
 	return exports
 }
 
