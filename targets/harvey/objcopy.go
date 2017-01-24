@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 
 	"bldy.build/build"
-	"bldy.build/build/util"
+	"bldy.build/build/project"
 )
 
 type ObjCopy struct {
@@ -39,7 +39,7 @@ func (oc *ObjCopy) Hash() []byte {
 
 // Had to be done
 func Copier() string {
-	if tpfx := util.Getenv("TOOLPREFIX"); tpfx == "" {
+	if tpfx := project.Getenv("TOOLPREFIX"); tpfx == "" {
 		return "objcopy"
 	} else {
 		return fmt.Sprintf("%s%s", tpfx, "objcopy")

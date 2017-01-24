@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 
 	"bldy.build/build"
-	"bldy.build/build/util"
+	"bldy.build/build/racy"
 )
 
 type GoBuild struct {
@@ -33,7 +33,7 @@ func (g *GoBuild) Hash() []byte {
 	h := sha1.New()
 	io.WriteString(h, gover)
 	io.WriteString(h, g.Name)
-	util.HashFiles(h, []string(g.Sources))
+	racy.HashFiles(h, []string(g.Sources))
 	return h.Sum(nil)
 }
 

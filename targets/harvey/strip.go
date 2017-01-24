@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 
 	"bldy.build/build"
-	"bldy.build/build/util"
+	"bldy.build/build/project"
 )
 
 type Strip struct {
@@ -35,7 +35,7 @@ func (s *Strip) Hash() []byte {
 
 // Had to be done
 func Stripper() string {
-	if tpfx := util.Getenv("TOOLPREFIX"); tpfx == "" {
+	if tpfx := project.Getenv("TOOLPREFIX"); tpfx == "" {
 		return "strip"
 	} else {
 		return fmt.Sprintf("%s%s", tpfx, "strip")

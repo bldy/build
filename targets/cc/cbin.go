@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 
 	"bldy.build/build"
-	"bldy.build/build/util"
+	"bldy.build/build/racy"
 	"sevki.org/lib/prettyprint"
 )
 
@@ -42,10 +42,10 @@ func (cb *CBin) Hash() []byte {
 	h := sha1.New()
 	io.WriteString(h, CCVersion)
 	io.WriteString(h, cb.Name)
-	util.HashFilesWithExt(h, []string(cb.Includes), ".h")
-	util.HashFilesWithExt(h, cb.Sources, ".c")
-	util.HashStrings(h, cb.CompilerOptions)
-	util.HashStrings(h, cb.LinkerOptions)
+	racy.HashFilesWithExt(h, []string(cb.Includes), ".h")
+	racy.HashFilesWithExt(h, cb.Sources, ".c")
+	racy.HashStrings(h, cb.CompilerOptions)
+	racy.HashStrings(h, cb.LinkerOptions)
 	return h.Sum(nil)
 }
 

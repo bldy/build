@@ -20,7 +20,7 @@ import (
 
 	"bldy.build/build"
 	"bldy.build/build/internal"
-	"bldy.build/build/util"
+	"bldy.build/build/racy"
 )
 
 var YaccVersion = ""
@@ -51,8 +51,8 @@ func (y *Yacc) Hash() []byte {
 	h := sha1.New()
 	io.WriteString(h, YaccVersion)
 	io.WriteString(h, y.Name)
-	util.HashFiles(h, y.Sources)
-	util.HashStrings(h, y.YaccOptions)
+	racy.HashFiles(h, y.Sources)
+	racy.HashStrings(h, y.YaccOptions)
 	return h.Sum(nil)
 }
 

@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"bldy.build/build/util"
+	"bldy.build/build/project"
 )
 
 type URL struct {
@@ -59,7 +59,7 @@ func Parse(s string) (u URL) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		u.Package, err = filepath.Rel(util.GetProjectPath(), wd)
+		u.Package, err = filepath.Rel(project.Root(), wd)
 		if err != nil {
 			log.Fatal(err)
 		}

@@ -22,7 +22,7 @@ import (
 	"text/template"
 
 	"bldy.build/build"
-	"bldy.build/build/util"
+	"bldy.build/build/racy"
 	"sevki.org/lib/prettyprint"
 )
 
@@ -74,7 +74,7 @@ func (cl *MkSys) Hash() []byte {
 	io.WriteString(h, cl.Mode)
 	io.WriteString(h, cl.ARCH)
 	io.WriteString(h, cl.Mode)
-	util.HashFiles(h, []string{cl.SysConf})
+	racy.HashFiles(h, []string{cl.SysConf})
 
 	return h.Sum(nil)
 }

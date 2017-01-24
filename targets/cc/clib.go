@@ -10,7 +10,7 @@ import (
 	"io"
 	"strings"
 
-	"bldy.build/build/util"
+	"bldy.build/build/racy"
 
 	"path/filepath"
 
@@ -35,10 +35,10 @@ func (cl *CLib) Hash() []byte {
 	io.WriteString(h, CCVersion)
 	io.WriteString(h, cl.Name)
 	io.WriteString(h, "clib")
-	util.HashFilesWithExt(h, []string(cl.Includes), ".h")
-	util.HashFilesWithExt(h, cl.Sources, ".c")
-	util.HashStrings(h, cl.CompilerOptions)
-	util.HashStrings(h, cl.LinkerOptions)
+	racy.HashFilesWithExt(h, []string(cl.Includes), ".h")
+	racy.HashFilesWithExt(h, cl.Sources, ".c")
+	racy.HashStrings(h, cl.CompilerOptions)
+	racy.HashStrings(h, cl.LinkerOptions)
 	if cl.LinkStatic {
 		io.WriteString(h, "static")
 	}
