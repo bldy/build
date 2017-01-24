@@ -14,7 +14,7 @@ import (
 	"os"
 
 	"bldy.build/build/internal"
-	"bldy.build/build/util"
+	"bldy.build/build/project"
 )
 
 var (
@@ -30,13 +30,13 @@ func init() {
 	CCENV = append(CCENV, fmt.Sprintf("%s=%s", "C_INCLUDE_PATH", "include"))
 	CCENV = append(CCENV, fmt.Sprintf("%s=%s", "LIBRARY_PATH", "lib"))
 
-	if cc = util.Getenv("CC"); cc == "" {
+	if cc = project.Getenv("CC"); cc == "" {
 		cc = "CC"
 	}
-	if ld = util.Getenv("LD"); ld == "" {
+	if ld = project.Getenv("LD"); ld == "" {
 		ld = "ld"
 	}
-	if ar = util.Getenv("AR"); ar == "" {
+	if ar = project.Getenv("AR"); ar == "" {
 		ar = "ar"
 	}
 
@@ -57,7 +57,7 @@ func init() {
 }
 
 func Compiler() string {
-	if tpfx := util.Getenv("TOOLPREFIX"); tpfx == "" {
+	if tpfx := project.Getenv("TOOLPREFIX"); tpfx == "" {
 		return cc
 	} else {
 		return fmt.Sprintf("%s%s", tpfx, cc)
@@ -65,14 +65,14 @@ func Compiler() string {
 }
 
 func Archiver() string {
-	if tpfx := util.Getenv("TOOLPREFIX"); tpfx == "" {
+	if tpfx := project.Getenv("TOOLPREFIX"); tpfx == "" {
 		return ar
 	} else {
 		return fmt.Sprintf("%s%s", tpfx, ar)
 	}
 }
 func Linker() string {
-	if tpfx := util.Getenv("TOOLPREFIX"); tpfx == "" {
+	if tpfx := project.Getenv("TOOLPREFIX"); tpfx == "" {
 		return ld
 	} else {
 		return fmt.Sprintf("%s%s", tpfx, ld)
@@ -81,7 +81,7 @@ func Linker() string {
 
 // Had to be done
 func Stripper() string {
-	if tpfx := util.Getenv("TOOLPREFIX"); tpfx == "" {
+	if tpfx := project.Getenv("TOOLPREFIX"); tpfx == "" {
 		return "strip"
 	} else {
 		return fmt.Sprintf("%s%s", tpfx, "strip")

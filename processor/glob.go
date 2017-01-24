@@ -10,7 +10,7 @@ import (
 	"regexp"
 
 	"bldy.build/build/ast"
-	"bldy.build/build/util"
+	"bldy.build/build/project"
 )
 
 func (p *Processor) glob(f *ast.Func) []string {
@@ -53,7 +53,7 @@ func (p *Processor) glob(f *ast.Func) []string {
 		}
 
 		for _, f := range globFiles {
-			f, _ := filepath.Rel(util.GetProjectPath(), f)
+			f, _ := filepath.Rel(project.Root(), f)
 			f = fmt.Sprintf("//%s", f)
 		}
 	RESIZED:

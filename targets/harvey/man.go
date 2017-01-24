@@ -8,10 +8,11 @@ import (
 
 	"strings"
 
+	"os"
+
 	"bldy.build/build"
-	"bldy.build/build/util"
+	"bldy.build/build/racy"
 )
-import "os"
 
 type ManPage struct {
 	Name         string   `man_page:"name"`
@@ -24,8 +25,8 @@ func (mp *ManPage) Hash() []byte {
 
 	io.WriteString(h, mp.Name)
 
-	util.HashFiles(h, mp.Sources)
-	util.HashStrings(h, os.Environ())
+	racy.HashFiles(h, mp.Sources)
+	racy.HashStrings(h, os.Environ())
 	return []byte{}
 }
 

@@ -19,7 +19,7 @@ import (
 	"strings"
 
 	"bldy.build/build"
-	"bldy.build/build/util"
+	"bldy.build/build/project"
 )
 
 const (
@@ -217,7 +217,7 @@ func (b *Builder) visit(n *Node) {
 }
 
 func install(job *Node) error {
-	buildOut := util.BuildOut()
+	buildOut := project.BuildOut()
 	if err := os.MkdirAll(
 		buildOut,
 		os.ModeDir|os.ModePerm,

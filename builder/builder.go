@@ -16,13 +16,14 @@ import (
 
 	"sync"
 
+	"bldy.build/build/project"
+	"bldy.build/build/racy"
 	bldytrg "bldy.build/build/targets/build"
 
 	"bldy.build/build"
 	"bldy.build/build/postprocessor"
 	"bldy.build/build/processor"
 	"bldy.build/build/url"
-	"bldy.build/build/util"
 )
 
 type Update struct {
@@ -58,7 +59,7 @@ func New() (c Builder) {
 		log.Fatal(err)
 	}
 	c.pq = newP()
-	c.ProjectPath = util.GetProjectPath()
+	c.ProjectPath = project.Root()
 	return
 }
 
@@ -188,7 +189,7 @@ func (n *Node) HashNode() []byte {
 	}
 	h := sha1.New()
 	h.Write(n.Target.Hash())
-	util.HashStrings(h, n.Target.GetDependencies())
+	racy.HashStrings(h, n.Target.GetDependencies())
 	var bn ByName
 	for _, e := range n.Children {
 		bn = append(bn, e)

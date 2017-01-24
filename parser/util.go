@@ -63,4 +63,3 @@ func (p *Parser) expects(tok token.Token, expected ...token.Type) error {
 		arrow(p.lexer.LineBuffer(), tok),
 	)
 }
-

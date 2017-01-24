@@ -14,7 +14,7 @@ import (
 	"text/template"
 
 	"bldy.build/build"
-	"bldy.build/build/util"
+	"bldy.build/build/racy"
 )
 
 type Embed struct {
@@ -45,7 +45,7 @@ func (u *USB) GetDependencies() []string {
 
 func (u *USB) Hash() []byte {
 	h := sha1.New()
-	util.HashFiles(h, []string{u.Conf})
+	racy.HashFiles(h, []string{u.Conf})
 	io.WriteString(h, u.Name)
 	return []byte{}
 }

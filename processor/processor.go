@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"reflect"
 
+	"bldy.build/build/project"
 	"bldy.build/build/url"
 
 	"log"
@@ -25,7 +26,6 @@ import (
 	"bldy.build/build/internal"
 	"bldy.build/build/parser"
 	"bldy.build/build/preprocessor"
-	"bldy.build/build/util"
 )
 
 type Processor struct {
@@ -48,8 +48,8 @@ func NewProcessor(p *parser.Parser) *Processor {
 }
 func NewProcessorFromURL(url url.URL, wd string) (*Processor, error) {
 
-	BUILDPATH := filepath.Join(url.BuildDir(wd, util.GetProjectPath()), "BUILD")
-	BUCKPATH := filepath.Join(url.BuildDir(wd, util.GetProjectPath()), "BUCK")
+	BUILDPATH := filepath.Join(url.BuildDir(wd, project.Root()), "BUILD")
+	BUCKPATH := filepath.Join(url.BuildDir(wd, project.Root()), "BUCK")
 
 	var fp string
 
@@ -201,11 +201,11 @@ func (p *Processor) runFunc(f *ast.Func) {
 func (p *Processor) absPath(s string) string {
 	var r string
 	if strings.TrimLeft(s, "//") != s {
-		r = filepath.Join(util.GetProjectPath(), strings.Trim(s, "//"))
+		r = filepath.Join(project.Root(), strings.Trim(s, "//"))
 	} else {
 		r = filepath.Join(p.parser.Path, s)
 	}
-	r = os.Expand(r, util.Getenv)
+	r = os.Expand(r, project.Getenv)
 	return r
 }
 
@@ -390,12 +390,12 @@ func (p *Processor) env(f *ast.Func) string {
 	if len(f.AnonParams) != 1 {
 		return ""
 	}
-	return util.Getenv(f.AnonParams[0].(string))
+	return project.Getenv(f.AnonParams[0].(string))
 }
 
 func (p *Processor) version(f *ast.Func) string {
 	if out, err := exec.Command("git",
-		"--git-dir="+util.GetGitDir(p.parser.Path)+".git",
+		"--git-dir="+project.GetGitDir(p.parser.Path)+".git",
 		"describe",
 		"--always").Output(); err != nil {
 		return err.Error()

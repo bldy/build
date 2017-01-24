@@ -6,10 +6,11 @@ import (
 
 	"strings"
 
+	"os"
+
 	"bldy.build/build"
-	"bldy.build/build/util"
+	"bldy.build/build/racy"
 )
-import "os"
 
 type GenRule struct {
 	Name         string   `gen_rule:"name"`
@@ -21,8 +22,8 @@ func (g *GenRule) Hash() []byte {
 	h := sha1.New()
 
 	io.WriteString(h, g.Name)
-	util.HashStrings(h, g.Commands)
-	util.HashStrings(h, os.Environ())
+	racy.HashStrings(h, g.Commands)
+	racy.HashStrings(h, os.Environ())
 	return []byte{}
 }
 

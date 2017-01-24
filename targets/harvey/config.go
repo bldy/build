@@ -11,7 +11,7 @@ import (
 	"io"
 	"strings"
 
-	"bldy.build/build/util"
+	"bldy.build/build/racy"
 
 	"path/filepath"
 
@@ -42,14 +42,14 @@ func split(s string, c string) string {
 func (k *Config) Hash() []byte {
 
 	h := sha1.New()
-	util.HashFiles(h, k.RamFiles)
-	util.HashStrings(h, k.Code)
-	util.HashStrings(h, k.Dev)
-	util.HashStrings(h, k.Ip)
-	util.HashStrings(h, k.Link)
-	util.HashStrings(h, k.Sd)
-	util.HashStrings(h, k.Uart)
-	util.HashStrings(h, k.VGA)
+	racy.HashFiles(h, k.RamFiles)
+	racy.HashStrings(h, k.Code)
+	racy.HashStrings(h, k.Dev)
+	racy.HashStrings(h, k.Ip)
+	racy.HashStrings(h, k.Link)
+	racy.HashStrings(h, k.Sd)
+	racy.HashStrings(h, k.Uart)
+	racy.HashStrings(h, k.VGA)
 	io.WriteString(h, k.Name)
 	return h.Sum(nil)
 }

@@ -14,7 +14,7 @@ import (
 	"strings"
 
 	"bldy.build/build"
-	"bldy.build/build/util"
+	"bldy.build/build/project"
 )
 
 type PostProcessor struct {
@@ -25,7 +25,7 @@ type PostProcessor struct {
 func New(p string) PostProcessor {
 	return PostProcessor{
 		packagePath: p,
-		projectPath: util.GetProjectPath(),
+		projectPath: project.Root(),
 	}
 }
 
@@ -96,7 +96,7 @@ func (pp *PostProcessor) ProcessPaths(t build.Target, deps []build.Target) error
 				return pp.absPath(s)
 			}
 			if tag == "expand" {
-				return os.Expand(s, util.Getenv)
+				return os.Expand(s, project.Getenv)
 			}
 			return s
 		}
@@ -155,12 +155,12 @@ func (pp *PostProcessor) absPath(s string) string {
 	case s[:2] == "//":
 		r = filepath.Join(pp.projectPath, strings.Trim(s, "//"))
 	default:
-		r = os.Expand(s, util.Getenv)
+		r = os.Expand(s, project.Getenv)
 		if filepath.IsAbs(r) {
 			return r
 		}
 		r = filepath.Join(pp.projectPath, pp.packagePath, s)
 	}
-	r = os.Expand(r, util.Getenv)
+	r = os.Expand(r, project.Getenv)
 	return r
 }
