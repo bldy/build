@@ -60,6 +60,6 @@ func (oc *ObjCopy) Build(c *build.Context) error {
 }
 func (oc *ObjCopy) Installs() map[string]string {
 	installs := make(map[string]string)
-	installs[filepath.Join("bin", oc.Name)] = oc.Name
+	installs[oc.Name] = oc.Name
 	return installs
 }
