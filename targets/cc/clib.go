@@ -35,14 +35,16 @@ func (cl *CLib) Hash() []byte {
 	io.WriteString(h, CCVersion)
 	io.WriteString(h, cl.Name)
 	io.WriteString(h, "clib")
-	racy.HashFilesWithExt(h, []string(cl.Includes), ".h")
-	racy.HashFilesWithExt(h, cl.Sources, ".c")
 	racy.HashStrings(h, cl.CompilerOptions)
 	racy.HashStrings(h, cl.LinkerOptions)
 	if cl.LinkStatic {
 		io.WriteString(h, "static")
 	}
-	return h.Sum(nil)
+	return racy.XOR(
+		h.Sum(nil),
+		racy.HashFilesForExt([]string(cl.Includes), ".h"),
+		racy.HashFilesForExt(cl.Sources, ".c"),
+	)
 }
 
 func (cl *CLib) Build(c *build.Context) error {
