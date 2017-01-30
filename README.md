@@ -5,4 +5,4 @@ A blazingly fast build system written in Go!
 
 [bldy.build](https://bldy.build/build) for more information
 
-part of [Harvey-OS](https://bldy.build)
+part of [Harvey-OS](https://harvey-os.org)
