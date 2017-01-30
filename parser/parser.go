@@ -30,7 +30,6 @@ type Parser struct {
 	peekPeekTok token.Token
 	peekTok     token.Token
 	curTok      token.Token
-	backupToken *token.Token
 	Error       error
 	l           *log.Logger
 }
