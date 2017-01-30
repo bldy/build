@@ -5,6 +5,7 @@
 package project // import "bldy.build/build/project"
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -19,6 +20,8 @@ var (
 	file ini.File
 
 	pp = ""
+
+	copyToRoot = flag.Bool("r", false, "set root of the project as build out. should not be used with watch")
 )
 
 func init() {
@@ -40,7 +43,11 @@ func RelPPath(p string) string {
 }
 
 func BuildOut() string {
-	if os.Getenv("BUILD_OUT") != "" {
+	if *copyToRoot || Getenv("COPYTOROOT") == "true" {
+		return Root()
+	}
+
+	if Getenv("BUILD_OUT") != "" {
 		return Getenv("BUILD_OUT")
 	} else {
 		return filepath.Join(
