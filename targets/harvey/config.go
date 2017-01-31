@@ -19,16 +19,17 @@ import (
 )
 
 type Config struct {
-	Name         string   `config:"name"`
-	Dependencies []string `config:"deps"`
-	RamFiles     []string `config:"ramfiles" build:"path"`
-	Code         []string `config:"code"`
-	Dev          []string `config:"dev"`
-	Ip           []string `config:"ip"`
-	Link         []string `config:"link"`
-	Sd           []string `config:"sd"`
-	Uart         []string `config:"uart"`
-	VGA          []string `config:"vga"`
+	Name         string            `config:"name"`
+	Dependencies []string          `config:"deps"`
+	RamFiles     []string          `config:"ramfiles" build:"path"`
+	Code         []string          `config:"code"`
+	Dev          []string          `config:"dev"`
+	Ip           []string          `config:"ip"`
+	Link         []string          `config:"link"`
+	Sd           []string          `config:"sd"`
+	Uart         []string          `config:"uart"`
+	VGA          []string          `config:"vga"`
+	Bins         map[string]string `config:"bins"`
 }
 
 func split(s string, c string) string {
@@ -61,8 +62,11 @@ func (k *Config) Build(c *build.Context) error {
 	for _, dep := range k.Dependencies {
 		name := split(dep, ":")
 		path := filepath.Join("bin", name)
-		if name == "factotum" {
-			path = filepath.Join("bin", "auth/factotum")
+		for k, v := range k.Bins {
+			if k == name {
+				path = filepath.Join("bin", v)
+				break
+			}
 		}
 		code, err := data2c(name, path, c)
 
