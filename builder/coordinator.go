@@ -29,12 +29,13 @@ const (
 
 var (
 	BLDYCACHE = bldyCache()
+	l         = log.New(os.Stdout, "builder: ", 0)
 )
 
 func bldyCache() string {
 	usr, err := user.Current()
 	if err != nil {
-		log.Fatal(err)
+		l.Fatal(err)
 	}
 	return path.Join(usr.HomeDir, "/.cache/bldy")
 }
@@ -52,7 +53,7 @@ func (b *Builder) Execute(d time.Duration, r int) {
 		}
 	}()
 	if b.Root == nil {
-		log.Fatal("Couldn't find the root node.")
+		l.Fatal("Couldn't find the root node.")
 	}
 	b.visit(b.Root)
 }
@@ -96,7 +97,7 @@ func (b *Builder) build(n *Node) (err error) {
 						),
 						os.ModeDir|os.ModePerm,
 					); err != nil {
-						log.Fatalf("installing dependency %s for %s: %s", e.Target.GetName(), n.Target.GetName(), err.Error())
+						l.Fatalf("installing dependency %s for %s: %s", e.Target.GetName(), n.Target.GetName(), err.Error())
 					}
 				}
 				os.Symlink(
@@ -126,16 +127,16 @@ func (b *Builder) build(n *Node) (err error) {
 		logName = SCSSLOG
 	}
 	if logFile, err := os.Create(filepath.Join(outDir, logName)); err != nil {
-		log.Fatalf("error creating log for %s: %s", n.Target.GetName(), err.Error())
+		l.Fatalf("error creating log for %s: %s", n.Target.GetName(), err.Error())
 	} else {
 		errbytz, err := ioutil.ReadAll(context.Stdout())
 		if err != nil {
-			log.Fatalf("error reading log for %s: %s", n.Target.GetName(), err.Error())
+			l.Fatalf("error reading log for %s: %s", n.Target.GetName(), err.Error())
 		}
 		n.Output = string(errbytz)
 		_, err = logFile.Write(errbytz)
 		if err != nil {
-			log.Fatalf("error writing log for %s: %s", n.Target.GetName(), err.Error())
+			l.Fatalf("error writing log for %s: %s", n.Target.GetName(), err.Error())
 		}
 		if buildErr != nil {
 			return fmt.Errorf("%s: \n%s", buildErr, errbytz)
@@ -222,7 +223,7 @@ func install(job *Node) error {
 		buildOut,
 		os.ModeDir|os.ModePerm,
 	); err != nil {
-		log.Fatalf("copying job %s failed: %s", job.Target.GetName(), err.Error())
+		l.Fatalf("copying job %s failed: %s", job.Target.GetName(), err.Error())
 	}
 
 	for dst, src := range job.Target.Installs() {
@@ -238,7 +239,7 @@ func install(job *Node) error {
 			buildOutTarget,
 			os.ModeDir|os.ModePerm,
 		); err != nil {
-			log.Fatalf("linking job %s failed: %s", job.Target.GetName(), err.Error())
+			l.Fatalf("linking job %s failed: %s", job.Target.GetName(), err.Error())
 		}
 		srcp, _ := filepath.EvalSymlinks(
 			filepath.Join(
@@ -254,21 +255,21 @@ func install(job *Node) error {
 
 		in, err := os.Open(srcp)
 		if err != nil {
-			log.Fatal(err)
+			l.Fatalf("copy: can't finiliaze %s. copying %q to %q failed: %s\n", job.Target.GetName(), srcp, dstp, err)
 		}
 		defer in.Close()
 		out, err := os.Create(dstp)
 		if err != nil {
-			log.Fatal(err)
+			l.Fatal(err)
 		}
 		defer func() {
 			if err := out.Close(); err != nil {
-				log.Fatal(err)
+				l.Fatal(err)
 			}
 		}()
 
 		if _, err := io.Copy(out, in); err != nil {
-			log.Fatal(err)
+			l.Fatalf("copy: can't finiliaze %s. copying from %q to %q failed: %s\n", job.Target.GetName(), src, dst)
 		}
 
 	}
