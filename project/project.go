@@ -21,7 +21,7 @@ var (
 
 	pp = ""
 
-	copyToRoot = flag.Bool("r", false, "set root of the project as build out. should not be used with watch")
+	copyToRoot = flag.Bool("r", false, "set root of the project as build out")
 )
 
 func init() {
@@ -43,7 +43,7 @@ func RelPPath(p string) string {
 }
 
 func BuildOut() string {
-	if *copyToRoot  {
+	if *copyToRoot {
 		return Root()
 	}
 
