@@ -43,7 +43,7 @@ func RelPPath(p string) string {
 }
 
 func BuildOut() string {
-	if *copyToRoot || Getenv("COPYTOROOT") == "true" {
+	if *copyToRoot  {
 		return Root()
 	}
 
