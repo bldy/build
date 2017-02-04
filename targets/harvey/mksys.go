@@ -317,7 +317,7 @@ const(
 {{ range . }}extern void {{ .Sysname }}(Ar0*, ...);
 {{ end }}
 Systab systab[] = {
-{{ range . }}[{{ .Define }}] { "{{ .Name }}", {{ .Sysname }}, {{ .Fudge }} },
+{{ range . }}[{{ .Define }}] = { "{{ .Name }}", {{ .Sysname }}, {{ .Fudge }} },
 {{ end }}
 };
 int nsyscall = nelem(systab);
