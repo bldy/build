@@ -6,7 +6,6 @@
 package builder
 
 import (
-	"crypto/sha1"
 	"fmt"
 	"log"
 	"os"
@@ -187,18 +186,15 @@ func (n *Node) HashNode() []byte {
 	if len(n.hash) > 0 {
 		return n.hash
 	}
-	h := sha1.New()
-	h.Write(n.Target.Hash())
-	racy.HashStrings(h, n.Target.GetDependencies())
+	n.hash = n.Target.Hash()
 	var bn ByName
 	for _, e := range n.Children {
 		bn = append(bn, e)
 	}
 	sort.Sort(bn)
 	for _, e := range bn {
-		h.Write(e.HashNode())
+		n.hash = racy.XOR(e.HashNode(), n.hash)
 	}
-	n.hash = h.Sum(nil)
 	n.Hash = fmt.Sprintf("%x", n.hash)
 	return n.hash
 }
