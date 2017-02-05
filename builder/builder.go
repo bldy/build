@@ -8,7 +8,6 @@ package builder
 import (
 	"crypto/sha1"
 	"fmt"
-	"log"
 	"os"
 	"sort"
 	"strings"
@@ -56,7 +55,7 @@ func New() (c Builder) {
 	var err error
 	c.Wd, err = os.Getwd()
 	if err != nil {
-		log.Fatal(err)
+		l.Fatal(err)
 	}
 	c.pq = newP()
 	c.ProjectPath = project.Root()
@@ -100,7 +99,7 @@ func (b *Builder) getTarget(u url.URL) (n *Node) {
 	} else {
 		p, err := processor.NewProcessorFromURL(u, b.Wd)
 		if err != nil {
-			log.Fatal(err)
+			l.Fatal(err)
 		}
 		go p.Run()
 		// bug(sevki): this is a really bad way of doing this, there should me
@@ -130,7 +129,7 @@ func (b *Builder) getTarget(u url.URL) (n *Node) {
 
 			err := post.ProcessDependencies(node.Target)
 			if err != nil {
-				log.Fatal(err)
+				l.Fatal(err)
 			}
 
 			var deps []build.Target
@@ -158,7 +157,7 @@ func (b *Builder) getTarget(u url.URL) (n *Node) {
 			}
 
 			if err := post.ProcessPaths(t, deps); err != nil {
-				log.Fatalf("path processing: %s", err.Error())
+				l.Fatalf("path processing: %s", err.Error())
 			}
 
 			b.Nodes[xu.String()] = &node
@@ -169,7 +168,7 @@ func (b *Builder) getTarget(u url.URL) (n *Node) {
 		}
 
 		if n == nil {
-			log.Fatalf("we couldn't find target %s", u.String())
+			l.Fatalf("we couldn't find target %s", u.String())
 		}
 		return n
 	}
