@@ -40,7 +40,6 @@ func hashFile(f *os.File) []byte {
 
 func hashFolder(f *os.File, ext string) []byte {
 	dst := make([]byte, sha1.Size)
-
 	fs, _ := f.Readdir(-1)
 	f.Close()
 	for _, x := range fs {
@@ -81,6 +80,10 @@ func HashFilesForExt(files []string, ext string) []byte {
 		if filepath.Base(file) == project.BuildOut() {
 			continue
 		}
+		if filepath.Ext(file) != ext || filepath.Ext(file) == "" {
+			continue
+		}
+
 		var tmp []byte
 		if h, cached := hashCache.get(file); cached {
 			tmp = h
@@ -89,32 +92,20 @@ func HashFilesForExt(files []string, ext string) []byte {
 			if err != nil {
 				log.Fatalf("hash files: %s\n", err.Error())
 			}
-
 			stat, _ := f.Stat()
 			if stat.IsDir() {
 				tmp = hashFolder(f, ext)
 			} else {
 				tmp = hashFile(f)
 			}
+
 		}
-		dst = XOR(dst, tmp)
+		if len(dst) == 0 {
+			dst = tmp
+		} else {
+			dst = XOR(dst, tmp)
+		}
 	}
+
 	return dst
-}
-
-func XOR(hs ...[]byte) (dst []byte) {
-	if len(hs) > 1 {
-		return hs[0]
-	}
-
-	dst = make([]byte, len(hs[0]))
-
-	for _, h := range hs {
-		if len(h) != len(dst) {
-			return dst
-		}
-		tmp := dst
-		xorWords(dst, h, tmp)
-	}
-	return
 }
