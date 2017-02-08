@@ -205,8 +205,20 @@ func (p *Processor) absPath(s string) string {
 	} else {
 		r = filepath.Join(p.parser.Path, s)
 	}
-	r = os.Expand(r, project.Getenv)
+
+	r = os.Expand(r, getenv)
 	return r
+}
+
+// TODO(sevki): this is a bug that needs to be fixed but I can't really
+// find a better way to fix it
+func getenv(s string) string {
+	x := project.Getenv(s)
+	if strings.Contains(x, "scan-build") {
+		return "gcc"
+	} else {
+		return x
+	}
 }
 
 func (p *Processor) makeTarget(f *ast.Func) (build.Target, error) {
@@ -394,10 +406,16 @@ func (p *Processor) env(f *ast.Func) string {
 }
 
 func (p *Processor) version(f *ast.Func) string {
-	if out, err := exec.Command("git",
-		"--git-dir="+project.GetGitDir(p.parser.Path)+".git",
-		"describe",
-		"--always").Output(); err != nil {
+	params := []string{
+		"--git-dir=" + project.GetGitDir(p.parser.Path) + ".git",
+	}
+	for _, k := range f.AnonParams {
+		switch k.(type) {
+		case string:
+			params = append(params, k.(string))
+		}
+	}
+	if out, err := exec.Command("git", params...).Output(); err != nil {
 		return err.Error()
 	} else {
 		return strings.TrimSpace(string(out))
