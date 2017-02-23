@@ -44,7 +44,4 @@ func init() {
 	if err := internal.Register("data_to_c", DataToC{}); err != nil {
 		log.Fatal(err)
 	}
-	if err := internal.Register("template", Template{}); err != nil {
-		log.Fatal(err)
-	}
 }

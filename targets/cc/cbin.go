@@ -11,7 +11,6 @@ import (
 
 	"bldy.build/build"
 	"bldy.build/build/racy"
-	"sevki.org/lib/prettyprint"
 )
 
 type CBin struct {
@@ -51,8 +50,6 @@ func (cb *CBin) Hash() []byte {
 }
 
 func (cb *CBin) Build(c *build.Context) error {
-
-	c.Println(prettyprint.AsJSON(cb))
 	params := []string{"-c"}
 	params = append(params, cb.CompilerOptions...)
 	params = append(params, cb.Sources...)
@@ -60,7 +57,7 @@ func (cb *CBin) Build(c *build.Context) error {
 	params = append(params, cb.Includes.Includes()...)
 
 	if err := c.Exec(Compiler(), CCENV, params); err != nil {
-		return fmt.Errorf(err.Error())
+		return err
 	}
 
 	ldparams := []string{"-o", cb.Name}
@@ -104,12 +101,12 @@ func (cb *CBin) Build(c *build.Context) error {
 	}
 
 	if err := c.Exec(Linker(), CCENV, ldparams); err != nil {
-		return fmt.Errorf(err.Error())
+		return err
 	}
 	if cb.Strip {
 		sparams := []string{"-o", cb.Name, cb.Name}
 		if err := c.Exec(Stripper(), nil, sparams); err != nil {
-			return fmt.Errorf(err.Error())
+			return err
 		}
 	}
 	return nil
