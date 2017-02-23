@@ -3,17 +3,20 @@
 // license that can be found in the LICENSE file.
 
 package build // import "bldy.build/build/targets/build"
+
 import (
 	"crypto/sha1"
 	"html/template"
 	"io"
 	"io/ioutil"
 	"path/filepath"
+	"strings"
 
 	"sevki.org/lib/prettyprint"
 
 	"bldy.build/build"
 	"bldy.build/build/racy"
+	"bldy.build/build/targets/cc"
 )
 
 type Template struct {
@@ -33,6 +36,8 @@ func (t *Template) GetDependencies() []string {
 }
 
 func (t *Template) Hash() []byte {
+	t.Vars["_CCVER"] = strings.Split(cc.CCVersion, "\n")[0]
+
 	h := sha1.New()
 	io.WriteString(h, prettyprint.AsJSON(t))
 	return racy.XOR(h.Sum(nil),
@@ -40,6 +45,8 @@ func (t *Template) Hash() []byte {
 }
 
 func (t *Template) Build(c *build.Context) error {
+	t.Vars["_CCVER"] = strings.Split(cc.CCVersion, "\n")[0]
+
 	_, file := filepath.Split(t.Template)
 	bytz, err := ioutil.ReadFile(t.Template)
 	if err != nil {

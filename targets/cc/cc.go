@@ -39,7 +39,6 @@ func init() {
 	if ar = project.Getenv("AR"); ar == "" {
 		ar = "ar"
 	}
-
 	if out, err := exec.Command(Compiler(), "--version").Output(); err != nil {
 		CCVersion = "deadbeef"
 	} else {
