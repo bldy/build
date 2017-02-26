@@ -8,12 +8,17 @@ package build
 import (
 	"bytes"
 	"context"
+	"flag"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
+)
+
+var (
+	env = flag.Bool("env", false, "prints envinroment variables into the log")
 )
 
 // Target defines the interface that rules must implement for becoming build targets.
@@ -48,6 +53,8 @@ func (r *Run) String() string {
 	buf := bytes.Buffer{}
 
 	buf.WriteString(strings.Join(append([]string{r.Cmd}, r.Args...), "\n"))
+	buf.WriteString("envinroment variables: " + strings.Join(r.Env, "\n"))
+
 	buf.WriteString("\n")
 	buf.Write(r.Output)
 	return string(buf.String())
