@@ -5,6 +5,7 @@
 package builder
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"log"
@@ -129,17 +130,18 @@ func (b *Builder) build(n *Node) (err error) {
 	if logFile, err := os.Create(filepath.Join(outDir, logName)); err != nil {
 		l.Fatalf("error creating log for %s: %s", n.Target.GetName(), err.Error())
 	} else {
-		errbytz, err := ioutil.ReadAll(context.Stdout())
-		if err != nil {
-			l.Fatalf("error reading log for %s: %s", n.Target.GetName(), err.Error())
+		log := context.Log()
+		buf := bytes.Buffer{}
+		for _, logEntry := range log {
+			buf.WriteString(logEntry.String())
 		}
-		n.Output = string(errbytz)
-		_, err = logFile.Write(errbytz)
+		n.Output = buf.String()
+		_, err = logFile.Write(buf.Bytes())
 		if err != nil {
 			l.Fatalf("error writing log for %s: %s", n.Target.GetName(), err.Error())
 		}
 		if buildErr != nil {
-			return fmt.Errorf("%s: \n%s", buildErr, errbytz)
+			return fmt.Errorf("%s: \n%s", buildErr, buf.Bytes())
 		}
 	}
 

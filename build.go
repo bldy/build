@@ -8,13 +8,12 @@ package build
 import (
 	"bytes"
 	"context"
-	"io"
-	"log"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"sync"
+	"time"
 )
 
 // Target defines the interface that rules must implement for becoming build targets.
@@ -31,81 +30,76 @@ type Target interface {
 // provide helper functions for shelling out without having to worry
 // about stdout or stderr outputs.
 type Context struct {
-	wd             string
-	stderr, stdout *bytes.Buffer
-	logger         *log.Logger
-	buf            *bytes.Buffer
+	wd  string
+	run []*Run
+	log []fmt.Stringer
+}
+
+type Run struct {
+	At     time.Time
+	Cmd    string
+	Args   []string
+	Output []byte
+	Env    []string
+	Err    error
+}
+
+func (r *Run) String() string {
+	buf := bytes.Buffer{}
+
+	buf.WriteString(strings.Join(append([]string{r.Cmd}, r.Args...), "\n"))
+	buf.WriteString("\n")
+	buf.Write(r.Output)
+	return string(buf.String())
+}
+
+type Message string
+
+func (m Message) String() string {
+	return string(m)
+}
+func (c *Context) RunCmds() []*Run {
+	return c.run
+}
+
+func (c *Context) Log() []fmt.Stringer {
+	return c.log
 }
 
 // NewContext initializes and returns a new build.Context
 func NewContext(dir string) *Context {
-	buf := bytes.Buffer{}
 	return &Context{
-		wd:     dir,
-		stderr: &buf,
-		stdout: &buf,
-		logger: log.New(&buf, "", log.Lmicroseconds),
-		buf:    &buf,
+		wd: dir,
 	}
-}
-func (c *Context) Stdout() io.Reader {
-	return c.buf
-}
-
-func (c *Context) StdErr() io.Reader {
-	return c.buf
 }
 
 func (c *Context) Printf(format string, v ...interface{}) {
-	c.logger.Printf(format, v)
+	c.log = append(c.log, Message(fmt.Sprintf(format, v...)))
 }
 
 func (c *Context) Println(v ...interface{}) {
-	c.logger.Println(v)
+	c.log = append(c.log, Message(fmt.Sprintln(v...)))
 }
 
 // Exec executes a command writing it's outputs to the context
-func (c *Context) Exec(cmd string, env, params []string) error {
-	c.Println(strings.Join(append([]string{cmd}, params...), "\n"))
-	var stdOut, stdErr io.ReadCloser
-	var wg sync.WaitGroup
-
-	x := exec.Command(cmd, params...)
+func (c *Context) Exec(cmd string, env, args []string) error {
+	r := Run{
+		At:   time.Now(),
+		Cmd:  cmd,
+		Args: args,
+		Env:  env,
+	}
+	x := exec.Command(cmd, args...)
 	x.Dir = c.wd
 	x.Env = env
-	stdErr, err := x.StderrPipe()
-	if err != nil {
-		return err
-	}
-	stdOut, err = x.StdoutPipe()
-	if err != nil {
-		return err
-	}
-
-	wg.Add(2)
-
-	go func() {
-		io.Copy(c.stdout, stdOut)
-		wg.Done()
-	}()
-
-	go func() {
-		io.Copy(c.stderr, stdErr)
-		wg.Done()
-	}()
-
-	if err := x.Run(); err != nil {
-		return err
-	}
-
-	wg.Wait()
-	return nil
+	r.Output, r.Err = x.CombinedOutput()
+	c.run = append(c.run, &r)
+	c.log = append(c.log, &r)
+	return r.Err
 }
 
 // Run executes a command writing it's outputs to the context
 func (c *Context) Run(ctx context.Context, cmd string, env, params []string) *exec.Cmd {
-	c.Println(strings.Join(append([]string{cmd}, params...), " "))
-
 	x := exec.CommandContext(ctx, cmd, params...)
 
 	x.Dir = c.wd
