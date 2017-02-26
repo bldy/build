@@ -7,6 +7,7 @@ package builder
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"sort"
 	"strings"
@@ -14,13 +15,12 @@ import (
 
 	"sync"
 
+	"bldy.build/build"
+	"bldy.build/build/blaze"
+	"bldy.build/build/blaze/postprocessor"
 	"bldy.build/build/project"
 	"bldy.build/build/racy"
 	bldytrg "bldy.build/build/targets/build"
-
-	"bldy.build/build"
-	"bldy.build/build/postprocessor"
-	"bldy.build/build/processor"
 	"bldy.build/build/url"
 )
 
@@ -44,6 +44,7 @@ type Builder struct {
 	Updates     chan *Node
 	Root, ptr   *Node
 	pq          *p
+	vm          *blaze.VM
 }
 
 func New() (c Builder) {
@@ -58,6 +59,7 @@ func New() (c Builder) {
 	}
 	c.pq = newP()
 	c.ProjectPath = project.Root()
+	c.vm = blaze.NewVM(c.Wd)
 	return
 }
 
@@ -92,86 +94,71 @@ func (n *Node) priority() int {
 	return n.Priority
 }
 func (b *Builder) getTarget(u url.URL) (n *Node) {
-
 	if gnode, ok := b.Nodes[u.String()]; ok {
 		return gnode
-	} else {
-		p, err := processor.NewProcessorFromURL(u, b.Wd)
-		if err != nil {
-			l.Fatal(err)
-		}
-		go p.Run()
-		// bug(sevki): this is a really bad way of doing this, there should me
-		// some caching mechanism for this, it is yet to come !!
-		for t := <-p.Targets; t != nil; t = <-p.Targets {
-			if t.GetName() != u.Target {
-				continue
-			}
-			xu := url.URL{
-				Package: u.Package,
-				Target:  t.GetName(),
-			}
-
-			node := Node{
-				Target:   t,
-				Type:     fmt.Sprintf("%T", t)[1:],
-				Children: make(map[string]*Node),
-				Parents:  make(map[string]*Node),
-				once:     sync.Once{},
-				wg:       sync.WaitGroup{},
-				Status:   Pending,
-				Url:      xu,
-				Priority: -1,
-			}
-
-			post := postprocessor.New(u.Package)
-
-			err := post.ProcessDependencies(node.Target)
-			if err != nil {
-				l.Fatal(err)
-			}
-
-			var deps []build.Target
-
-			//group is a special case
-			var group *bldytrg.Group
-			switch node.Target.(type) {
-			case *bldytrg.Group:
-				group = node.Target.(*bldytrg.Group)
-				group.Exports = make(map[string]string)
-			}
-			for _, d := range node.Target.GetDependencies() {
-				c := b.Add(d)
-				node.wg.Add(1)
-				if group != nil {
-					for dst, _ := range c.Target.Installs() {
-						group.Exports[dst] = dst
-					}
-				}
-				deps = append(deps, c.Target)
-
-				node.Children[d] = c
-				c.Parents[xu.String()] = &node
-
-			}
-
-			if err := post.ProcessPaths(t, deps); err != nil {
-				l.Fatalf("path processing: %s", err.Error())
-			}
-
-			b.Nodes[xu.String()] = &node
-			if t.GetName() == u.Target {
-				n = &node
-			}
-
-		}
-
-		if n == nil {
-			l.Fatalf("we couldn't find target %s", u.String())
-		}
-		return n
+	}
+	t, err := b.vm.GetTarget(u)
+	if err != nil {
+		log.Fatal(err)
+	}
+	xu := url.URL{
+		Package: u.Package,
+		Target:  t.GetName(),
 	}
 
+	node := Node{
+		Target:   t,
+		Type:     fmt.Sprintf("%T", t)[1:],
+		Children: make(map[string]*Node),
+		Parents:  make(map[string]*Node),
+		once:     sync.Once{},
+		wg:       sync.WaitGroup{},
+		Status:   Pending,
+		Url:      xu,
+		Priority: -1,
+	}
+
+	post := postprocessor.New(u.Package)
+
+	err = post.ProcessDependencies(node.Target)
+	if err != nil {
+		l.Fatal(err)
+	}
+
+	var deps []build.Target
+
+	//group is a special case
+	var group *bldytrg.Group
+	switch node.Target.(type) {
+	case *bldytrg.Group:
+		group = node.Target.(*bldytrg.Group)
+		group.Exports = make(map[string]string)
+	}
+	for _, d := range node.Target.GetDependencies() {
+		c := b.Add(d)
+		node.wg.Add(1)
+		if group != nil {
+			for dst, _ := range c.Target.Installs() {
+				group.Exports[dst] = dst
+			}
+		}
+		deps = append(deps, c.Target)
+
+		node.Children[d] = c
+		c.Parents[xu.String()] = &node
+	}
+
+	if err := post.ProcessPaths(t, deps); err != nil {
+		l.Fatalf("path processing: %s", err.Error())
+	}
+
+	b.Nodes[xu.String()] = &node
+	if t.GetName() == u.Target {
+		n = &node
+	} else {
+		l.Fatalf("target name %q and url target %q don't match", t.GetName(), u.Target)
+	}
+	return n
 }
 
 func (b *Builder) Add(t string) *Node {
