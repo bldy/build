@@ -1,4 +1,4 @@
-load("//processor/tests/harveylib.BUILD", "harvey_library") 
+load("//blaze/processor/tests/harveylib.BUILD", "harvey_library") 
  
 harvey_library(
 	name="libString",

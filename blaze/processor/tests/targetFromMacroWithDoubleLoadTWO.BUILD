@@ -1,4 +1,4 @@
-load("//processor/tests/targetFromMacroWithDoubleLoadTHREE.BUILD", "LIB_COMPILER_FLAGS") 
+load("//blaze/processor/tests/targetFromMacroWithDoubleLoadTHREE.BUILD", "LIB_COMPILER_FLAGS") 
 
 harvey_library = cc_library(
 	copts=LIB_COMPILER_FLAGS,
