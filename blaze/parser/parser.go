@@ -11,9 +11,9 @@ import (
 	"log"
 	"os"
 
-	"bldy.build/build/ast"
-	"bldy.build/build/lexer"
-	"bldy.build/build/token"
+	"bldy.build/build/blaze/ast"
+	"bldy.build/build/blaze/lexer"
+	"bldy.build/build/blaze/token"
 )
 
 var (

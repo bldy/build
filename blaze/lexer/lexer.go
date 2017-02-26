@@ -14,7 +14,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"bldy.build/build/token"
+	"bldy.build/build/blaze/token"
 )
 
 const eof = -1
