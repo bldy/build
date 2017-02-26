@@ -44,7 +44,7 @@ type Builder struct {
 	Updates     chan *Node
 	Root, ptr   *Node
 	pq          *p
-	vm          *blaze.VM
+	vm          build.VM
 }
 
 func New() (c Builder) {

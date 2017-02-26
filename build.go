@@ -15,6 +15,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"bldy.build/build/url"
 )
 
 var (
@@ -127,7 +129,14 @@ func (c *Context) Open(name string) (*os.File, error) {
 	}
 	return os.Open(filepath.Join(c.wd, name))
 }
+
 func (c *Context) Mkdir(name string) error {
 	return os.MkdirAll(filepath.Join(c.wd, name), os.ModeDir|os.ModePerm)
 
+}
+
+// VM seperate the parsing and evauluating targets logic from rest of bldy
+// so we can implement and use new grammars like jsonnet or go it self.
+type VM interface {
+	GetTarget(url.URL) (Target, error)
 }
