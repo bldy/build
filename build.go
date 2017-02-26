@@ -18,7 +18,7 @@ import (
 )
 
 var (
-	env = flag.Bool("env", false, "prints envinroment variables into the log")
+	printenv = flag.Bool("e", false, "prints envinroment variables into the log")
 )
 
 // Target defines the interface that rules must implement for becoming build targets.
@@ -51,9 +51,10 @@ type Run struct {
 
 func (r *Run) String() string {
 	buf := bytes.Buffer{}
-
+	if *printenv {
+		buf.WriteString("envinroment variables: " + strings.Join(r.Env, "\n"))
+	}
 	buf.WriteString(strings.Join(append([]string{r.Cmd}, r.Args...), "\n"))
-	buf.WriteString("envinroment variables: " + strings.Join(r.Env, "\n"))
 
 	buf.WriteString("\n")
 	buf.Write(r.Output)
