@@ -8,7 +8,7 @@ import (
 	"runtime"
 	"strings"
 
-	"bldy.build/build/token"
+	"bldy.build/build/blaze/token"
 )
 
 func caller() (call string, file string, line int) {

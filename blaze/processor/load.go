@@ -2,8 +2,9 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package processor // import "bldy.build/build/processor"
-import "bldy.build/build/ast"
+package processor
+
+import "bldy.build/build/blaze/ast"
 
 var (
 	cache = make(map[string]map[string]interface{})

@@ -22,10 +22,10 @@ import (
 	"strings"
 
 	"bldy.build/build"
-	"bldy.build/build/ast"
+	"bldy.build/build/blaze/ast"
 	"bldy.build/build/internal"
-	"bldy.build/build/parser"
-	"bldy.build/build/preprocessor"
+	"bldy.build/build/blaze/parser"
+	"bldy.build/build/blaze/preprocessor"
 )
 
 type Processor struct {

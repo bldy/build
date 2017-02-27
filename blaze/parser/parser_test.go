@@ -13,9 +13,9 @@ import (
 
 	"strings"
 
-	"bldy.build/build/ast"
+	"bldy.build/build/blaze/ast"
+	"bldy.build/build/blaze/token"
 	_ "bldy.build/build/targets/cc"
-	"bldy.build/build/token"
 )
 
 func readAndParse(n string) (*Parser, error) {

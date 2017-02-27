@@ -2,14 +2,15 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package processor // import "bldy.build/build/processor"
+package processor
+
 import (
 	"fmt"
 	"log"
 	"path/filepath"
 	"regexp"
 
-	"bldy.build/build/ast"
+	"bldy.build/build/blaze/ast"
 	"bldy.build/build/project"
 )
 

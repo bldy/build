@@ -9,7 +9,7 @@ import (
 	"errors"
 	"strconv"
 
-	"bldy.build/build/token"
+	"bldy.build/build/blaze/token"
 )
 
 var (

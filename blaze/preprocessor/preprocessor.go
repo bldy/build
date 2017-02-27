@@ -7,7 +7,7 @@ package preprocessor
 import (
 	"fmt"
 
-	"bldy.build/build/ast"
+	"bldy.build/build/blaze/ast"
 )
 
 type PreProcessor interface {

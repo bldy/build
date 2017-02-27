@@ -9,7 +9,7 @@ import (
 	"os"
 	"testing"
 
-	"bldy.build/build/token"
+	"bldy.build/build/blaze/token"
 )
 
 func TestMap(t *testing.T) {
