@@ -7,6 +7,8 @@ package builder
 import (
 	"container/heap"
 	"sync"
+
+	"bldy.build/build/graph"
 )
 
 type p struct {
@@ -15,7 +17,7 @@ type p struct {
 }
 
 func newP() *p {
-	q := PriorityQueue([]*Node{})
+	q := PriorityQueue([]*graph.Node{})
 	return &p{
 		q: &q,
 		c: sync.NewCond(&sync.Mutex{}),
@@ -24,7 +26,7 @@ func newP() *p {
 func (p *p) len() int {
 	return p.q.Len()
 }
-func (p *p) push(n *Node) {
+func (p *p) push(n *graph.Node) {
 	p.c.L.Lock()
 
 	heap.Push(p.q, n)
@@ -32,17 +34,17 @@ func (p *p) push(n *Node) {
 	p.c.L.Unlock()
 
 }
-func (p *p) pop() *Node {
+func (p *p) pop() *graph.Node {
 	p.c.L.Lock()
 	if p.q.Len() == 0 {
 		p.c.Wait()
 	}
 	x := heap.Pop(p.q)
 	p.c.L.Unlock()
-	return x.(*Node)
+	return x.(*graph.Node)
 }
 
-type PriorityQueue []*Node
+type PriorityQueue []*graph.Node
 
 func (pq PriorityQueue) Len() int { return len(pq) }
 
@@ -57,7 +59,7 @@ func (pq PriorityQueue) Swap(i, j int) {
 }
 
 func (pq *PriorityQueue) Push(x interface{}) {
-	*pq = append(*pq, x.(*Node))
+	*pq = append(*pq, x.(*graph.Node))
 
 }
 

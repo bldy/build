@@ -2,32 +2,37 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package builder parses build graphs and coordinates builds
 package builder
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"log"
 	"os"
-	"sort"
-	"strings"
+	"os/user"
+	"path"
+	"path/filepath"
 	"time"
 
-	"sync"
+	"io/ioutil"
+
+	"strings"
 
 	"bldy.build/build"
-	"bldy.build/build/blaze"
-	"bldy.build/build/blaze/postprocessor"
+	"bldy.build/build/graph"
 	"bldy.build/build/project"
-	"bldy.build/build/racy"
-	bldytrg "bldy.build/build/targets/build"
-	"bldy.build/build/url"
+)
+
+const (
+	SCSSLOG = "success"
+	FAILLOG = "fail"
 )
 
 type Update struct {
 	TimeStamp time.Time
 	Target    string
-	Status    STATUS
+	Status    build.Status
 	Worker    int
 	Cached    bool
 }
@@ -36,159 +41,266 @@ type Builder struct {
 	Origin      string
 	Wd          string
 	ProjectPath string
-	Nodes       map[string]*Node
 	Total       int
-	Done        chan *Node
+	Done        chan *graph.Node
 	Error       chan error
 	Timeout     chan bool
-	Updates     chan *Node
-	Root, ptr   *Node
+	Updates     chan *graph.Node
+	ptr         *graph.Node
+	graph       *graph.Graph
 	pq          *p
-	vm          build.VM
 }
 
-func New() (c Builder) {
-	c.Nodes = make(map[string]*Node)
+func New(g *graph.Graph) (c Builder) {
 	c.Error = make(chan error)
-	c.Done = make(chan *Node)
-	c.Updates = make(chan *Node)
+	c.Done = make(chan *graph.Node)
+	c.Updates = make(chan *graph.Node)
 	var err error
 	c.Wd, err = os.Getwd()
 	if err != nil {
 		l.Fatal(err)
 	}
 	c.pq = newP()
+	c.graph = g
 	c.ProjectPath = project.Root()
-	c.vm = blaze.NewVM(c.Wd)
 	return
 }
 
-type Node struct {
-	IsRoot     bool         `json:"-"`
-	Target     build.Target `json:"-"`
-	Type       string
-	Parents    map[string]*Node `json:"-"`
-	Url        url.URL
-	Worker     string
-	Priority   int
-	wg         sync.WaitGroup
-	Status     STATUS
-	Cached     bool
-	Start, End int64
-	Hash       string
-	Output     string `json:"-"`
-	once       sync.Once
-	sync.Mutex
-	Children map[string]*Node
-	hash     []byte
-}
+var (
+	BLDYCACHE = bldyCache()
+	l         = log.New(os.Stdout, "builder: ", 0)
+)
 
-func (n *Node) priority() int {
-	if n.Priority < 0 {
-		p := 0
-		for _, c := range n.Parents {
-			p += c.priority() + 1
-		}
-		n.Priority = p
-	}
-	return n.Priority
-}
-func (b *Builder) getTarget(u url.URL) (n *Node) {
-	if gnode, ok := b.Nodes[u.String()]; ok {
-		return gnode
-	}
-	t, err := b.vm.GetTarget(u)
-	if err != nil {
-		log.Fatal(err)
-	}
-	xu := url.URL{
-		Package: u.Package,
-		Target:  t.GetName(),
-	}
-
-	node := Node{
-		Target:   t,
-		Type:     fmt.Sprintf("%T", t)[1:],
-		Children: make(map[string]*Node),
-		Parents:  make(map[string]*Node),
-		once:     sync.Once{},
-		wg:       sync.WaitGroup{},
-		Status:   Pending,
-		Url:      xu,
-		Priority: -1,
-	}
-
-	post := postprocessor.New(u.Package)
-
-	err = post.ProcessDependencies(node.Target)
+func bldyCache() string {
+	usr, err := user.Current()
 	if err != nil {
 		l.Fatal(err)
 	}
+	return path.Join(usr.HomeDir, "/.cache/bldy")
+}
 
-	var deps []build.Target
+func (b *Builder) Execute(d time.Duration, r int) {
 
-	//group is a special case
-	var group *bldytrg.Group
-	switch node.Target.(type) {
-	case *bldytrg.Group:
-		group = node.Target.(*bldytrg.Group)
-		group.Exports = make(map[string]string)
+	for i := 0; i < r; i++ {
+		go b.work(i)
 	}
-	for _, d := range node.Target.GetDependencies() {
-		c := b.Add(d)
-		node.wg.Add(1)
-		if group != nil {
-			for dst, _ := range c.Target.Installs() {
-				group.Exports[dst] = dst
+
+	go func() {
+		if d > 0 {
+			time.Sleep(d)
+			b.Timeout <- true
+		}
+	}()
+	if b.graph == nil {
+		l.Fatal("Couldn't find the build graph")
+	}
+	b.visit(b.graph.Root)
+}
+
+func (b *Builder) build(n *graph.Node) (err error) {
+	var buildErr error
+
+	nodeHash := fmt.Sprintf("%s-%x", n.Target.GetName(), n.HashNode())
+	outDir := filepath.Join(
+		BLDYCACHE,
+		nodeHash,
+	)
+	// check if this node was build before
+	if _, err := os.Lstat(outDir); !os.IsNotExist(err) {
+		n.Cached = true
+		if file, err := os.Open(filepath.Join(outDir, FAILLOG)); err == nil {
+			errString, _ := ioutil.ReadAll(file)
+			return fmt.Errorf("%s", errString)
+		} else if _, err := os.Lstat(filepath.Join(outDir, SCSSLOG)); err == nil {
+			return nil
+		}
+	}
+
+	os.MkdirAll(outDir, os.ModeDir|os.ModePerm)
+
+	// check failed builds.
+	for _, e := range n.Children {
+		if e.Status == build.Fail {
+			buildErr = fmt.Errorf("dependency %s failed to build", e.Target.GetName())
+		} else {
+			for dst, src := range e.Target.Installs() {
+
+				target := filepath.Base(dst)
+				targetDir := strings.TrimRight(dst, target)
+
+				if targetDir != "" {
+					if err := os.MkdirAll(
+						filepath.Join(
+							outDir,
+							targetDir,
+						),
+						os.ModeDir|os.ModePerm,
+					); err != nil {
+						l.Fatalf("installing dependency %s for %s: %s", e.Target.GetName(), n.Target.GetName(), err.Error())
+					}
+				}
+				os.Symlink(
+					filepath.Join(
+						BLDYCACHE,
+						fmt.Sprintf("%s-%x", e.Target.GetName(), e.HashNode()),
+						src,
+					),
+					filepath.Join(
+						outDir,
+						targetDir,
+						target),
+				)
+
 			}
 		}
-		deps = append(deps, c.Target)
-
-		node.Children[d] = c
-		c.Parents[xu.String()] = &node
 	}
 
-	if err := post.ProcessPaths(t, deps); err != nil {
-		l.Fatalf("path processing: %s", err.Error())
-	}
+	context := build.NewContext(outDir)
+	n.Start = time.Now().UnixNano()
 
-	b.Nodes[xu.String()] = &node
-	if t.GetName() == u.Target {
-		n = &node
+	buildErr = n.Target.Build(context)
+	n.End = time.Now().UnixNano()
+
+	logName := FAILLOG
+	if buildErr == nil {
+		logName = SCSSLOG
+	}
+	if logFile, err := os.Create(filepath.Join(outDir, logName)); err != nil {
+		l.Fatalf("error creating log for %s: %s", n.Target.GetName(), err.Error())
 	} else {
-		l.Fatalf("target name %q and url target %q don't match", t.GetName(), u.Target)
+		log := context.Log()
+		buf := bytes.Buffer{}
+		for _, logEntry := range log {
+			buf.WriteString(logEntry.String())
+		}
+		n.Output = buf.String()
+		_, err = logFile.Write(buf.Bytes())
+		if err != nil {
+			l.Fatalf("error writing log for %s: %s", n.Target.GetName(), err.Error())
+		}
+		if buildErr != nil {
+			return fmt.Errorf("%s: \n%s", buildErr, buf.Bytes())
+		}
 	}
-	return n
+
+	return buildErr
 }
 
-func (b *Builder) Add(t string) *Node {
-	return b.getTarget(url.Parse(t))
+func (b *Builder) work(workerNumber int) {
+
+	for {
+		job := b.pq.pop()
+		job.Worker = fmt.Sprintf("%d", workerNumber)
+		if job.Status != build.Pending {
+			continue
+		}
+		job.Lock()
+		defer job.Unlock()
+
+		job.Status = build.Building
+
+		b.Updates <- job
+		buildErr := b.build(job)
+
+		if buildErr != nil {
+			job.Status = build.Fail
+			b.Updates <- job
+			b.Error <- buildErr
+
+		} else {
+			job.Status = build.Success
+
+			b.Updates <- job
+		}
+
+		if !job.IsRoot {
+			b.Done <- job
+			job.Once.Do(func() {
+				for _, parent := range job.Parents {
+					parent.WG.Done()
+				}
+			})
+		} else {
+			install(job)
+
+			b.Done <- job
+			close(b.Done)
+			return
+		}
+
+	}
+
 }
 
-func (n *Node) HashNode() []byte {
+func (b *Builder) visit(n *graph.Node) {
 
-	// node hashes should not change after a build,
-	// they should be deterministic, therefore they can and should be cached.
-	if len(n.hash) > 0 {
-		return n.hash
+	// This is not an airplane so let's make sure children get their masks on before the parents.
+	for _, child := range n.Children {
+		// Visit children first
+		go b.visit(child)
 	}
-	n.hash = n.Target.Hash()
-	var bn ByName
-	for _, e := range n.Children {
-		bn = append(bn, e)
-	}
-	sort.Sort(bn)
-	for _, e := range bn {
-		n.hash = racy.XOR(e.HashNode(), n.hash)
-	}
-	n.Hash = fmt.Sprintf("%x", n.hash)
-	return n.hash
+
+	n.WG.Wait()
+	n.CountDependents()
+	b.pq.push(n)
 }
 
-type ByName []*Node
+func install(job *graph.Node) error {
+	buildOut := project.BuildOut()
+	if err := os.MkdirAll(
+		buildOut,
+		os.ModeDir|os.ModePerm,
+	); err != nil {
+		l.Fatalf("copying job %s failed: %s", job.Target.GetName(), err.Error())
+	}
 
-func (a ByName) Len() int      { return len(a) }
-func (a ByName) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
-func (a ByName) Less(i, j int) bool {
-	return strings.Compare(a[i].Target.GetName(), a[j].Target.GetName()) > 0
+	for dst, src := range job.Target.Installs() {
+
+		target := filepath.Base(dst)
+		targetDir := strings.TrimRight(dst, target)
+
+		buildOutTarget := filepath.Join(
+			buildOut,
+			targetDir,
+		)
+		if err := os.MkdirAll(
+			buildOutTarget,
+			os.ModeDir|os.ModePerm,
+		); err != nil {
+			l.Fatalf("linking job %s failed: %s", job.Target.GetName(), err.Error())
+		}
+		srcp, _ := filepath.EvalSymlinks(
+			filepath.Join(
+				BLDYCACHE,
+				fmt.Sprintf("%s-%x", job.Target.GetName(), job.HashNode()),
+				src,
+			))
+
+		dstp := filepath.Join(
+			buildOutTarget,
+			target,
+		)
+
+		in, err := os.Open(srcp)
+		if err != nil {
+			l.Fatalf("copy: can't finiliaze %s. copying %q to %q failed: %s\n", job.Target.GetName(), srcp, dstp, err)
+		}
+		defer in.Close()
+		out, err := os.Create(dstp)
+		if err != nil {
+			l.Fatal(err)
+		}
+		defer func() {
+			if err := out.Close(); err != nil {
+				l.Fatal(err)
+			}
+		}()
+
+		if _, err := io.Copy(out, in); err != nil {
+			l.Fatalf("copy: can't finiliaze %s. copying from %q to %q failed: %s\n", job.Target.GetName(), src, dst)
+		}
+
+	}
+
+	return nil
 }
