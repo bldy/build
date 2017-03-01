@@ -46,6 +46,7 @@ func (cb *CBin) Hash() []byte {
 		h.Sum(nil),
 		racy.HashFilesForExt([]string(cb.Includes), ".h"),
 		racy.HashFilesForExt(cb.Sources, ".c"),
+		racy.HashFilesForExt(cb.Sources, ".S"),
 	)
 }
 
