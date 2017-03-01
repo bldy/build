@@ -140,3 +140,16 @@ func (c *Context) Mkdir(name string) error {
 type VM interface {
 	GetTarget(url.URL) (Target, error)
 }
+
+// Status represents a nodes status.
+type Status int
+
+const (
+	Success Status = iota
+	Fail
+	Pending
+	Started
+	Fatal
+	Warning
+	Building
+)
