@@ -34,6 +34,15 @@ func init() {
 		}
 	}
 }
+func SideLoad(wd string) {
+	pp = GetGitDir(wd)
+	var err error
+	if file, err = ini.LoadFile(filepath.Join(Root(), "bldy.cfg")); err == nil {
+		if err != nil {
+			log.Fatalf("error: %v", err)
+		}
+	}
+}
 func Root() (ProjectPath string) {
 	return pp
 }

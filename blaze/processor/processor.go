@@ -23,9 +23,9 @@ import (
 
 	"bldy.build/build"
 	"bldy.build/build/blaze/ast"
-	"bldy.build/build/internal"
 	"bldy.build/build/blaze/parser"
 	"bldy.build/build/blaze/preprocessor"
+	"bldy.build/build/internal"
 )
 
 type Processor struct {
@@ -48,8 +48,8 @@ func NewProcessor(p *parser.Parser) *Processor {
 }
 func NewProcessorFromURL(url url.URL, wd string) (*Processor, error) {
 
-	BUILDPATH := filepath.Join(url.BuildDir(wd, project.Root()), "BUILD")
-	BUCKPATH := filepath.Join(url.BuildDir(wd, project.Root()), "BUCK")
+	BUILDPATH := filepath.Join(url.BuildDir(wd, project.GetGitDir(wd)), "BUILD")
+	BUCKPATH := filepath.Join(url.BuildDir(wd, project.GetGitDir(wd)), "BUCK")
 
 	var fp string
 
@@ -60,13 +60,13 @@ func NewProcessorFromURL(url url.URL, wd string) (*Processor, error) {
 	} else {
 		return nil, err
 	}
-	return NewProcessorFromFile(fp)
-
+	p, err := NewProcessorFromFile(fp)
+	p.wd = wd
+	return p, err
 }
 
 func NewProcessorFromFile(n string) (*Processor, error) {
 	ks, err := os.Open(n)
-
 	if err != nil {
 		return nil, fmt.Errorf("opening file: %s\n", err.Error())
 	}
@@ -201,7 +201,7 @@ func (p *Processor) runFunc(f *ast.Func) {
 func (p *Processor) absPath(s string) string {
 	var r string
 	if strings.TrimLeft(s, "//") != s {
-		r = filepath.Join(project.Root(), strings.Trim(s, "//"))
+		r = filepath.Join(project.GetGitDir(p.wd), strings.Trim(s, "//"))
 	} else {
 		r = filepath.Join(p.parser.Path, s)
 	}
