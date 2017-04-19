@@ -291,7 +291,7 @@ func install(job *graph.Node) error {
 		}
 
 		if _, err := io.Copy(out, in); err != nil {
-			l.Fatalf("copy: can't finiliaze %s. copying from %q to %q failed: %s\n", job.Target.GetName(), src, dst)
+			l.Fatalf("copy: can't finiliaze %s. copying from %q to %q failed: %s\n", job.Target.GetName(), src, dst, err)
 		}
 		if err := in.Close(); err != nil {
 			l.Fatal(err)

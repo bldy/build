@@ -36,6 +36,7 @@ func (p *Processor) load(f *ast.Func) {
 
 	if _, ok := cache[file]; !ok {
 		loadingProcessor, err := NewProcessorFromFile(file)
+		loadingProcessor.wd = p.wd
 		if err != nil {
 			p.l.Fatal(err)
 		}

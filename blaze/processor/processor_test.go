@@ -6,11 +6,17 @@ package processor
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 
+	"bldy.build/build/project"
 	"bldy.build/build/targets/cc"
 )
 
+func init() {
+	wd, _ := os.Getwd()
+	project.SideLoad(wd)
+}
 func TestSimpleAssignment(t *testing.T) {
 	p, err := NewProcessorFromFile("tests/simpleAssignment.BUILD")
 	if err != nil {
@@ -214,7 +220,9 @@ func TestTargetFromMacroWithLoad(t *testing.T) {
 		"//sys/include",
 		"//amd64/include",
 	}
+
 	p, err := NewProcessorFromFile("tests/targetFromMacroWithLoad.BUILD")
+	p.wd = filepath.Join(os.Getenv("GOPATH"), "src/bldy.build/build/blaze/processor")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -265,6 +273,7 @@ func TestTargetFromMacroWithDoubleLoad(t *testing.T) {
 		"//amd64/include",
 	}
 	p, err := NewProcessorFromFile("tests/targetFromMacroWithDoubleLoadONE.BUILD")
+	p.wd = filepath.Join(os.Getenv("GOPATH"), "src/bldy.build/build/blaze/processor")
 	if err != nil {
 		t.Fatal(err)
 	}

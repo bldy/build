@@ -28,7 +28,6 @@ func (p *p) len() int {
 }
 func (p *p) push(n *graph.Node) {
 	p.c.L.Lock()
-
 	heap.Push(p.q, n)
 	p.c.Signal()
 	p.c.L.Unlock()
@@ -55,12 +54,10 @@ func (pq PriorityQueue) Less(i, j int) bool {
 
 func (pq PriorityQueue) Swap(i, j int) {
 	pq[i], pq[j] = pq[j], pq[i]
-
 }
 
 func (pq *PriorityQueue) Push(x interface{}) {
 	*pq = append(*pq, x.(*graph.Node))
-
 }
 
 func (pq *PriorityQueue) Pop() interface{} {

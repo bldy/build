@@ -34,6 +34,15 @@ func init() {
 		}
 	}
 }
+func SideLoad(wd string) {
+	pp = GetGitDir(wd)
+	var err error
+	if file, err = ini.LoadFile(filepath.Join(Root(), "bldy.cfg")); err == nil {
+		if err != nil {
+			log.Fatalf("error: %v", err)
+		}
+	}
+}
 func Root() (ProjectPath string) {
 	return pp
 }
@@ -60,14 +69,13 @@ func BuildOut() string {
 func GetGitDir(p string) string {
 	dirs := strings.Split(p, "/")
 	for i := len(dirs) - 1; i > 0; i-- {
-		try := fmt.Sprintf("/%s/.git", filepath.Join(dirs[0:i+1]...))
+		frags := append([]string{"/"}, dirs[0:i+1]...)
+		path := filepath.Join(frags...)
+		try := fmt.Sprintf("%s/.git", path)
 		if _, err := os.Lstat(try); os.IsNotExist(err) {
 			continue
-		} else if err != nil {
-			log.Fatal(err)
 		}
-		pr, _ := filepath.Split(try)
-		return pr
+		return path
 	}
 	return ""
 }
