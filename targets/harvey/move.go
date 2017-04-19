@@ -20,7 +20,7 @@ func (m *Move) Hash() []byte {
 	return h.Sum(nil)
 }
 
-func (m *Move) Build(c *build.Context) error {
+func (m *Move) Build(c *build.Runner) error {
 	return nil
 }
 

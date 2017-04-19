@@ -27,7 +27,7 @@ func (g *GenRule) Hash() []byte {
 	return []byte{}
 }
 
-func (g *GenRule) Build(c *build.Context) error {
+func (g *GenRule) Build(c *build.Runner) error {
 	for _, cmd := range g.Commands {
 		strs := strings.Split(cmd, " ")
 

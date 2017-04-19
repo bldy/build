@@ -35,7 +35,7 @@ func (s *Sed) Hash() []byte {
 	return []byte{}
 }
 
-func (s *Sed) Build(c *build.Context) error {
+func (s *Sed) Build(c *build.Runner) error {
 	params := s.Args
 	if s.Script != "" {
 		params = append(params, "-f", s.Script)

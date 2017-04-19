@@ -45,7 +45,7 @@ func Copier() string {
 		return fmt.Sprintf("%s%s", tpfx, "objcopy")
 	}
 }
-func (oc *ObjCopy) Build(c *build.Context) error {
+func (oc *ObjCopy) Build(c *build.Runner) error {
 	params := []string{}
 	params = append(params, "-I")
 	params = append(params, oc.In)

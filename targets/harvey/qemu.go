@@ -46,7 +46,7 @@ func (q *Qemu) Hash() []byte {
 	return []byte{}
 }
 
-func (q *Qemu) Build(c *build.Context) error {
+func (q *Qemu) Build(c *build.Runner) error {
 	system := "qemu-system-x86_64"
 	params := []string{"-s"} // shorthand for -gdb tcp::1234
 

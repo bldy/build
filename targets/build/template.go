@@ -44,7 +44,7 @@ func (t *Template) Hash() []byte {
 		racy.HashFilesForExt([]string{t.Template}, filepath.Ext(t.Template)))
 }
 
-func (t *Template) Build(c *build.Context) error {
+func (t *Template) Build(c *build.Runner) error {
 	t.Vars["_CCVER"] = strings.Split(cc.CCVersion, "\n")[0]
 
 	_, file := filepath.Split(t.Template)

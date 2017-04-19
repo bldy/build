@@ -55,7 +55,7 @@ func (k *Config) Hash() []byte {
 	return h.Sum(nil)
 }
 
-func (k *Config) Build(c *build.Context) error {
+func (k *Config) Build(c *build.Runner) error {
 
 	var rootcodes []string
 	var rootnames []string
@@ -124,7 +124,7 @@ func (k *Config) GetDependencies() []string {
 }
 
 // data2c takes the file at path and creates a C byte array containing it.
-func data2c(name string, path string, c *build.Context) (string, error) {
+func data2c(name string, path string, c *build.Runner) (string, error) {
 	var out []byte
 	var in []byte
 	var file *os.File

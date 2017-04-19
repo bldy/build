@@ -56,7 +56,7 @@ func (y *Yacc) Hash() []byte {
 	return h.Sum(nil)
 }
 
-func (y *Yacc) Build(c *build.Context) error {
+func (y *Yacc) Build(c *build.Runner) error {
 
 	params := []string{}
 	params = append(params, y.YaccOptions...)

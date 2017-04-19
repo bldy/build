@@ -41,7 +41,7 @@ func Stripper() string {
 		return fmt.Sprintf("%s%s", tpfx, "strip")
 	}
 }
-func (s *Strip) Build(c *build.Context) error {
+func (s *Strip) Build(c *build.Runner) error {
 	params := []string{"-o"}
 	params = append(params, s.Name)
 	params = append(params, filepath.Join("bin", split(s.Dependencies[0], ":")))

@@ -30,7 +30,7 @@ func (mp *ManPage) Hash() []byte {
 	return []byte{}
 }
 
-func (mp *ManPage) Build(c *build.Context) error {
+func (mp *ManPage) Build(c *build.Runner) error {
 	for _, m := range mp.Sources {
 		params := []string{"<"}
 		params = append(params, m)

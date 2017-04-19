@@ -37,7 +37,7 @@ func (g *GoBuild) Hash() []byte {
 	return h.Sum(nil)
 }
 
-func (g *GoBuild) Build(c *build.Context) error {
+func (g *GoBuild) Build(c *build.Runner) error {
 	if err := c.Mkdir("_obj/exe"); err != nil {
 		return fmt.Errorf("go mkdir: %s", err.Error())
 	}

@@ -79,6 +79,7 @@ func New(name, path string, r io.ReadCloser) *Parser {
 	return p
 }
 func (p *Parser) emit(d ast.Decl) {
+	log.Println(p.name)
 	if p.Error != nil {
 		p.Decls <- &ast.Error{Error: p.Error}
 	} else {

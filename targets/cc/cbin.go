@@ -50,7 +50,7 @@ func (cb *CBin) Hash() []byte {
 	)
 }
 
-func (cb *CBin) Build(c *build.Context) error {
+func (cb *CBin) Build(c *build.Runner) error {
 	params := []string{"-c"}
 	params = append(params, cb.CompilerOptions...)
 	params = append(params, cb.Sources...)

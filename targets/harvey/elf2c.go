@@ -41,7 +41,7 @@ func (etc *ElfToC) Hash() []byte {
 	return []byte{}
 }
 
-func (etc *ElfToC) Build(c *build.Context) error {
+func (etc *ElfToC) Build(c *build.Runner) error {
 	fileName := ""
 
 	if xf, err := c.Open(etc.Elf); err != nil {

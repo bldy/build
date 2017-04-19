@@ -56,7 +56,7 @@ func (s *USB) Installs() map[string]string {
 	return installs
 }
 
-func (s *USB) Build(c *build.Context) error {
+func (s *USB) Build(c *build.Runner) error {
 	f, err := c.Open(s.Conf)
 	if err != nil {
 		return err

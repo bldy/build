@@ -34,7 +34,7 @@ func (dtc *DataToC) Hash() []byte {
 	return []byte{}
 }
 
-func (dtc *DataToC) Build(c *build.Context) error {
+func (dtc *DataToC) Build(c *build.Runner) error {
 
 	inFile, err := c.Open(dtc.Bin)
 	if err != nil {

@@ -44,7 +44,7 @@ func (ct *CTest) Hash() []byte {
 	return h.Sum(nil)
 }
 
-func (ct *CTest) Build(c *build.Context) error {
+func (ct *CTest) Build(c *build.Runner) error {
 	c.Println(prettyprint.AsJSON(ct))
 	params := []string{"-c"}
 	params = append(params, ct.CompilerOptions...)

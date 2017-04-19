@@ -48,7 +48,7 @@ func (cl *CLib) Hash() []byte {
 	)
 }
 
-func (cl *CLib) Build(c *build.Context) error {
+func (cl *CLib) Build(c *build.Runner) error {
 	params := []string{"-c"}
 	params = append(params, cl.CompilerOptions...)
 	params = append(params, cl.LinkerOptions...)

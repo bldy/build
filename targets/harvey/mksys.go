@@ -136,7 +136,7 @@ func (mkSys *MkSys) GetDependencies() []string {
 	return mkSys.Dependencies
 }
 
-func (mkSys *MkSys) Build(c *build.Context) error {
+func (mkSys *MkSys) Build(c *build.Runner) error {
 
 	c.Println(prettyprint.AsJSON(mkSys))
 
