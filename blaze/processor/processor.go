@@ -118,9 +118,8 @@ func (p *Processor) doLoop(l *ast.Loop) {
 		return
 	}
 	var tmp interface{}
-	exists := false
 
-	tmp, exists = p.vars[l.Key]
+	tmp, exists := p.vars[l.Key]
 
 	for _, v := range _range.([]interface{}) {
 		p.vars[l.Key] = v
@@ -168,9 +167,8 @@ func (p *Processor) unwrapValue(i interface{}) interface{} {
 	case *ast.Variable:
 		if v, ok := p.vars[i.(*ast.Variable).Key]; ok {
 			return v
-		} else {
-			p.l.Fatalf("variable %s is not present in %s. make sure it's loaded properly or declared", i.(*ast.Variable).Key, p.parser.Path)
 		}
+		p.l.Fatalf("variable %s is not present in %s. make sure it's loaded properly or declared", i.(*ast.Variable).Key, p.parser.Path)
 		return nil
 	case *ast.Slice:
 		return p.unwrapSlice(i.(*ast.Slice).Slice)
@@ -192,18 +190,18 @@ func (p *Processor) runFunc(f *ast.Func) {
 		if err != nil {
 			log.Fatal(err)
 			return
-		} else {
-			p.Targets <- targ
 		}
+		p.Targets <- targ
 	}
 }
 
 func (p *Processor) absPath(s string) string {
+
 	var r string
 	if strings.TrimLeft(s, "//") != s {
 		r = filepath.Join(project.GetGitDir(p.wd), strings.Trim(s, "//"))
 	} else {
-		r = filepath.Join(p.parser.Path, s)
+		r = filepath.Join(p.wd, s)
 	}
 
 	r = os.Expand(r, getenv)
@@ -216,9 +214,9 @@ func getenv(s string) string {
 	x := project.Getenv(s)
 	if strings.Contains(x, "scan-build") {
 		return "gcc"
-	} else {
-		return x
 	}
+	return x
+
 }
 
 func (p *Processor) makeTarget(f *ast.Func) (build.Target, error) {
@@ -266,7 +264,7 @@ func (p *Processor) makeTarget(f *ast.Func) (build.Target, error) {
 			name := i.(string)
 			if exst, ok := p.seen[name]; ok {
 				dupeErr := `Target %s is declared more than once at these locations:
-	 %s:%d: 
+	 %s:%d:
 	 %s:%d: `
 
 				return nil, fmt.Errorf(dupeErr, name, f.File, f.Start.Line, exst.File, exst.Start.Line)
