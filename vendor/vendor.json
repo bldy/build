@@ -1,0 +1,145 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "tSNr5GqiYYG5ecvgx3Bd0goxnI0=",
+			"path": "github.com/buger/goterm",
+			"revision": "d281585cd7365cff9edfed1a5115fc624a012bdc",
+			"revisionTime": "2016-08-08T15:01:03Z"
+		},
+		{
+			"checksumSHA1": "KCWVxG+J8SxHGlGiUghe0KBGsa8=",
+			"path": "github.com/fatih/structs",
+			"revision": "dc3312cb1a4513a366c4c9e622ad55c32df12ed3",
+			"revisionTime": "2016-08-07T23:55:29Z"
+		},
+		{
+			"checksumSHA1": "X5N8BeK/EzD29eUvF551VAR6lCA=",
+			"path": "github.com/go-clang/v3.7/clang",
+			"revision": "30126b90c9d3a577298ce22c0bb94e708ba501c4",
+			"revisionTime": "2016-09-11T10:18:59Z"
+		},
+		{
+			"checksumSHA1": "gcLub3oB+u4QrOJZcYmk/y2AP4k=",
+			"path": "github.com/nu7hatch/gouuid",
+			"revision": "179d4d0c4d8d407a32af483c2354df1d2c91e6c3",
+			"revisionTime": "2013-12-21T20:05:32Z"
+		},
+		{
+			"checksumSHA1": "sFD8LpJPQtWLwGda3edjf5mNUbs=",
+			"path": "github.com/vaughan0/go-ini",
+			"revision": "a98ad7ee00ec53921f08832bc06ecf7fd600e6a1",
+			"revisionTime": "2013-09-23T14:52:12Z"
+		},
+		{
+			"checksumSHA1": "fQlkDrdqBrwwUXrYuj6GQe5rhPk=",
+			"path": "sevki.org/build",
+			"revision": "a0b600e04e5799ecaa2ea9952d5bc71658cb9882",
+			"revisionTime": "2016-11-01T01:20:24Z"
+		},
+		{
+			"checksumSHA1": "8ndY6WRQDb1rfbjTUMgZ76Ohx8w=",
+			"path": "sevki.org/build/ast",
+			"revision": "a0b600e04e5799ecaa2ea9952d5bc71658cb9882",
+			"revisionTime": "2016-11-01T01:20:24Z"
+		},
+		{
+			"checksumSHA1": "ptbQSemRCm3HSMDnUG4jVfqRZPk=",
+			"path": "sevki.org/build/builder",
+			"revision": "a0b600e04e5799ecaa2ea9952d5bc71658cb9882",
+			"revisionTime": "2016-11-01T01:20:24Z"
+		},
+		{
+			"checksumSHA1": "+0GYVJemo8/bk/NebkjQwtbWXs8=",
+			"path": "sevki.org/build/internal",
+			"revision": "a0b600e04e5799ecaa2ea9952d5bc71658cb9882",
+			"revisionTime": "2016-11-01T01:20:24Z"
+		},
+		{
+			"checksumSHA1": "2vDOdHYp86a8cM4pLgTjIpeqLGs=",
+			"path": "sevki.org/build/lexer",
+			"revision": "a0b600e04e5799ecaa2ea9952d5bc71658cb9882",
+			"revisionTime": "2016-11-01T01:20:24Z"
+		},
+		{
+			"checksumSHA1": "NGDSX7jMJ1NSjh8SYT329lepSN4=",
+			"path": "sevki.org/build/parser",
+			"revision": "a0b600e04e5799ecaa2ea9952d5bc71658cb9882",
+			"revisionTime": "2016-11-01T01:20:24Z"
+		},
+		{
+			"checksumSHA1": "Ro31zcOBLil+Fy+4N26qzSu2L24=",
+			"path": "sevki.org/build/postprocessor",
+			"revision": "a0b600e04e5799ecaa2ea9952d5bc71658cb9882",
+			"revisionTime": "2016-11-01T01:20:24Z"
+		},
+		{
+			"checksumSHA1": "oYJ2t0U3+7HypsQVCE0UrWqeXuo=",
+			"path": "sevki.org/build/preprocessor",
+			"revision": "a0b600e04e5799ecaa2ea9952d5bc71658cb9882",
+			"revisionTime": "2016-11-01T01:20:24Z"
+		},
+		{
+			"checksumSHA1": "Jw1z9nDthHJezkWfGX5X7xuTHaQ=",
+			"path": "sevki.org/build/processor",
+			"revision": "a0b600e04e5799ecaa2ea9952d5bc71658cb9882",
+			"revisionTime": "2016-11-01T01:20:24Z"
+		},
+		{
+			"checksumSHA1": "S3SHc3cGIWRfQV6CvAHgbwLGR1Q=",
+			"path": "sevki.org/build/targets/build",
+			"revision": "a0b600e04e5799ecaa2ea9952d5bc71658cb9882",
+			"revisionTime": "2016-11-01T01:20:24Z"
+		},
+		{
+			"checksumSHA1": "kyZZgI7yLL9Q/R40eXY7Gpgzel4=",
+			"path": "sevki.org/build/targets/cc",
+			"revision": "a0b600e04e5799ecaa2ea9952d5bc71658cb9882",
+			"revisionTime": "2016-11-01T01:20:24Z"
+		},
+		{
+			"checksumSHA1": "XbLgoVSfeEvEwK0ckAmZUXtLvzE=",
+			"path": "sevki.org/build/targets/golang",
+			"revision": "a0b600e04e5799ecaa2ea9952d5bc71658cb9882",
+			"revisionTime": "2016-11-01T01:20:24Z"
+		},
+		{
+			"checksumSHA1": "3Hugm7PpsOYNqfm1zRPUjuNThDQ=",
+			"path": "sevki.org/build/targets/harvey",
+			"revision": "a0b600e04e5799ecaa2ea9952d5bc71658cb9882",
+			"revisionTime": "2016-11-01T01:20:24Z"
+		},
+		{
+			"checksumSHA1": "hIrKR0vemsuSNGKuT84ytuZBiWk=",
+			"path": "sevki.org/build/targets/yacc",
+			"revision": "a0b600e04e5799ecaa2ea9952d5bc71658cb9882",
+			"revisionTime": "2016-11-01T01:20:24Z"
+		},
+		{
+			"checksumSHA1": "+hH7cS5vhEavcgTfkG/sgrigZcM=",
+			"path": "sevki.org/build/term",
+			"revision": "a0b600e04e5799ecaa2ea9952d5bc71658cb9882",
+			"revisionTime": "2016-11-01T01:20:24Z"
+		},
+		{
+			"checksumSHA1": "TVohqosHHUK003T5q76tI83TFFk=",
+			"path": "sevki.org/build/token",
+			"revision": "a0b600e04e5799ecaa2ea9952d5bc71658cb9882",
+			"revisionTime": "2016-11-01T01:20:24Z"
+		},
+		{
+			"checksumSHA1": "kO+Nt97gL9IGCWTe6F6fdAnV/ck=",
+			"path": "sevki.org/build/util",
+			"revision": "a0b600e04e5799ecaa2ea9952d5bc71658cb9882",
+			"revisionTime": "2016-11-01T01:20:24Z"
+		},
+		{
+			"checksumSHA1": "nDC9kl8/Jo2HAfIPn41tOwC6Z6Y=",
+			"path": "sevki.org/lib/prettyprint",
+			"revision": "b652bcee4f34721dcb4fcba7910c5df988fd1b16",
+			"revisionTime": "2015-12-06T11:36:07Z"
+		}
+	],
+	"rootPath": "github.com/sevki/build"
+}
