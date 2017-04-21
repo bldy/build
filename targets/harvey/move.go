@@ -2,6 +2,10 @@ package harvey
 
 import (
 	"crypto/sha1"
+	"fmt"
+
+	"bldy.build/build/url"
+	"bldy.build/build/util"
 
 	"io"
 
@@ -25,7 +29,28 @@ func (m *Move) Build(c *build.Context) error {
 }
 
 func (m *Move) Installs() map[string]string {
-	return m.Exports
+	installs := make(map[string]string)
+	for _, d := range m.Dependencies {
+		u := url.Parse(d)
+
+		// Lets figure out where things go
+		// first the libraries
+		if len(u.Target) > 3 && u.Target[:3] == "lib" {
+			installs[fmt.Sprintf("%s/lib/%s.a", util.Getenv("ARCH"), u.Target)] = fmt.Sprintf("lib/%s.a", u.Target)
+			continue
+		}
+		// cmds next
+		a := "sys/src/cmd"
+		if u.Package == a {
+			installs[fmt.Sprintf("%s/bin/%s", util.Getenv("ARCH"), u.Target)] = fmt.Sprintf("bin/%s", u.Target)
+		}
+	}
+	// These are special cases, there is rightnow only 3 of them so
+	// it's realy not a problem to put them all here like this.
+	for k, v := range m.Exports {
+		installs[k] = v
+	}
+	return installs
 }
 
 func (m *Move) GetName() string {
