@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Package build defines build target and build context structures
-package build
+package build 
 
 import (
 	"bytes"

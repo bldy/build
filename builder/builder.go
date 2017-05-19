@@ -16,6 +16,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"sevki.org/pqueue"
+
 	"io/ioutil"
 
 	"strings"
@@ -49,7 +51,7 @@ type Builder struct {
 	Updates     chan *graph.Node
 	ptr         *graph.Node
 	graph       *graph.Graph
-	pq          *p
+	pq          *pqueue.PQueue
 }
 
 func New(g *graph.Graph) (c Builder) {
@@ -61,7 +63,7 @@ func New(g *graph.Graph) (c Builder) {
 	if err != nil {
 		l.Fatal(err)
 	}
-	c.pq = newP()
+	c.pq = pqueue.New()
 	c.graph = g
 	c.ProjectPath = project.Root()
 	return
@@ -186,13 +188,12 @@ func (b *Builder) build(ctx context.Context, n *graph.Node) (err error) {
 func (b *Builder) work(ctx context.Context, workerNumber int) {
 
 	for {
-		job := b.pq.pop()
+		job := b.pq.Pop().(*graph.Node)
 		job.Worker = fmt.Sprintf("%d", workerNumber)
 		if job.Status != build.Pending {
 			continue
 		}
 		job.Lock()
-		defer job.Unlock()
 
 		job.Status = build.Building
 
@@ -224,6 +225,7 @@ func (b *Builder) work(ctx context.Context, workerNumber int) {
 			close(b.Done)
 			return
 		}
+		defer job.Unlock()
 
 	}
 
@@ -238,8 +240,8 @@ func (b *Builder) visit(n *graph.Node) {
 	}
 
 	n.WG.Wait()
-	n.CountDependents()
-	b.pq.push(n)
+	n.Priority()
+	b.pq.Push(n)
 }
 
 func install(job *graph.Node) error {
