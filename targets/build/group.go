@@ -21,7 +21,7 @@ func (g *Group) Hash() []byte {
 	return []byte(g.Name)
 }
 
-func (g *Group) Build(c *build.Runner) error {
+func (g *Group) Build(e *build.Executor) error {
 	return nil
 }
 

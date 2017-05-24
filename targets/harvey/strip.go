@@ -41,11 +41,11 @@ func Stripper() string {
 		return fmt.Sprintf("%s%s", tpfx, "strip")
 	}
 }
-func (s *Strip) Build(c *build.Runner) error {
+func (s *Strip) Build(e *build.Executor) error {
 	params := []string{"-o"}
 	params = append(params, s.Name)
 	params = append(params, filepath.Join("bin", split(s.Dependencies[0], ":")))
-	if err := c.Exec(Stripper(), nil, params); err != nil {
+	if err := e.Exec(Stripper(), nil, params); err != nil {
 		return fmt.Errorf(err.Error())
 	}
 	return nil

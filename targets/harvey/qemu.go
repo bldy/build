@@ -46,7 +46,7 @@ func (q *Qemu) Hash() []byte {
 	return []byte{}
 }
 
-func (q *Qemu) Build(c *build.Runner) error {
+func (q *Qemu) Build(e *build.Executor) error {
 	system := "qemu-system-x86_64"
 	params := []string{"-s"} // shorthand for -gdb tcp::1234
 
@@ -102,7 +102,7 @@ func (q *Qemu) Build(c *build.Runner) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 
-	x := c.Run(ctx, system, nil, params)
+	x := e.Run(ctx, system, nil, params)
 	var wg sync.WaitGroup
 	stdIn, err := x.StdinPipe()
 	if err != nil {
@@ -121,7 +121,7 @@ func (q *Qemu) Build(c *build.Runner) error {
 	go func() {
 		scanner := bufio.NewScanner(stdErr)
 		for scanner.Scan() {
-			c.Println(scanner.Text())
+			e.Println(scanner.Text())
 		}
 	}()
 
@@ -136,13 +136,13 @@ func (q *Qemu) Build(c *build.Runner) error {
 				if string(data) == q.Prompt {
 					fmt.Printf("%d\n", len(q.Commands))
 					if len(q.Commands) == 0 {
-						c.Printf("%s\n", q.Prompt)
+						e.Printf("%s\n", q.Prompt)
 						wg.Done()
 						return len(data), dropCR(data), nil
 					} else {
 						cmd := q.Commands[0]
 						q.Commands = q.Commands[:1]
-						c.Printf("%s%s\n", q.Prompt, cmd)
+						e.Printf("%s%s\n", q.Prompt, cmd)
 						fmt.Printf("%s%s\n", q.Prompt, cmd)
 
 						fmt.Fprintf(stdIn, "%s\r\n", cmd)
@@ -167,7 +167,7 @@ func (q *Qemu) Build(c *build.Runner) error {
 
 		for scanner.Scan() {
 			line := scanner.Text()
-			c.Println(line)
+			e.Println(line)
 			fmt.Println(line)
 		}
 

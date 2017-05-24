@@ -48,14 +48,14 @@ func (cl *CLib) Hash() []byte {
 	)
 }
 
-func (cl *CLib) Build(c *build.Runner) error {
+func (cl *CLib) Build(e *build.Executor) error {
 	params := []string{"-c"}
 	params = append(params, cl.CompilerOptions...)
 	params = append(params, cl.LinkerOptions...)
 	params = append(params, cl.Includes.Includes()...)
 	params = append(params, cl.Sources...)
 
-	if err := c.Exec(Compiler(), CCENV, params); err != nil {
+	if err := e.Exec(Compiler(), CCENV, params); err != nil {
 		return fmt.Errorf(err.Error())
 	}
 
@@ -69,7 +69,7 @@ func (cl *CLib) Build(c *build.Runner) error {
 		params = append(params, fmt.Sprintf("%s.o", filename[:strings.LastIndex(filename, ".")]))
 	}
 
-	if err := c.Exec(Archiver(), CCENV, params); err != nil {
+	if err := e.Exec(Archiver(), CCENV, params); err != nil {
 		return fmt.Errorf(err.Error())
 	}
 

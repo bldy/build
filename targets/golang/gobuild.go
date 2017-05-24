@@ -37,8 +37,8 @@ func (g *GoBuild) Hash() []byte {
 	return h.Sum(nil)
 }
 
-func (g *GoBuild) Build(c *build.Runner) error {
-	if err := c.Mkdir("_obj/exe"); err != nil {
+func (g *GoBuild) Build(e *build.Executor) error {
+	if err := e.Mkdir("_obj/exe"); err != nil {
 		return fmt.Errorf("go mkdir: %s", err.Error())
 	}
 	cParams := []string{
@@ -49,7 +49,7 @@ func (g *GoBuild) Build(c *build.Runner) error {
 		"-pack",
 	}
 	cParams = append(cParams, g.Sources...)
-	if err := c.Exec("/home/sevki/code/golang/pkg/tool/linux_amd64/compile", nil, cParams); err != nil {
+	if err := e.Exec("/home/sevki/code/golang/pkg/tool/linux_amd64/compile", nil, cParams); err != nil {
 		return fmt.Errorf("go compile: %s", err.Error())
 	}
 
@@ -62,7 +62,7 @@ func (g *GoBuild) Build(c *build.Runner) error {
 		"-buildid", fmt.Sprintf("%x", g.Hash()),
 		fmt.Sprintf("%s.a", g.Name),
 	}
-	if err := c.Exec("/home/sevki/code/golang/pkg/tool/linux_amd64/link", nil, lParams); err != nil {
+	if err := e.Exec("/home/sevki/code/golang/pkg/tool/linux_amd64/link", nil, lParams); err != nil {
 		return fmt.Errorf("go link: %s", err.Error())
 	}
 	return nil

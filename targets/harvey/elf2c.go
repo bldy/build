@@ -41,10 +41,10 @@ func (etc *ElfToC) Hash() []byte {
 	return []byte{}
 }
 
-func (etc *ElfToC) Build(c *build.Runner) error {
+func (etc *ElfToC) Build(e *build.Executor) error {
 	fileName := ""
 
-	if xf, err := c.Open(etc.Elf); err != nil {
+	if xf, err := e.Open(etc.Elf); err != nil {
 		return fmt.Errorf("open couldn't find %s: %s", etc.Elf, err.Error())
 	} else {
 		fileName = xf.Name()
@@ -63,7 +63,7 @@ func (etc *ElfToC) Build(c *build.Runner) error {
 		if v.Type != elf.PT_LOAD {
 			continue
 		}
-		c.Printf("processing %v\n", v)
+		e.Printf("processing %v\n", v)
 		// MUST alignt to 2M page boundary.
 		// then MUST allocate a []byte that
 		// is the right size. And MUST
@@ -76,7 +76,7 @@ func (etc *ElfToC) Build(c *build.Runner) error {
 
 		curstart := v.Vaddr & ^uint64(0xfff) // 0x1fffff)
 		curend := v.Vaddr + v.Memsz
-		c.Printf("s %x e %x\n", curstart, curend)
+		e.Printf("s %x e %x\n", curstart, curend)
 		if curend > end {
 			nmem := make([]byte, curend)
 			copy(nmem, mem)
@@ -93,7 +93,7 @@ func (etc *ElfToC) Build(c *build.Runner) error {
 			if curend > codeend {
 				codeend = curend
 			}
-			c.Printf("code s %v e %v\n", codestart, codeend)
+			e.Printf("code s %v e %v\n", codestart, codeend)
 		} else {
 			if curstart < datastart {
 				datastart = curstart
@@ -101,30 +101,30 @@ func (etc *ElfToC) Build(c *build.Runner) error {
 			if curend > dataend {
 				dataend = curend
 			}
-			c.Printf("data s %v e %v\n", datastart, dataend)
+			e.Printf("data s %v e %v\n", datastart, dataend)
 		}
 		for i := uint64(0); i < v.Filesz; i++ {
 			if amt, err := v.ReadAt(mem[v.Vaddr+i:], int64(i)); err != nil && err != io.EOF {
 				err := fmt.Errorf("%v: %v\n", amt, err)
-				c.Println(err)
+				e.Println(err)
 				return err
 			} else if amt == 0 {
 				if i < v.Filesz {
 					err := fmt.Errorf("%v: Short read: %v of %v\n", v, i, v.Filesz)
-					c.Println(err)
+					e.Println(err)
 					return err
 				}
 				break
 			} else {
 				i = i + uint64(amt)
-				c.Printf("i now %d\n", i)
+				e.Printf("i now %d\n", i)
 			}
 		}
-		c.Printf("Processed %v\n", v)
+		e.Printf("Processed %v\n", v)
 	}
-	c.Printf("gencode\n")
+	e.Printf("gencode\n")
 	// Gen code to stdout. For each file, create an array, a start, and an end variable.
-	outfile, err := c.Create(fmt.Sprintf("%s.h", etc.Name))
+	outfile, err := e.Create(fmt.Sprintf("%s.h", etc.Name))
 	if err != nil {
 		return err
 	}

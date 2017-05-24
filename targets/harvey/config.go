@@ -55,7 +55,7 @@ func (k *Config) Hash() []byte {
 	return h.Sum(nil)
 }
 
-func (k *Config) Build(c *build.Runner) error {
+func (k *Config) Build(e *build.Executor) error {
 
 	var rootcodes []string
 	var rootnames []string
@@ -68,7 +68,7 @@ func (k *Config) Build(c *build.Runner) error {
 				break
 			}
 		}
-		code, err := data2c(name, path, c)
+		code, err := data2c(name, path, e)
 
 		if err != nil {
 			return err
@@ -79,7 +79,7 @@ func (k *Config) Build(c *build.Runner) error {
 	}
 	for _, p := range k.RamFiles {
 		name := filepath.Base(p)
-		code, err := data2c(name, p, c)
+		code, err := data2c(name, p, e)
 
 		if err != nil {
 			return err
@@ -100,7 +100,7 @@ func (k *Config) Build(c *build.Runner) error {
 		rootcodes,
 	}
 	tmpl := template.Must(template.New("kernconf").Parse(kernconfTmpl))
-	f, err := c.Create(path)
+	f, err := e.Create(path)
 	if err != nil {
 		return nil
 	}
@@ -124,12 +124,12 @@ func (k *Config) GetDependencies() []string {
 }
 
 // data2c takes the file at path and creates a C byte array containing it.
-func data2c(name string, path string, c *build.Runner) (string, error) {
+func data2c(name string, path string, e *build.Executor) (string, error) {
 	var out []byte
 	var in []byte
 	var file *os.File
 	var err error
-	if file, err = c.Open(path); err != nil {
+	if file, err = e.Open(path); err != nil {
 		return "", fmt.Errorf("open couldn't find %s: %s", path, err.Error())
 
 	}

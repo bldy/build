@@ -56,16 +56,16 @@ func (y *Yacc) Hash() []byte {
 	return h.Sum(nil)
 }
 
-func (y *Yacc) Build(c *build.Runner) error {
+func (y *Yacc) Build(e *build.Executor) error {
 
 	params := []string{}
 	params = append(params, y.YaccOptions...)
 	params = append(params, y.Sources...)
 
-	c.Println(strings.Join(append([]string{"yacc"}, params...), " "))
+	e.Println(strings.Join(append([]string{"yacc"}, params...), " "))
 
-	if err := c.Exec("yacc", nil, params); err != nil {
-		c.Println(err.Error())
+	if err := e.Exec("yacc", nil, params); err != nil {
+		e.Println(err.Error())
 		return fmt.Errorf(y.buf.String())
 	}
 

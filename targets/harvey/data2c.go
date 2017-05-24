@@ -34,9 +34,9 @@ func (dtc *DataToC) Hash() []byte {
 	return []byte{}
 }
 
-func (dtc *DataToC) Build(c *build.Runner) error {
+func (dtc *DataToC) Build(e *build.Executor) error {
 
-	inFile, err := c.Open(dtc.Bin)
+	inFile, err := e.Open(dtc.Bin)
 	if err != nil {
 		return err
 	}
@@ -47,7 +47,7 @@ func (dtc *DataToC) Build(c *build.Runner) error {
 	}
 
 	total := len(in)
-	out, err := c.Create(fmt.Sprintf("%s.c", dtc.Name))
+	out, err := e.Create(fmt.Sprintf("%s.c", dtc.Name))
 
 	if err != nil {
 		return err
