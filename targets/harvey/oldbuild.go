@@ -40,10 +40,10 @@ func (s *OldBuild) Hash() []byte {
 func oldbuild() string {
 	return path.Join(os.Getenv("HARVEY"), "util/build")
 }
-func (s *OldBuild) Build(c *build.Context) error {
+func (s *OldBuild) Build(e *build.Executor) error {
 	params := []string{s.Package}
 
-	if err := c.Exec(oldbuild(), nil, params); err != nil {
+	if err := e.Exec(oldbuild(), nil, params); err != nil {
 		return fmt.Errorf(err.Error())
 	}
 	return nil

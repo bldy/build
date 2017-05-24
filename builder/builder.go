@@ -6,6 +6,7 @@ package builder
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"log"
@@ -14,6 +15,8 @@ import (
 	"path"
 	"path/filepath"
 	"time"
+
+	"sevki.org/pqueue"
 
 	"io/ioutil"
 
@@ -48,7 +51,7 @@ type Builder struct {
 	Updates     chan *graph.Node
 	ptr         *graph.Node
 	graph       *graph.Graph
-	pq          *p
+	pq          *pqueue.PQueue
 }
 
 func New(g *graph.Graph) (c Builder) {
@@ -60,7 +63,7 @@ func New(g *graph.Graph) (c Builder) {
 	if err != nil {
 		l.Fatal(err)
 	}
-	c.pq = newP()
+	c.pq = pqueue.New()
 	c.graph = g
 	c.ProjectPath = project.Root()
 	return
@@ -79,27 +82,23 @@ func bldyCache() string {
 	return path.Join(usr.HomeDir, "/.cache/bldy")
 }
 
-func (b *Builder) Execute(d time.Duration, r int) {
+func (b *Builder) Execute(ctx context.Context, r int) {
 
 	for i := 0; i < r; i++ {
-		go b.work(i)
+		go b.work(ctx, i)
 	}
 
-	go func() {
-		if d > 0 {
-			time.Sleep(d)
-			b.Timeout <- true
-		}
-	}()
 	if b.graph == nil {
 		l.Fatal("Couldn't find the build graph")
 	}
 	b.visit(b.graph.Root)
 }
 
-func (b *Builder) build(n *graph.Node) (err error) {
-	var buildErr error
-
+func (b *Builder) build(ctx context.Context, n *graph.Node) (err error) {
+	buildErr := ctx.Err()
+	if err != nil {
+		return err
+	}
 	nodeHash := fmt.Sprintf("%s-%x", n.Target.GetName(), n.HashNode())
 	outDir := filepath.Join(
 		BLDYCACHE,
@@ -155,10 +154,10 @@ func (b *Builder) build(n *graph.Node) (err error) {
 		}
 	}
 
-	context := build.NewContext(outDir)
+	runner := build.NewRunner(ctx, outDir)
 	n.Start = time.Now().UnixNano()
 
-	buildErr = n.Target.Build(context)
+	buildErr = n.Target.Build(runner)
 	n.End = time.Now().UnixNano()
 
 	logName := FAILLOG
@@ -168,7 +167,7 @@ func (b *Builder) build(n *graph.Node) (err error) {
 	if logFile, err := os.Create(filepath.Join(outDir, logName)); err != nil {
 		l.Fatalf("error creating log for %s: %s", n.Target.GetName(), err.Error())
 	} else {
-		log := context.Log()
+		log := runner.Log()
 		buf := bytes.Buffer{}
 		for _, logEntry := range log {
 			buf.WriteString(logEntry.String())
@@ -186,21 +185,20 @@ func (b *Builder) build(n *graph.Node) (err error) {
 	return buildErr
 }
 
-func (b *Builder) work(workerNumber int) {
+func (b *Builder) work(ctx context.Context, workerNumber int) {
 
 	for {
-		job := b.pq.pop()
+		job := b.pq.Pop().(*graph.Node)
 		job.Worker = fmt.Sprintf("%d", workerNumber)
 		if job.Status != build.Pending {
 			continue
 		}
 		job.Lock()
-		defer job.Unlock()
 
 		job.Status = build.Building
 
 		b.Updates <- job
-		buildErr := b.build(job)
+		buildErr := b.build(ctx, job)
 
 		if buildErr != nil {
 			job.Status = build.Fail
@@ -227,6 +225,7 @@ func (b *Builder) work(workerNumber int) {
 			close(b.Done)
 			return
 		}
+		defer job.Unlock()
 
 	}
 
@@ -241,8 +240,8 @@ func (b *Builder) visit(n *graph.Node) {
 	}
 
 	n.WG.Wait()
-	n.CountDependents()
-	b.pq.push(n)
+	n.Priority()
+	b.pq.Push(n)
 }
 
 func install(job *graph.Node) error {

@@ -44,15 +44,15 @@ func (ct *CTest) Hash() []byte {
 	return h.Sum(nil)
 }
 
-func (ct *CTest) Build(c *build.Context) error {
-	c.Println(prettyprint.AsJSON(ct))
+func (ct *CTest) Build(e *build.Executor) error {
+	e.Println(prettyprint.AsJSON(ct))
 	params := []string{"-c"}
 	params = append(params, ct.CompilerOptions...)
 	params = append(params, ct.Sources...)
 
 	params = append(params, ct.Includes.Includes()...)
 
-	if err := c.Exec(Compiler(), CCENV, params); err != nil {
+	if err := e.Exec(Compiler(), CCENV, params); err != nil {
 		return fmt.Errorf(err.Error())
 	}
 
@@ -96,12 +96,12 @@ func (ct *CTest) Build(c *build.Context) error {
 		}
 	}
 
-	if err := c.Exec(Linker(), CCENV, ldparams); err != nil {
+	if err := e.Exec(Linker(), CCENV, ldparams); err != nil {
 		return fmt.Errorf(err.Error())
 	}
 	if ct.Strip {
 		sparams := []string{"-o", ct.Name, ct.Name}
-		if err := c.Exec(Stripper(), nil, sparams); err != nil {
+		if err := e.Exec(Stripper(), nil, sparams); err != nil {
 			return fmt.Errorf(err.Error())
 		}
 	}

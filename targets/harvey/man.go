@@ -30,7 +30,7 @@ func (mp *ManPage) Hash() []byte {
 	return []byte{}
 }
 
-func (mp *ManPage) Build(c *build.Context) error {
+func (mp *ManPage) Build(e *build.Executor) error {
 	for _, m := range mp.Sources {
 		params := []string{"<"}
 		params = append(params, m)
@@ -38,9 +38,9 @@ func (mp *ManPage) Build(c *build.Context) error {
 		params = append(params, ">")
 		params = append(params, fmt.Sprintf("%s.html", m))
 
-		c.Println(strings.Join(append([]string{"man2html"}, params...), " "))
+		e.Println(strings.Join(append([]string{"man2html"}, params...), " "))
 
-		if err := c.Exec("man2html", nil, params); err != nil {
+		if err := e.Exec("man2html", nil, params); err != nil {
 			return err
 		}
 	}

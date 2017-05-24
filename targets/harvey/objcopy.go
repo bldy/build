@@ -45,7 +45,7 @@ func Copier() string {
 		return fmt.Sprintf("%s%s", tpfx, "objcopy")
 	}
 }
-func (oc *ObjCopy) Build(c *build.Context) error {
+func (oc *ObjCopy) Build(e *build.Executor) error {
 	params := []string{}
 	params = append(params, "-I")
 	params = append(params, oc.In)
@@ -53,7 +53,7 @@ func (oc *ObjCopy) Build(c *build.Context) error {
 	params = append(params, oc.Out)
 	params = append(params, filepath.Join("bin", split(oc.Dependencies[0], ":")))
 	params = append(params, oc.Name)
-	if err := c.Exec(Copier(), nil, params); err != nil {
+	if err := e.Exec(Copier(), nil, params); err != nil {
 		return fmt.Errorf(err.Error())
 	}
 	return nil

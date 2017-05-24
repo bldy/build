@@ -56,8 +56,8 @@ func (s *USB) Installs() map[string]string {
 	return installs
 }
 
-func (s *USB) Build(c *build.Context) error {
-	f, err := c.Open(s.Conf)
+func (s *USB) Build(e *build.Executor) error {
+	f, err := e.Open(s.Conf)
 	if err != nil {
 		return err
 	}
@@ -72,7 +72,7 @@ func (s *USB) Build(c *build.Context) error {
 		return err
 	}
 	fileOut := fmt.Sprintf("%s.c", s.Name)
-	out, err := c.Create(fileOut)
+	out, err := e.Create(fileOut)
 	if err != nil {
 		return err
 	}

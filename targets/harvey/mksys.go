@@ -136,9 +136,9 @@ func (mkSys *MkSys) GetDependencies() []string {
 	return mkSys.Dependencies
 }
 
-func (mkSys *MkSys) Build(c *build.Context) error {
+func (mkSys *MkSys) Build(e *build.Executor) error {
 
-	c.Println(prettyprint.AsJSON(mkSys))
+	e.Println(prettyprint.AsJSON(mkSys))
 
 	sysconf, err := mkSys.readSysconf()
 	if err != nil {
@@ -160,14 +160,14 @@ func (mkSys *MkSys) Build(c *build.Context) error {
 		}
 	}
 
-	outfile, err := c.Create(mkSys.Mode)
+	outfile, err := e.Create(mkSys.Mode)
 	if err != nil {
 		return err
 	}
 	switch mkSys.Mode {
 	case "sys_harvey.s":
 		if mkSys.ARCH != "amd64" {
-			c.Println("ARCH unsupported or not set")
+			e.Println("ARCH unsupported or not set")
 		}
 		syscallargs := []string{"DI", "SI", "DX", "R10", "R8", "R9"}
 		//funcallregs := []string{ "DI", "SI", "DX", "CX", "R8", "R9" };
@@ -240,7 +240,7 @@ TEXT runtime·{{ .Libname }}(SB),NOSPLIT,$0
 
 		for i := range syscalls {
 
-			file, err := c.Create(syscalls[i].Libname + ".s")
+			file, err := e.Create(syscalls[i].Libname + ".s")
 			if err != nil {
 				return err
 			}

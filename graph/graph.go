@@ -28,20 +28,20 @@ var (
 
 // Node encapsulates a target and represents a node in the build graph.
 type Node struct {
-	IsRoot     bool         `json:"-"`
-	Target     build.Target `json:"-"`
-	Type       string
-	Parents    map[string]*Node `json:"-"`
-	URL        url.URL
-	Worker     string
-	Priority   int
-	WG         sync.WaitGroup
-	Status     build.Status
-	Cached     bool
-	Start, End int64
-	Hash       string
-	Output     string `json:"-"`
-	Once       sync.Once
+	IsRoot        bool         `json:"-"`
+	Target        build.Target `json:"-"`
+	Type          string
+	Parents       map[string]*Node `json:"-"`
+	URL           url.URL
+	Worker        string
+	PriorityCount int
+	WG            sync.WaitGroup
+	Status        build.Status
+	Cached        bool
+	Start, End    int64
+	Hash          string
+	Output        string `json:"-"`
+	Once          sync.Once
 	sync.Mutex
 	Children map[string]*Node
 	hash     []byte
@@ -67,15 +67,15 @@ func New(wd, target string) *Graph {
 
 // CountDependents counts how many nodes directly and indirectly depend on
 // this node
-func (n *Node) CountDependents() int {
-	if n.Priority < 0 {
+func (n *Node) Priority() int {
+	if n.PriorityCount < 0 {
 		p := 0
 		for _, c := range n.Parents {
-			p += c.CountDependents() + 1
+			p += c.Priority() + 1
 		}
-		n.Priority = p
+		n.PriorityCount = p
 	}
-	return n.Priority
+	return n.PriorityCount
 }
 
 func (g *Graph) getTarget(u url.URL) (n *Node) {
@@ -100,7 +100,7 @@ func (g *Graph) getTarget(u url.URL) (n *Node) {
 		WG:       sync.WaitGroup{},
 		Status:   build.Pending,
 		URL:      xu,
-		Priority: -1,
+		PriorityCount: -1,
 	}
 
 	post := postprocessor.New(u.Package)

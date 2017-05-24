@@ -27,12 +27,12 @@ func (g *GenRule) Hash() []byte {
 	return []byte{}
 }
 
-func (g *GenRule) Build(c *build.Context) error {
+func (g *GenRule) Build(e *build.Executor) error {
 	for _, cmd := range g.Commands {
 		strs := strings.Split(cmd, " ")
 
-		if err := c.Exec(strs[0], nil, strs[1:]); err != nil {
-			c.Println(err.Error())
+		if err := e.Exec(strs[0], nil, strs[1:]); err != nil {
+			e.Println(err.Error())
 			return err
 		}
 	}

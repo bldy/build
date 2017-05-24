@@ -50,14 +50,14 @@ func (cb *CBin) Hash() []byte {
 	)
 }
 
-func (cb *CBin) Build(c *build.Context) error {
+func (cb *CBin) Build(e *build.Executor) error {
 	params := []string{"-c"}
 	params = append(params, cb.CompilerOptions...)
 	params = append(params, cb.Sources...)
 
 	params = append(params, cb.Includes.Includes()...)
 
-	if err := c.Exec(Compiler(), CCENV, params); err != nil {
+	if err := e.Exec(Compiler(), CCENV, params); err != nil {
 		return err
 	}
 
@@ -101,12 +101,12 @@ func (cb *CBin) Build(c *build.Context) error {
 		}
 	}
 
-	if err := c.Exec(Linker(), CCENV, ldparams); err != nil {
+	if err := e.Exec(Linker(), CCENV, ldparams); err != nil {
 		return err
 	}
 	if cb.Strip {
 		sparams := []string{"-o", cb.Name, cb.Name}
-		if err := c.Exec(Stripper(), nil, sparams); err != nil {
+		if err := e.Exec(Stripper(), nil, sparams); err != nil {
 			return err
 		}
 	}
