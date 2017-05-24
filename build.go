@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Package build defines build target and build context structures
-package build 
+package build
 
 import (
 	"bytes"
@@ -29,22 +29,22 @@ type Target interface {
 	GetDependencies() []string
 
 	Hash() []byte
-	Build(*Runner) error
+	Build(*Executor) error
 	Installs() map[string]string
 }
 
 // Runner defines the envinroment in which a target will be built, it
 // provide helper functions for shelling out without having to worry
 // about stdout or stderr outputs.
-type Runner struct {
+type Executor struct {
 	ctx context.Context
 	wd  string
 	run []*Run
 	log []fmt.Stringer
 }
 
-func (r *Runner) Context() context.Context {
-	return r.ctx
+func (e *Executor) Context() context.Context {
+	return e.ctx
 }
 
 type Run struct {
@@ -73,70 +73,70 @@ type Message string
 func (m Message) String() string {
 	return string(m)
 }
-func (r *Runner) RunCmds() []*Run {
-	return r.run
+func (e *Executor) RunCmds() []*Run {
+	return e.run
 }
 
-func (r *Runner) Log() []fmt.Stringer {
-	return r.log
+func (e *Executor) Log() []fmt.Stringer {
+	return e.log
 }
 
 // NewContext initializes and returns a new build.Context
-func NewRunner(ctx context.Context, dir string) *Runner {
-	return &Runner{
+func NewRunner(ctx context.Context, dir string) *Executor {
+	return &Executor{
 		wd:  dir,
 		ctx: ctx,
 	}
 }
 
-func (r *Runner) Printf(format string, v ...interface{}) {
-	r.log = append(r.log, Message(fmt.Sprintf(format, v...)))
+func (e *Executor) Printf(format string, v ...interface{}) {
+	e.log = append(e.log, Message(fmt.Sprintf(format, v...)))
 }
 
-func (r *Runner) Println(v ...interface{}) {
-	r.log = append(r.log, Message(fmt.Sprintln(v...)))
+func (e *Executor) Println(v ...interface{}) {
+	e.log = append(e.log, Message(fmt.Sprintln(v...)))
 }
 
 // Exec executes a command writing it's outputs to the context
-func (r *Runner) Exec(cmd string, env, args []string) error {
+func (e *Executor) Exec(cmd string, env, args []string) error {
 	run := Run{
 		At:   time.Now(),
 		Cmd:  cmd,
 		Args: args,
 		Env:  env,
 	}
-	x := exec.CommandContext(r.ctx, cmd, args...)
-	x.Dir = r.wd
+	x := exec.CommandContext(e.ctx, cmd, args...)
+	x.Dir = e.wd
 	x.Env = env
 	run.Output, run.Err = x.CombinedOutput()
-	r.run = append(r.run, &run)
-	r.log = append(r.log, &run)
+	e.run = append(e.run, &run)
+	e.log = append(e.log, &run)
 	return run.Err
 }
 
 // Run executes a command writing it's outputs to the context
-func (r *Runner) Run(ctx context.Context, cmd string, env, params []string) *exec.Cmd {
+func (e *Executor) Run(ctx context.Context, cmd string, env, params []string) *exec.Cmd {
 	x := exec.CommandContext(ctx, cmd, params...)
 
-	x.Dir = r.wd
+	x.Dir = e.wd
 	x.Env = env
 	return x
 }
 
 // Create creates and returns a new file with the given name in the context
-func (r *Runner) Create(name string) (*os.File, error) {
+func (r *Executor) Create(name string) (*os.File, error) {
 	return os.Create(filepath.Join(r.wd, name))
 }
 
 // Open creates and returns a new file with the given name in the context
-func (r *Runner) Open(name string) (*os.File, error) {
+func (r *Executor) Open(name string) (*os.File, error) {
 	if filepath.IsAbs(name) {
 		return os.Open(name)
 	}
 	return os.Open(filepath.Join(r.wd, name))
 }
 
-func (r *Runner) Mkdir(name string) error {
+func (r *Executor) Mkdir(name string) error {
 	return os.MkdirAll(filepath.Join(r.wd, name), os.ModeDir|os.ModePerm)
 }
 
