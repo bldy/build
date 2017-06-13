@@ -15,10 +15,10 @@ import (
 
 type CBin struct {
 	Name            string        `cxx_binary:"name" cc_binary:"name"`
-	Sources         []string      `cxx_binary:"srcs" cc_binary:"srcs" build:"path"`
+	Sources         []string      `cxx_binary:"srcs" cc_binary:"srcs" build:"path" ext:".c,.S,.cpp,.cc"`
 	Dependencies    []string      `cxx_binary:"deps" cc_binary:"deps"`
-	Includes        Includes      `cxx_binary:"headers" cc_binary:"includes" build:"path"`
-	Headers         []string      `cxx_binary:"exported_headers" cc_binary:"hdrs" build:"path"`
+	Includes        Includes      `cxx_binary:"headers" cc_binary:"includes" build:"path" ext:".h,.c,.S"`
+	Headers         []string      `cxx_binary:"exported_headers" cc_binary:"hdrs" build:"path" ext:".h,.hh,.hpp"`
 	CompilerOptions CompilerFlags `cxx_binary:"compiler_flags" cc_binary:"copts"`
 	LinkerOptions   []string      `cxx_binary:"linker_flags" cc_binary:"linkopts"`
 	LinkerFile      string        `cxx_binary:"ld" cc_binary:"ld" build:"path"`
