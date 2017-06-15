@@ -9,6 +9,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"path"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -114,6 +115,7 @@ func HashFilesForExt(files []string, ext string) []byte {
 }
 
 func hashFiles(files []string, exts []string) []byte {
+
 	var dst []byte
 	for _, file := range files {
 		if !filepath.IsAbs(file) {
@@ -122,12 +124,16 @@ func hashFiles(files []string, exts []string) []byte {
 		if filepath.Base(file) == project.BuildOut() {
 			continue
 		}
+		stat, err := os.Stat(file)
+		if err != nil {
+			log.Fatalf("stating file %q: %s\n", file, err.Error())
+		}
 
+		fileExt := filepath.Ext(file)
 		// Is there a extension filter?
-		if len(exts) > 0 {
+		if !stat.IsDir() && len(exts) > 0 {
 			validExtension := false
 			for _, ext := range exts {
-				fileExt := filepath.Ext(file)
 				if fileExt == ext {
 					validExtension = true
 				}
@@ -136,6 +142,7 @@ func hashFiles(files []string, exts []string) []byte {
 				continue
 			}
 		}
+
 		var tmp []byte
 		if h, cached := hashCache.get(file); cached {
 			tmp = h
@@ -144,10 +151,13 @@ func hashFiles(files []string, exts []string) []byte {
 			if err != nil {
 				log.Fatalf("hash files: %s\n", err.Error())
 			}
-			stat, _ := f.Stat()
 			if stat.IsDir() {
 				fs, _ := f.Readdirnames(-1)
 				f.Close()
+				for i, s := range fs {
+					fs[i] = path.Join(file, s)
+				}
+
 				tmp = hashFiles(fs, exts)
 			} else {
 				tmp = hashFile(f)
@@ -183,7 +193,11 @@ func HashTarget(target build.Target) []byte {
 			continue
 		}
 		extTag := field.Tag.Get("ext")
-		dst = XOR(dst, hashPath(val.Field(i), strings.Split(extTag, ",")))
+		splitTags := []string{}
+		if extTag != "" {
+			splitTags = strings.Split(extTag, ",")
+		}
+		dst = XOR(dst, hashPath(val.Field(i), splitTags))
 	}
 
 	dst = XOR(dst, hashValue(val))

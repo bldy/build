@@ -6,20 +6,20 @@ package racy
 
 import (
 	"bytes"
+	"io/ioutil"
+	"log"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"bldy.build/build"
 )
 
+// regular target
 type testTarget struct {
 	Name         string
 	Dependencies []string
 	Srcs         []string
-}
-type testTargetWithPath struct {
-	Name         string
-	Dependencies []string
-	Srcs         []string `build:"path"`
 }
 
 func (t *testTarget) GetName() string { return "" }
@@ -31,7 +31,15 @@ func (t *testTarget) Hash() []byte { return nil }
 func (t *testTarget) Build(*build.Executor) error { return nil }
 
 func (t *testTarget) Installs() map[string]string { return nil }
-func (t *testTargetWithPath) GetName() string     { return "" }
+
+// target with path
+type testTargetWithPath struct {
+	Name         string
+	Dependencies []string
+	Srcs         []string `build:"path"`
+}
+
+func (t *testTargetWithPath) GetName() string { return "" }
 
 func (t *testTargetWithPath) GetDependencies() []string { return nil }
 
@@ -40,6 +48,23 @@ func (t *testTargetWithPath) Hash() []byte { return nil }
 func (t *testTargetWithPath) Build(*build.Executor) error { return nil }
 
 func (t *testTargetWithPath) Installs() map[string]string { return nil }
+
+// With path and extensions
+type testTargetWithPathAndExt struct {
+	Name         string
+	Dependencies []string
+	Srcs         []string `build:"path" ext:".c"`
+}
+
+func (t *testTargetWithPathAndExt) GetName() string { return "" }
+
+func (t *testTargetWithPathAndExt) GetDependencies() []string { return nil }
+
+func (t *testTargetWithPathAndExt) Hash() []byte { return nil }
+
+func (t *testTargetWithPathAndExt) Build(*build.Executor) error { return nil }
+
+func (t *testTargetWithPathAndExt) Installs() map[string]string { return nil }
 
 func TestHashTarget(t *testing.T) {
 	testTarg := &testTarget{
@@ -53,6 +78,20 @@ func TestHashTarget(t *testing.T) {
 }
 
 func TestHashesForDifferent(t *testing.T) {
+	dir, _ := ioutil.TempDir("", "racy_tests")
+	defer os.RemoveAll(dir)
+	for name, content := range map[string]string{
+		"hello.c": "#include bla",
+		"hello.h": "#define __HELLO_",
+	} {
+		tmpfn := filepath.Join(dir, name)
+
+		if err := ioutil.WriteFile(tmpfn, []byte(content), 0666); err != nil {
+			log.Fatal(err)
+		}
+
+	}
+
 	tests := []struct {
 		name string
 		a, b build.Target
@@ -81,14 +120,26 @@ func TestHashesForDifferent(t *testing.T) {
 			comp: 0,
 		},
 		{
-			name: "targets",
+			name: "files",
 			a: &testTarget{
 				Name: "foo",
-				Srcs: []string{"/etc/hosts"},
+				Srcs: []string{dir},
 			},
 			b: &testTargetWithPath{
 				Name: "foo",
-				Srcs: []string{"/etc/hosts"},
+				Srcs: []string{dir},
+			},
+			comp: 0,
+		},
+		{
+			name: "filesWithExts",
+			a: &testTargetWithPath{
+				Name: "foo",
+				Srcs: []string{dir},
+			},
+			b: &testTargetWithPathAndExt{
+				Name: "foo",
+				Srcs: []string{dir},
 			},
 			comp: 0,
 		},
