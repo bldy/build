@@ -204,7 +204,7 @@ func (b *Builder) work(ctx context.Context, workerNumber int) {
 			job.Status = build.Fail
 			b.Updates <- job
 			b.Error <- buildErr
-
+			return
 		} else {
 			job.Status = build.Success
 
