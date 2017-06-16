@@ -68,7 +68,6 @@ func (pp *PostProcessor) ProcessDependencies(t build.Target) error {
 // ProcesPaths takes paths relative to the target and absolutes them,
 // unless they are going to be exported in to the target folder from a dependency.
 func (pp *PostProcessor) ProcessPaths(t build.Target, deps []build.Target) error {
-
 	v := reflect.ValueOf(t)
 
 	r := reflect.TypeOf(t).Elem()

@@ -15,19 +15,6 @@ import (
 
 var fc = make(chan string)
 
-func init() {
-	go func() {
-		file, _ := os.Create("/tmp/files.txt")
-		for {
-			select {
-			case f := <-fc:
-				fmt.Fprintln(file, f)
-			}
-		}
-
-	}()
-}
-
 // HashFiles will hash files collecetion represented as a string array,
 // If the string in the array is directory it will the directory contents to the array
 // if the string isn't an absolute path, it will assume that it's a export from a dependency
@@ -37,7 +24,6 @@ func HashFiles(h io.Writer, files []string) {
 		if !filepath.IsAbs(fyl) {
 			continue
 		}
-		fc <- fyl
 	}
 	fsm := files
 RESTART:
@@ -122,11 +108,5 @@ RESTART:
 		n, _ := io.Copy(h, f)
 		fmt.Fprintf(h, "%d bytes\n", n)
 		f.Close()
-	}
-}
-
-func HashStrings(h io.Writer, strs []string) {
-	for _, str := range strs {
-		io.WriteString(h, str)
 	}
 }

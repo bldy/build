@@ -19,10 +19,10 @@ import (
 
 type CLib struct {
 	Name            string        `cxx_library:"name" cc_library:"name"`
-	Sources         []string      `cxx_library:"srcs" cc_library:"srcs" build:"path"`
+	Sources         []string      `cxx_library:"srcs" cc_library:"srcs" build:"path" ext:".c,.S,.cpp,.cc"`
 	Dependencies    []string      `cxx_library:"deps" cc_library:"deps"`
-	Includes        Includes      `cxx_library:"headers" cc_library:"includes" build:"path"`
-	Headers         []string      `cxx_library:"exported_headers" cc_library:"hdrs" build:"path"`
+	Includes        Includes      `cxx_library:"headers" cc_library:"includes" build:"path" ext:".h,.c,.S"`
+	Headers         []string      `cxx_library:"exported_headers" cc_library:"hdrs" build:"path" ext:".h,.c,.S"`
 	CompilerOptions CompilerFlags `cxx_library:"compiler_flags" cc_library:"copts"`
 	LinkerOptions   []string      `cxx_library:"linker_flags" cc_library:"linkopts"`
 	LinkStatic      bool          `cxx_library:"linkstatic" cc_library:"linkstatic"`

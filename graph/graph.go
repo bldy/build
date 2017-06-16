@@ -9,15 +9,12 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"sort"
-	"strings"
 
 	"sync"
 
 	"bldy.build/build"
 	"bldy.build/build/blaze"
-	"bldy.build/build/blaze/postprocessor"
-	"bldy.build/build/racy"
+	"bldy.build/build/postprocessor"
 	bldytrg "bldy.build/build/targets/build"
 	"bldy.build/build/url"
 )
@@ -92,14 +89,14 @@ func (g *Graph) getTarget(u url.URL) (n *Node) {
 	}
 
 	node := Node{
-		Target:   t,
-		Type:     fmt.Sprintf("%T", t)[1:],
-		Children: make(map[string]*Node),
-		Parents:  make(map[string]*Node),
-		Once:     sync.Once{},
-		WG:       sync.WaitGroup{},
-		Status:   build.Pending,
-		URL:      xu,
+		Target:        t,
+		Type:          fmt.Sprintf("%T", t)[1:],
+		Children:      make(map[string]*Node),
+		Parents:       make(map[string]*Node),
+		Once:          sync.Once{},
+		WG:            sync.WaitGroup{},
+		Status:        build.Pending,
+		URL:           xu,
 		PriorityCount: -1,
 	}
 
@@ -144,34 +141,4 @@ func (g *Graph) getTarget(u url.URL) (n *Node) {
 		l.Fatalf("target name %q and url target %q don't match", t.GetName(), u.Target)
 	}
 	return n
-}
-
-// HashNode calculates the hash of a node
-func (n *Node) HashNode() []byte {
-
-	// node hashes should not change after a build,
-	// they should be deterministic, therefore they can and should be cached.
-	if len(n.hash) > 0 {
-		return n.hash
-	}
-	n.hash = n.Target.Hash()
-	var bn ByName
-	for _, e := range n.Children {
-		bn = append(bn, e)
-	}
-	sort.Sort(bn)
-	for _, e := range bn {
-		n.hash = racy.XOR(e.HashNode(), n.hash)
-	}
-	n.Hash = fmt.Sprintf("%x", n.hash)
-	return n.hash
-}
-
-// ByName sorts dependencies by name so we can have reproduceable builds.
-type ByName []*Node
-
-func (a ByName) Len() int      { return len(a) }
-func (a ByName) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
-func (a ByName) Less(i, j int) bool {
-	return strings.Compare(a[i].Target.GetName(), a[j].Target.GetName()) > 0
 }

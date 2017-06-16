@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 
 package racy // import "bldy.build/build/racy"
+import "bytes"
 
 func XORBytes(a, b []byte) []byte {
 	n := len(a)
@@ -20,14 +21,23 @@ func XOR(hs ...[]byte) []byte {
 	if len(hs) == 1 {
 		return hs[0]
 	}
-	dst := hs[0]
 
-	for _, h := range hs[1:] {
+	var dst []byte
+
+	for _, h := range hs {
 		if len(h) == 0 {
+			continue
+		}
+		if len(dst) == 0 {
+			dst = h
 			continue
 		}
 		a := dst
 		b := h
+		// this is a stupid hack and I'm ashamed of it
+		if bytes.Compare(a, b) == 0 {
+			a = hashString(string(a))
+		}
 		n := len(a)
 		if len(b) < n {
 			n = len(b)
