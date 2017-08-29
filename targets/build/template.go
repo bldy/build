@@ -14,7 +14,7 @@ import (
 
 	"sevki.org/lib/prettyprint"
 
-	"bldy.build/build"
+	"bldy.build/build/executor"
 	"bldy.build/build/racy"
 	"bldy.build/build/targets/cc"
 )
@@ -44,7 +44,7 @@ func (t *Template) Hash() []byte {
 		racy.HashFilesForExt([]string{t.Template}, filepath.Ext(t.Template)))
 }
 
-func (t *Template) Build(e *build.Executor) error {
+func (t *Template) Build(e *executor.Executor) error {
 	t.Vars["_CCVER"] = strings.Split(cc.CCVersion, "\n")[0]
 
 	_, file := filepath.Split(t.Template)

@@ -21,7 +21,7 @@ import (
 	"strings"
 	"text/template"
 
-	"bldy.build/build"
+	"bldy.build/build/executor"
 	"bldy.build/build/racy"
 	"sevki.org/lib/prettyprint"
 )
@@ -136,7 +136,7 @@ func (mkSys *MkSys) GetDependencies() []string {
 	return mkSys.Dependencies
 }
 
-func (mkSys *MkSys) Build(e *build.Executor) error {
+func (mkSys *MkSys) Build(e *executor.Executor) error {
 
 	e.Println(prettyprint.AsJSON(mkSys))
 

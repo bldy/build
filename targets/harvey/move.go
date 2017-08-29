@@ -3,9 +3,9 @@ package harvey
 import (
 	"crypto/sha1"
 
-	"io"
+	"bldy.build/build/executor"
 
-	"bldy.build/build"
+	"io"
 )
 
 type Move struct {
@@ -20,7 +20,7 @@ func (m *Move) Hash() []byte {
 	return h.Sum(nil)
 }
 
-func (m *Move) Build(e *build.Executor) error {
+func (m *Move) Build(e *executor.Executor) error {
 	return nil
 }
 

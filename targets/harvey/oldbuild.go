@@ -11,9 +11,9 @@ import (
 	"os"
 	"path"
 
-	"github.com/nu7hatch/gouuid"
+	"bldy.build/build/executor"
 
-	"bldy.build/build"
+	"github.com/nu7hatch/gouuid"
 )
 
 type OldBuild struct {
@@ -40,7 +40,7 @@ func (s *OldBuild) Hash() []byte {
 func oldbuild() string {
 	return path.Join(os.Getenv("HARVEY"), "util/build")
 }
-func (s *OldBuild) Build(e *build.Executor) error {
+func (s *OldBuild) Build(e *executor.Executor) error {
 	params := []string{s.Package}
 
 	if err := e.Exec(oldbuild(), nil, params); err != nil {

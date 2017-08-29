@@ -13,7 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"bldy.build/build"
+	"bldy.build/build/executor"
 	"bldy.build/build/racy"
 	"sevki.org/lib/prettyprint"
 )
@@ -44,7 +44,7 @@ func (ct *CTest) Hash() []byte {
 	return h.Sum(nil)
 }
 
-func (ct *CTest) Build(e *build.Executor) error {
+func (ct *CTest) Build(e *executor.Executor) error {
 	e.Println(prettyprint.AsJSON(ct))
 	params := []string{"-c"}
 	params = append(params, ct.CompilerOptions...)

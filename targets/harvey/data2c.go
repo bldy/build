@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"io"
 
-	"io/ioutil"
+	"bldy.build/build/executor"
 
-	"bldy.build/build"
+	"io/ioutil"
 )
 
 type DataToC struct {
@@ -34,7 +34,7 @@ func (dtc *DataToC) Hash() []byte {
 	return []byte{}
 }
 
-func (dtc *DataToC) Build(e *build.Executor) error {
+func (dtc *DataToC) Build(e *executor.Executor) error {
 
 	inFile, err := e.Open(dtc.Bin)
 	if err != nil {

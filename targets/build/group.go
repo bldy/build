@@ -7,7 +7,7 @@ package build
 import (
 	"path/filepath"
 
-	"bldy.build/build"
+	"bldy.build/build/executor"
 )
 
 type Group struct {
@@ -21,7 +21,7 @@ func (g *Group) Hash() []byte {
 	return []byte(g.Name)
 }
 
-func (g *Group) Build(e *build.Executor) error {
+func (g *Group) Build(e *executor.Executor) error {
 	return nil
 }
 

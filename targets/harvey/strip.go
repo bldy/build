@@ -10,7 +10,7 @@ import (
 	"io"
 	"path/filepath"
 
-	"bldy.build/build"
+	"bldy.build/build/executor"
 	"bldy.build/build/project"
 )
 
@@ -41,7 +41,7 @@ func Stripper() string {
 		return fmt.Sprintf("%s%s", tpfx, "strip")
 	}
 }
-func (s *Strip) Build(e *build.Executor) error {
+func (s *Strip) Build(e *executor.Executor) error {
 	params := []string{"-o"}
 	params = append(params, s.Name)
 	params = append(params, filepath.Join("bin", split(s.Dependencies[0], ":")))

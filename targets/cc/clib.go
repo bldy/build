@@ -10,11 +10,10 @@ import (
 	"io"
 	"strings"
 
+	"bldy.build/build/executor"
 	"bldy.build/build/racy"
 
 	"path/filepath"
-
-	"bldy.build/build"
 )
 
 type CLib struct {
@@ -48,7 +47,7 @@ func (cl *CLib) Hash() []byte {
 	)
 }
 
-func (cl *CLib) Build(e *build.Executor) error {
+func (cl *CLib) Build(e *executor.Executor) error {
 	params := []string{"-c"}
 	params = append(params, cl.CompilerOptions...)
 	params = append(params, cl.LinkerOptions...)

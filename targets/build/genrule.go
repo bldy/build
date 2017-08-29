@@ -8,7 +8,7 @@ import (
 
 	"os"
 
-	"bldy.build/build"
+	"bldy.build/build/executor"
 	"bldy.build/build/racy"
 )
 
@@ -27,7 +27,7 @@ func (g *GenRule) Hash() []byte {
 	return []byte{}
 }
 
-func (g *GenRule) Build(e *build.Executor) error {
+func (g *GenRule) Build(e *executor.Executor) error {
 	for _, cmd := range g.Commands {
 		strs := strings.Split(cmd, " ")
 

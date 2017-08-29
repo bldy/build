@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"bldy.build/build"
+	"bldy.build/build/executor"
 )
 
 type Qemu struct {
@@ -46,7 +46,7 @@ func (q *Qemu) Hash() []byte {
 	return []byte{}
 }
 
-func (q *Qemu) Build(e *build.Executor) error {
+func (q *Qemu) Build(e *executor.Executor) error {
 	system := "qemu-system-x86_64"
 	params := []string{"-s"} // shorthand for -gdb tcp::1234
 
