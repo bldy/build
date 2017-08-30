@@ -11,11 +11,10 @@ import (
 	"io"
 	"strings"
 
+	"bldy.build/build/executor"
 	"bldy.build/build/racy"
 
 	"path/filepath"
-
-	"bldy.build/build"
 )
 
 type Config struct {
@@ -55,7 +54,7 @@ func (k *Config) Hash() []byte {
 	return h.Sum(nil)
 }
 
-func (k *Config) Build(e *build.Executor) error {
+func (k *Config) Build(e *executor.Executor) error {
 
 	var rootcodes []string
 	var rootnames []string
@@ -124,7 +123,7 @@ func (k *Config) GetDependencies() []string {
 }
 
 // data2c takes the file at path and creates a C byte array containing it.
-func data2c(name string, path string, e *build.Executor) (string, error) {
+func data2c(name string, path string, e *executor.Executor) (string, error) {
 	var out []byte
 	var in []byte
 	var file *os.File

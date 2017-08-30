@@ -9,7 +9,7 @@ import (
 	"io"
 	"os/exec"
 
-	"bldy.build/build"
+	"bldy.build/build/executor"
 )
 
 type Sed struct {
@@ -35,7 +35,7 @@ func (s *Sed) Hash() []byte {
 	return []byte{}
 }
 
-func (s *Sed) Build(e *build.Executor) error {
+func (s *Sed) Build(e *executor.Executor) error {
 	params := s.Args
 	if s.Script != "" {
 		params = append(params, "-f", s.Script)

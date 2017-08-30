@@ -18,7 +18,7 @@ import (
 
 	"fmt"
 
-	"bldy.build/build"
+	"bldy.build/build/executor"
 	"bldy.build/build/internal"
 	"bldy.build/build/racy"
 )
@@ -56,7 +56,7 @@ func (y *Yacc) Hash() []byte {
 	return h.Sum(nil)
 }
 
-func (y *Yacc) Build(e *build.Executor) error {
+func (y *Yacc) Build(e *executor.Executor) error {
 
 	params := []string{}
 	params = append(params, y.YaccOptions...)

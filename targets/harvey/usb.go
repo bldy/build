@@ -13,7 +13,7 @@ import (
 	"log"
 	"text/template"
 
-	"bldy.build/build"
+	"bldy.build/build/executor"
 	"bldy.build/build/racy"
 )
 
@@ -56,7 +56,7 @@ func (s *USB) Installs() map[string]string {
 	return installs
 }
 
-func (s *USB) Build(e *build.Executor) error {
+func (s *USB) Build(e *executor.Executor) error {
 	f, err := e.Open(s.Conf)
 	if err != nil {
 		return err

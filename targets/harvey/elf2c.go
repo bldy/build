@@ -9,7 +9,7 @@ import (
 	"path"
 	"path/filepath"
 
-	"bldy.build/build"
+	"bldy.build/build/executor"
 )
 
 type ElfToC struct {
@@ -41,7 +41,7 @@ func (etc *ElfToC) Hash() []byte {
 	return []byte{}
 }
 
-func (etc *ElfToC) Build(e *build.Executor) error {
+func (etc *ElfToC) Build(e *executor.Executor) error {
 	fileName := ""
 
 	if xf, err := e.Open(etc.Elf); err != nil {

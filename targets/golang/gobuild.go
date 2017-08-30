@@ -11,7 +11,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"bldy.build/build"
+	"bldy.build/build/executor"
 	"bldy.build/build/racy"
 )
 
@@ -37,7 +37,7 @@ func (g *GoBuild) Hash() []byte {
 	return h.Sum(nil)
 }
 
-func (g *GoBuild) Build(e *build.Executor) error {
+func (g *GoBuild) Build(e *executor.Executor) error {
 	if err := e.Mkdir("_obj/exe"); err != nil {
 		return fmt.Errorf("go mkdir: %s", err.Error())
 	}

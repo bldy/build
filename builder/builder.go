@@ -16,6 +16,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"bldy.build/build/executor"
+
 	"sevki.org/pqueue"
 
 	"io/ioutil"
@@ -154,7 +156,7 @@ func (b *Builder) build(ctx context.Context, n *graph.Node) (err error) {
 		}
 	}
 
-	runner := build.NewRunner(ctx, outDir)
+	runner := executor.New(ctx, outDir)
 	n.Start = time.Now().UnixNano()
 
 	buildErr = n.Target.Build(runner)

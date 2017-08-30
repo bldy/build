@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"bldy.build/build"
+	"bldy.build/build/executor"
 )
 
 // regular target
@@ -28,7 +29,7 @@ func (t *testTarget) GetDependencies() []string { return nil }
 
 func (t *testTarget) Hash() []byte { return nil }
 
-func (t *testTarget) Build(*build.Executor) error { return nil }
+func (t *testTarget) Build(*executor.Executor) error { return nil }
 
 func (t *testTarget) Installs() map[string]string { return nil }
 
@@ -45,7 +46,7 @@ func (t *testTargetWithPath) GetDependencies() []string { return nil }
 
 func (t *testTargetWithPath) Hash() []byte { return nil }
 
-func (t *testTargetWithPath) Build(*build.Executor) error { return nil }
+func (t *testTargetWithPath) Build(*executor.Executor) error { return nil }
 
 func (t *testTargetWithPath) Installs() map[string]string { return nil }
 
@@ -62,7 +63,7 @@ func (t *testTargetWithPathAndExt) GetDependencies() []string { return nil }
 
 func (t *testTargetWithPathAndExt) Hash() []byte { return nil }
 
-func (t *testTargetWithPathAndExt) Build(*build.Executor) error { return nil }
+func (t *testTargetWithPathAndExt) Build(*executor.Executor) error { return nil }
 
 func (t *testTargetWithPathAndExt) Installs() map[string]string { return nil }
 

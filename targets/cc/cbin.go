@@ -9,7 +9,7 @@ import (
 
 	"path/filepath"
 
-	"bldy.build/build"
+	"bldy.build/build/executor"
 	"bldy.build/build/racy"
 )
 
@@ -50,7 +50,7 @@ func (cb *CBin) Hash() []byte {
 	)
 }
 
-func (cb *CBin) Build(e *build.Executor) error {
+func (cb *CBin) Build(e *executor.Executor) error {
 	params := []string{"-c"}
 	params = append(params, cb.CompilerOptions...)
 	params = append(params, cb.Sources...)

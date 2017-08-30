@@ -10,7 +10,7 @@ import (
 	"io"
 	"path/filepath"
 
-	"bldy.build/build"
+	"bldy.build/build/executor"
 	"bldy.build/build/project"
 )
 
@@ -45,7 +45,7 @@ func Copier() string {
 		return fmt.Sprintf("%s%s", tpfx, "objcopy")
 	}
 }
-func (oc *ObjCopy) Build(e *build.Executor) error {
+func (oc *ObjCopy) Build(e *executor.Executor) error {
 	params := []string{}
 	params = append(params, "-I")
 	params = append(params, oc.In)

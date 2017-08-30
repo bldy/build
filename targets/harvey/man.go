@@ -10,7 +10,7 @@ import (
 
 	"os"
 
-	"bldy.build/build"
+	"bldy.build/build/executor"
 	"bldy.build/build/racy"
 )
 
@@ -30,7 +30,7 @@ func (mp *ManPage) Hash() []byte {
 	return []byte{}
 }
 
-func (mp *ManPage) Build(e *build.Executor) error {
+func (mp *ManPage) Build(e *executor.Executor) error {
 	for _, m := range mp.Sources {
 		params := []string{"<"}
 		params = append(params, m)
