@@ -56,3 +56,12 @@ func GetFieldByTag(tn, tag string, p reflect.Type) (*reflect.StructField, error)
 	}
 	return nil, fmt.Errorf("%s isn't a field of %s.", tag, tn)
 }
+
+// Types returns registered types
+func Targets() []string {
+	s := []string{}
+	for k, _ := range targets {
+		s = append(s, k)
+	}
+	return s
+}

@@ -5,6 +5,7 @@
 package url // import "bldy.build/build/url"
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"path"
@@ -12,11 +13,45 @@ import (
 	"strings"
 
 	"bldy.build/build/project"
+	"github.com/pkg/errors"
 )
 
+const buildfile = "BUILD"
+
+// URL represents a perforce URL
+// we plan on adding more providers
 type URL struct {
 	Package string
 	Target  string
+}
+
+// LoadURL takes a URL, which will be a perforce url returns the contents of it.
+func LoadURL(u URL) ([]byte, error) {
+	buildpath := path.Join(u.BuildDir(), buildfile)
+	_, err := os.Stat(buildpath)
+	if err != nil {
+		return nil, fmt.Errorf("url: load: file %q doesn't exist", buildpath)
+	}
+	bytz, err := ioutil.ReadFile(buildpath)
+	if err != nil {
+		return nil, errors.Wrap(err, "skylark: readall")
+	}
+	return bytz, nil
+}
+
+// Load takes a string, which can be a perforce url or a filepath and returns
+// the contents of it.
+func Load(s string) ([]byte, error) {
+	ext := path.Ext(s)
+	if ext != "" {
+		bytz, err := ioutil.ReadFile(s)
+		if err != nil {
+			return nil, errors.Wrap(err, "load: readall")
+		}
+		return bytz, nil
+	}
+	u := Parse(s)
+	return LoadURL(u)
 }
 
 func split(s string, c string, cutc bool) (string, string) {
@@ -34,15 +69,18 @@ func (u URL) String() string {
 	return fmt.Sprintf("//%s:%s", u.Package, u.Target)
 }
 
-func (u URL) BuildDir(wd, p string) string {
+// BuildDir Returns the BuildDir for a given url
+// it takes two args, workdir and project
+func (u URL) BuildDir() string {
+	wd, _ := os.Getwd()
+	project := project.GetGitDir(wd)
 	if u.Package == "" {
 		return wd
-	} else {
-		return filepath.Join(p, u.Package)
 	}
+	return filepath.Join(project, u.Package)
 }
-func Parse(s string) (u URL) {
 
+func Parse(s string) (u URL) {
 	switch {
 	case strings.HasPrefix(s, "//"):
 		s = s[2:]

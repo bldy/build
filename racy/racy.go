@@ -174,7 +174,7 @@ func hashFiles(files []string, exts []string) []byte {
 	return dst
 }
 
-func HashTarget(target build.Target) []byte {
+func HashTarget(target build.Rule) []byte {
 	var dst []byte
 	typ := reflect.TypeOf(target).Elem()
 	val := reflect.ValueOf(target).Elem()

@@ -13,9 +13,10 @@ import (
 	"sync"
 
 	"bldy.build/build"
-	"bldy.build/build/blaze"
+	"bldy.build/build/skylark"
+
 	"bldy.build/build/postprocessor"
-	bldytrg "bldy.build/build/targets/build"
+	bldytrg "bldy.build/build/rules/build"
 	"bldy.build/build/url"
 )
 
@@ -25,8 +26,8 @@ var (
 
 // Node encapsulates a target and represents a node in the build graph.
 type Node struct {
-	IsRoot        bool         `json:"-"`
-	Target        build.Target `json:"-"`
+	IsRoot        bool       `json:"-"`
+	Target        build.Rule `json:"-"`
 	Type          string
 	Parents       map[string]*Node `json:"-"`
 	URL           url.URL
@@ -53,8 +54,12 @@ type Graph struct {
 
 // New returns a new build graph relatvie to the working directory
 func New(wd, target string) *Graph {
+	vm, err := skylark.New(wd)
+	if err != nil {
+		return nil
+	}
 	g := Graph{
-		vm:    blaze.NewVM(wd),
+		vm:    vm,
 		Nodes: make(map[string]*Node),
 	}
 	g.Root = g.getTarget(url.Parse(target))
@@ -107,7 +112,7 @@ func (g *Graph) getTarget(u url.URL) (n *Node) {
 		l.Fatal(err)
 	}
 
-	var deps []build.Target
+	var deps []build.Rule
 
 	//group is a special case
 	var group *bldytrg.Group

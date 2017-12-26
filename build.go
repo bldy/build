@@ -10,8 +10,8 @@ import (
 	"bldy.build/build/url"
 )
 
-// Target defines the interface that rules must implement for becoming build targets.
-type Target interface {
+// Rule defines the interface that rules must implement for becoming build targets.
+type Rule interface {
 	GetName() string
 	GetDependencies() []string
 	Hash() []byte
@@ -22,7 +22,7 @@ type Target interface {
 // VM seperate the parsing and evauluating targets logic from rest of bldy
 // so we can implement and use new grammars like jsonnet or go it self.
 type VM interface {
-	GetTarget(url.URL) (Target, error)
+	GetTarget(url.URL) (Rule, error)
 }
 
 // Status represents a nodes status.

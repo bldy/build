@@ -31,7 +31,7 @@ func New(p string) PostProcessor {
 
 // ProcessDependencies takes relative dependency paths and turns then in to
 // absolute paths.
-func (pp *PostProcessor) ProcessDependencies(t build.Target) error {
+func (pp *PostProcessor) ProcessDependencies(t build.Rule) error {
 
 	v := reflect.ValueOf(t)
 
@@ -65,9 +65,9 @@ func (pp *PostProcessor) ProcessDependencies(t build.Target) error {
 	return nil
 }
 
-// ProcesPaths takes paths relative to the target and absolutes them,
+// ProcessPaths takes paths relative to the target and absolutes them,
 // unless they are going to be exported in to the target folder from a dependency.
-func (pp *PostProcessor) ProcessPaths(t build.Target, deps []build.Target) error {
+func (pp *PostProcessor) ProcessPaths(t build.Rule, deps []build.Rule) error {
 	v := reflect.ValueOf(t)
 
 	r := reflect.TypeOf(t).Elem()

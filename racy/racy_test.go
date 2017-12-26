@@ -95,7 +95,7 @@ func TestHashesForDifferent(t *testing.T) {
 
 	tests := []struct {
 		name string
-		a, b build.Target
+		a, b build.Rule
 		comp int
 	}{
 		{
