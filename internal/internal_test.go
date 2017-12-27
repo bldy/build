@@ -19,6 +19,9 @@ func TestRegister(t *testing.T) {
 	if err := Register("test_target", TestTarget{}); err != nil {
 		t.Error(err)
 	}
+	if len(Rules()) < 0 {
+		t.Fail()
+	}
 }
 func TestRegisterBadTarget(t *testing.T) {
 
@@ -26,7 +29,16 @@ func TestRegisterBadTarget(t *testing.T) {
 		t.Fail()
 	}
 }
+func TestWrongGet(t *testing.T) {
 
+	if err := Register("test_target", TestTarget{}); err != nil {
+		t.Fail()
+		t.Error(err)
+	}
+	if target := Get("potato"); target == nil {
+
+	}
+}
 func TestGet(t *testing.T) {
 
 	if err := Register("test_target", TestTarget{}); err != nil {
