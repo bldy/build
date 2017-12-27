@@ -5,7 +5,6 @@
 package golang
 
 import (
-	"crypto/sha1"
 	"fmt"
 	"io"
 	"os"
@@ -30,7 +29,7 @@ func (g *GoBuild) GetDependencies() []string {
 }
 
 func (g *GoBuild) Hash() []byte {
-	h := sha1.New()
+	h := racy.New()
 	io.WriteString(h, gover)
 	io.WriteString(h, g.Name)
 	racy.HashFiles(h, []string(g.Sources))

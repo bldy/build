@@ -6,7 +6,6 @@ package yacc
 
 import (
 	"bytes"
-	"crypto/sha1"
 
 	"io"
 	"os/exec"
@@ -48,7 +47,7 @@ func init() {
 	}
 }
 func (y *Yacc) Hash() []byte {
-	h := sha1.New()
+	h := racy.New()
 	io.WriteString(h, YaccVersion)
 	io.WriteString(h, y.Name)
 	racy.HashFiles(h, y.Sources)

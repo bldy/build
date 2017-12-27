@@ -1,7 +1,6 @@
 package harvey
 
 import (
-	"crypto/sha1"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -21,7 +20,7 @@ type ManPage struct {
 }
 
 func (mp *ManPage) Hash() []byte {
-	h := sha1.New()
+	h := racy.New()
 
 	io.WriteString(h, mp.Name)
 

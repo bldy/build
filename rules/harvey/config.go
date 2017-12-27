@@ -1,7 +1,6 @@
 package harvey
 
 import (
-	"crypto/sha1"
 	"fmt"
 	"io/ioutil"
 
@@ -41,7 +40,7 @@ func split(s string, c string) string {
 }
 func (k *Config) Hash() []byte {
 
-	h := sha1.New()
+	h := racy.New()
 	racy.HashFiles(h, k.RamFiles)
 	racy.HashStrings(h, k.Code)
 	racy.HashStrings(h, k.Dev)

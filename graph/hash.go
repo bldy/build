@@ -19,7 +19,7 @@ func (n *Node) HashNode() []byte {
 	if len(n.hash) > 0 {
 		return n.hash
 	}
-	n.hash = racy.HashTarget(n.Target)
+	n.hash = n.Target.Hash()
 	var bn ByName
 	for _, e := range n.Children {
 		bn = append(bn, e)

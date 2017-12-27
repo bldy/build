@@ -2,14 +2,15 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package url // import "bldy.build/build/url"
+package label
+
 import (
 	"bytes"
 	"os"
 	"testing"
 )
 
-// Test that all valid urls get parsed into proper (package, target) pairs.
+// Test that all valid labels get parsed into proper (package, target) pairs.
 func TestLoad(t *testing.T) {
 	tbl := []struct {
 		name string
@@ -19,7 +20,7 @@ func TestLoad(t *testing.T) {
 	}{
 		{
 			name: "full",
-			s:    "//url/testdata:x",
+			s:    "//label/testdata:x",
 			b:    []byte("test\n"),
 		},
 		{
@@ -51,40 +52,40 @@ func TestLoad(t *testing.T) {
 	}
 }
 
-// Test that all valid urls get parsed into proper (package, target) pairs.
-func TestTargetURLParse(t *testing.T) {
+// Test that all valid Labels get parsed into proper (package, target) pairs.
+func TestTargetLabelParse(t *testing.T) {
 	tests := []struct {
 		name    string
-		URL     string
+		Label   string
 		Package string
-		Target  string
+		Name    string
 	}{
 		// These should all be equivalent
-		{"full", "//url:url", "url", "url"},
-		{"notarget", "//url:", "url", "url"},
-		{"nopackage", "//url", "url", "url"},
-		{"currenttarg", ":url", "url", "url"},
-		{"justname", "url", "url", "url"},
+		{"full", "//label:label", "label", "label"},
+		{"notarget", "//label:", "label", "label"},
+		{"nopackage", "//label", "label", "label"},
+		{"currenttarg", ":label", "label", "label"},
+		{"justname", "label", "label", "label"},
 		// This might not be valid if specified in a BUILD file, but the rules
 		// say we should get a result
-		{"empty", "", "url", "url"},
+		{"empty", "", "label", "label"},
 		// test a tiny target
-		{"wildcard in current", ":*", "url", "*"},
-		{"wildcard", "*", "url", "*"},
+		{"wildcard in current", ":*", "label", "*"},
+		{"wildcard", "*", "label", "*"},
 		// test root
-		{"root target", "//:url", ".", "url"},
-		{"root and dot", "//.:url", ".", "url"},
+		{"root target", "//:label", ".", "label"},
+		{"root and dot", "//.:label", ".", "label"},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			url, _ := Parse(test.URL)
+			l, _ := Parse(test.Label)
 
-			if test, got := test.Package, url.Package; test != got {
-				t.Errorf("testected package %q, got %q", test, got)
+			if test, got := test.Package, l.Package; test != got {
+				t.Errorf("tested package %q, got %q", test, got)
 			}
-			if test, got := test.Target, url.Target; test != got {
-				t.Errorf("testected target %q, got %q", test, got)
+			if test, got := test.Name, l.Name; test != got {
+				t.Errorf("tested target %q, got %q", test, got)
 			}
 		})
 

@@ -5,11 +5,11 @@
 package harvey
 
 import (
-	"crypto/sha1"
 	"io"
 	"os/exec"
 
 	"bldy.build/build/executor"
+	"bldy.build/build/racy"
 )
 
 type Sed struct {
@@ -29,7 +29,7 @@ func (s *Sed) GetDependencies() []string {
 }
 
 func (s *Sed) Hash() []byte {
-	h := sha1.New()
+	h := racy.New()
 
 	io.WriteString(h, s.Name)
 	return []byte{}

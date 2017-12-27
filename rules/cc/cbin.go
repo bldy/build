@@ -1,7 +1,6 @@
 package cc
 
 import (
-	"crypto/sha1"
 	"fmt"
 
 	"io"
@@ -37,7 +36,7 @@ func split(s string, c string) string {
 	return s[i+1:]
 }
 func (cb *CBin) Hash() []byte {
-	h := sha1.New()
+	h := racy.New()
 	io.WriteString(h, CCVersion)
 	io.WriteString(h, cb.Name)
 	racy.HashStrings(h, cb.CompilerOptions)

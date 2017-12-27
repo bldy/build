@@ -1,7 +1,6 @@
 package harvey
 
 import (
-	"crypto/sha1"
 	"debug/elf"
 	"fmt"
 	"io"
@@ -10,6 +9,7 @@ import (
 	"path/filepath"
 
 	"bldy.build/build/executor"
+	"bldy.build/build/racy"
 )
 
 type ElfToC struct {
@@ -34,7 +34,7 @@ func (etc *ElfToC) Installs() map[string]string {
 }
 
 func (etc *ElfToC) Hash() []byte {
-	h := sha1.New()
+	h := racy.New()
 
 	io.WriteString(h, etc.Name)
 	io.WriteString(h, etc.Elf)

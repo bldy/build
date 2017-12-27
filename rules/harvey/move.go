@@ -1,9 +1,8 @@
 package harvey
 
 import (
-	"crypto/sha1"
-
 	"bldy.build/build/executor"
+	"bldy.build/build/racy"
 
 	"io"
 )
@@ -15,7 +14,7 @@ type Move struct {
 }
 
 func (m *Move) Hash() []byte {
-	h := sha1.New()
+	h := racy.New()
 	io.WriteString(h, m.Name)
 	return h.Sum(nil)
 }

@@ -1,7 +1,6 @@
 package build
 
 import (
-	"crypto/sha1"
 	"io"
 
 	"strings"
@@ -19,7 +18,7 @@ type GenRule struct {
 }
 
 func (g *GenRule) Hash() []byte {
-	h := sha1.New()
+	h := racy.New()
 
 	io.WriteString(h, g.Name)
 	racy.HashStrings(h, g.Commands)

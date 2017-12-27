@@ -7,7 +7,7 @@ package build
 
 import (
 	"bldy.build/build/executor"
-	"bldy.build/build/url"
+	"bldy.build/build/label"
 )
 
 // Rule defines the interface that rules must implement for becoming build targets.
@@ -22,7 +22,7 @@ type Rule interface {
 // VM seperate the parsing and evauluating targets logic from rest of bldy
 // so we can implement and use new grammars like jsonnet or go it self.
 type VM interface {
-	GetTarget(*url.URL) (Rule, error)
+	GetTarget(*label.Label) (Rule, error)
 }
 
 // Status represents a nodes status.

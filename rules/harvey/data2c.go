@@ -1,11 +1,11 @@
 package harvey
 
 import (
-	"crypto/sha1"
 	"fmt"
 	"io"
 
 	"bldy.build/build/executor"
+	"bldy.build/build/racy"
 
 	"io/ioutil"
 )
@@ -26,7 +26,7 @@ func (dtc *DataToC) GetDependencies() []string {
 }
 
 func (dtc *DataToC) Hash() []byte {
-	h := sha1.New()
+	h := racy.New()
 
 	io.WriteString(h, dtc.Name)
 	io.WriteString(h, dtc.Bin)

@@ -6,6 +6,7 @@ package racy // import "bldy.build/build/racy"
 import (
 	"crypto/sha1"
 	"crypto/sha256"
+	"crypto/sha512"
 	"io"
 	"log"
 	"os"
@@ -18,6 +19,9 @@ import (
 	"bldy.build/build"
 	"bldy.build/build/project"
 )
+
+// New Hash
+var New = sha512.New
 
 type cacheMap struct {
 	mu *sync.Mutex
@@ -115,7 +119,6 @@ func HashFilesForExt(files []string, ext string) []byte {
 }
 
 func hashFiles(files []string, exts []string) []byte {
-
 	var dst []byte
 	for _, file := range files {
 		if !filepath.IsAbs(file) {

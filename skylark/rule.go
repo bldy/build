@@ -1,7 +1,12 @@
 package skylark
 
 import (
+	"encoding/binary"
+	"io"
+	"log"
+
 	"bldy.build/build/executor"
+	"bldy.build/build/racy"
 	"github.com/google/skylark"
 )
 
@@ -28,8 +33,18 @@ func (s *skylarkRule) Build(e *executor.Executor) error {
 }
 
 func (s *skylarkRule) Hash() []byte {
-	return nil
+	h := racy.New()
+	io.WriteString(h, s.skyFuncLabel)
+	funcHash, err := s.skyFunc.Hash()
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := binary.Write(h, binary.BigEndian, funcHash); err != nil {
+		log.Fatal(err)
+	}
+	return h.Sum(nil)
 }
+
 func (s *skylarkRule) GetName() string {
 	return s.Name
 }

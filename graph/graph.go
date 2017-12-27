@@ -13,12 +13,12 @@ import (
 	"sync"
 
 	"bldy.build/build"
+	"bldy.build/build/label"
 	"bldy.build/build/skylark"
 	"github.com/pkg/errors"
 
 	"bldy.build/build/postprocessor"
 	bldytrg "bldy.build/build/rules/build"
-	"bldy.build/build/url"
 )
 
 var (
@@ -31,7 +31,7 @@ type Node struct {
 	Target        build.Rule `json:"-"`
 	Type          string
 	Parents       map[string]*Node `json:"-"`
-	URL           url.URL
+	Label         label.Label
 	Worker        string
 	PriorityCount int
 	WG            sync.WaitGroup
@@ -63,11 +63,11 @@ func New(wd, target string) (*Graph, error) {
 		vm:    vm,
 		Nodes: make(map[string]*Node),
 	}
-	u, err := url.Parse(target)
+	label, err := label.Parse(target)
 	if err != nil {
 		return nil, errors.Wrap(err, "new graph")
 	}
-	g.Root = g.getTarget(u)
+	g.Root = g.getTarget(label)
 	g.Root.IsRoot = true
 	return &g, nil
 }
@@ -85,17 +85,17 @@ func (n *Node) Priority() int {
 	return n.PriorityCount
 }
 
-func (g *Graph) getTarget(u *url.URL) (n *Node) {
-	if gnode, ok := g.Nodes[u.String()]; ok {
+func (g *Graph) getTarget(lbl *label.Label) (n *Node) {
+	if gnode, ok := g.Nodes[lbl.String()]; ok {
 		return gnode
 	}
-	t, err := g.vm.GetTarget(u)
+	t, err := g.vm.GetTarget(lbl)
 	if err != nil {
 		log.Fatal(err)
 	}
-	xu := url.URL{
-		Package: u.Package,
-		Target:  t.GetName(),
+	nLbl := label.Label{
+		Package: lbl.Package,
+		Name:    t.GetName(),
 	}
 
 	node := Node{
@@ -106,11 +106,11 @@ func (g *Graph) getTarget(u *url.URL) (n *Node) {
 		Once:          sync.Once{},
 		WG:            sync.WaitGroup{},
 		Status:        build.Pending,
-		URL:           xu,
+		Label:         nLbl,
 		PriorityCount: -1,
 	}
 
-	post := postprocessor.New(u.Package)
+	post := postprocessor.New(nLbl.Package)
 
 	err = post.ProcessDependencies(node.Target)
 	if err != nil {
@@ -127,10 +127,10 @@ func (g *Graph) getTarget(u *url.URL) (n *Node) {
 		group.Exports = make(map[string]string)
 	}
 	for _, d := range node.Target.GetDependencies() {
-		du, err := url.Parse(d)
-		c := g.getTarget(du)
+		depLbl, err := label.Parse(d)
+		c := g.getTarget(depLbl)
 		if err != nil {
-			log.Printf("%q is not a valid url", u)
+			log.Printf("%q is not a valid url", depLbl)
 			continue
 		}
 		node.WG.Add(1)
@@ -142,18 +142,18 @@ func (g *Graph) getTarget(u *url.URL) (n *Node) {
 		deps = append(deps, c.Target)
 
 		node.Children[d] = c
-		c.Parents[xu.String()] = &node
+		c.Parents[nLbl.String()] = &node
 	}
 
 	if err := post.ProcessPaths(t, deps); err != nil {
 		l.Fatalf("path processing: %s", err.Error())
 	}
 
-	g.Nodes[xu.String()] = &node
-	if t.GetName() == u.Target {
+	g.Nodes[nLbl.String()] = &node
+	if t.GetName() == lbl.Name {
 		n = &node
 	} else {
-		l.Fatalf("target name %q and url target %q don't match", t.GetName(), u.Target)
+		l.Fatalf("target name %q and url target %q don't match", t.GetName(), lbl.Name)
 	}
 	return n
 }

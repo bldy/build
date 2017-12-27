@@ -5,13 +5,13 @@
 package harvey
 
 import (
-	"crypto/sha1"
 	"fmt"
 	"io"
 	"path/filepath"
 
 	"bldy.build/build/executor"
 	"bldy.build/build/project"
+	"bldy.build/build/racy"
 )
 
 type ObjCopy struct {
@@ -30,7 +30,7 @@ func (oc *ObjCopy) GetDependencies() []string {
 }
 
 func (oc *ObjCopy) Hash() []byte {
-	h := sha1.New()
+	h := racy.New()
 	io.WriteString(h, oc.In)
 	io.WriteString(h, oc.Out)
 	io.WriteString(h, oc.Name)

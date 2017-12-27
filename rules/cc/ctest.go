@@ -7,7 +7,6 @@
 package cc
 
 import (
-	"crypto/sha1"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -34,7 +33,7 @@ type CTest struct {
 
 func (ct *CTest) Hash() []byte {
 
-	h := sha1.New()
+	h := racy.New()
 	io.WriteString(h, CCVersion)
 	io.WriteString(h, ct.Name)
 	racy.HashFilesWithExt(h, []string(ct.Includes), ".h")

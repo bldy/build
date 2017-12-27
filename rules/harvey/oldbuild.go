@@ -5,13 +5,13 @@
 package harvey
 
 import (
-	"crypto/sha1"
 	"fmt"
 	"io"
 	"os"
 	"path"
 
 	"bldy.build/build/executor"
+	"bldy.build/build/racy"
 
 	"github.com/nu7hatch/gouuid"
 )
@@ -31,7 +31,7 @@ func (ob *OldBuild) GetDependencies() []string {
 }
 
 func (s *OldBuild) Hash() []byte {
-	h := sha1.New()
+	h := racy.New()
 	u, _ := uuid.NewV4()
 	io.WriteString(h, u.String())
 	return []byte{}

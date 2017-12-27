@@ -5,7 +5,6 @@
 package cc
 
 import (
-	"crypto/sha1"
 	"fmt"
 	"io"
 	"strings"
@@ -29,7 +28,7 @@ type CLib struct {
 }
 
 func (cl *CLib) Hash() []byte {
-	h := sha1.New()
+	h := racy.New()
 
 	io.WriteString(h, CCVersion)
 	io.WriteString(h, cl.Name)

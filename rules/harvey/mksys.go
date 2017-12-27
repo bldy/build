@@ -11,7 +11,6 @@ package harvey
 
 import (
 	"bytes"
-	"crypto/sha1"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -70,7 +69,7 @@ type MkSys struct {
 
 func (cl *MkSys) Hash() []byte {
 
-	h := sha1.New()
+	h := racy.New()
 	io.WriteString(h, cl.Mode)
 	io.WriteString(h, cl.ARCH)
 	io.WriteString(h, cl.Mode)

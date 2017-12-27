@@ -5,8 +5,8 @@ import (
 	"os"
 	"testing"
 
+	"bldy.build/build/label"
 	_ "bldy.build/build/rules/cc"
-	"bldy.build/build/url"
 )
 
 func TestNew(t *testing.T) {
@@ -22,32 +22,32 @@ var errAny = errors.New("any error")
 
 func TestEval(t *testing.T) {
 	tests := []struct {
-		name string
-		url  string
-		err  error
+		name  string
+		label string
+		err   error
 	}{
 		{
-			name: "simple",
-			url:  "//skylark/testdata:test",
-			err:  nil,
+			name:  "simple",
+			label: "//skylark/testdata:test",
+			err:   nil,
 		},
 		{
-			name: "some_target",
-			url:  "//skylark/testdata:some_target",
-			err:  nil,
+			name:  "some_target",
+			label: "//skylark/testdata:some_target",
+			err:   nil,
 		},
 		{
-			name: "notexist",
-			url:  "//skylark/notexist:libsncmds",
-			err:  errAny,
+			name:  "notexist",
+			label: "//skylark/notexist:libsncmds",
+			err:   errAny,
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			wd, _ := os.Getwd()
 			vm, _ := New(wd + "skylark")
-			u, _ := url.Parse(test.url)
-			target, err := vm.GetTarget(u)
+			l, _ := label.Parse(test.label)
+			target, err := vm.GetTarget(l)
 			if test.err != errAny && err != test.err {
 				t.Log(err)
 				t.Fail()

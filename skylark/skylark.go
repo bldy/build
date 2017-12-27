@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"bldy.build/build/url"
+	"bldy.build/build/label"
 
 	"bldy.build/build"
 	"github.com/google/skylark"
@@ -48,8 +48,8 @@ func print(thread *skylark.Thread, msg string) {
 	l.Println(msg)
 }
 
-func (s *skylarkVM) GetTarget(u *url.URL) (build.Rule, error) {
-	bytz, err := url.LoadURL(u)
+func (s *skylarkVM) GetTarget(l *label.Label) (build.Rule, error) {
+	bytz, err := label.LoadURL(l)
 	if err != nil {
 		errors.Wrap(err, "get target:")
 	}
@@ -58,25 +58,25 @@ func (s *skylarkVM) GetTarget(u *url.URL) (build.Rule, error) {
 	t.Load = s.load
 	t.Print = print
 
-	t.SetLocal(threadKeyPackage, u.Package)
+	t.SetLocal(threadKeyPackage, l.Package)
 
 	globals := skylark.StringDict{
 		"rule": skylark.NewBuiltin("rule", s.makeRule),
 	}
-	err = skylark.ExecFile(t, u.String(), bytz, globals)
+	err = skylark.ExecFile(t, l.String(), bytz, globals)
 	if err != nil {
 		return nil, errors.Wrap(err, "skylark: eval")
 	}
 	for _, r := range s.rules {
-		if r.GetName() == u.Target {
+		if r.GetName() == l.Name {
 			return r, nil
 		}
 	}
-	return nil, fmt.Errorf("couldn't find the target %s", u.String())
+	return nil, fmt.Errorf("couldn't find the target %s", l.String())
 }
 
 func (s *skylarkVM) load(thread *skylark.Thread, module string) (skylark.StringDict, error) {
-	bytz, err := url.Load(module)
+	bytz, err := label.Load(module)
 	if err != nil {
 		log.Println(err)
 		return nil, errors.Wrap(err, "skylark: eval")

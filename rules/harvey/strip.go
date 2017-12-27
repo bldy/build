@@ -5,13 +5,13 @@
 package harvey
 
 import (
-	"crypto/sha1"
 	"fmt"
 	"io"
 	"path/filepath"
 
 	"bldy.build/build/executor"
 	"bldy.build/build/project"
+	"bldy.build/build/racy"
 )
 
 type Strip struct {
@@ -28,7 +28,7 @@ func (s *Strip) GetDependencies() []string {
 }
 
 func (s *Strip) Hash() []byte {
-	h := sha1.New()
+	h := racy.New()
 	io.WriteString(h, s.Name)
 	return []byte{}
 }

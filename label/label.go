@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package url // import "bldy.build/build/url"
+package label // import "bldy.build/build/label"
 import (
 	"fmt"
 	"io/ioutil"
@@ -18,19 +18,19 @@ import (
 
 const buildfile = "BUILD"
 
-// URL represents a perforce URL
+// Label represents a perforce label
 // we plan on adding more providers
-type URL struct {
+type Label struct {
 	Package string
-	Target  string
+	Name    string
 }
 
-// LoadURL takes a URL, which will be a perforce url returns the contents of it.
-func LoadURL(u *URL) ([]byte, error) {
-	buildpath := path.Join(u.BuildDir(), buildfile)
+// LoadLabel takes a label and returns the contents of it.
+func LoadLabel(lbl *Label) ([]byte, error) {
+	buildpath := path.Join(lbl.BuildDir(), buildfile)
 	_, err := os.Stat(buildpath)
 	if err != nil {
-		return nil, fmt.Errorf("url: load: file %q doesn't exist", buildpath)
+		return nil, fmt.Errorf("label: load: file %q doesn't exist", buildpath)
 	}
 	bytz, err := ioutil.ReadFile(buildpath)
 	if err != nil {
@@ -39,7 +39,7 @@ func LoadURL(u *URL) ([]byte, error) {
 	return bytz, nil
 }
 
-// Load takes a string, which can be a perforce url or a filepath and returns
+// Load takes a string, which can be a label or a filepath and returns
 // the contents of it.
 func Load(s string) ([]byte, error) {
 	ext := path.Ext(s)
@@ -50,11 +50,11 @@ func Load(s string) ([]byte, error) {
 		}
 		return bytz, nil
 	}
-	u, err := Parse(s)
+	lbl, err := Parse(s)
 	if err != nil {
 		return nil, errors.Wrap(err, "load")
 	}
-	return LoadURL(u)
+	return LoadLabel(lbl)
 }
 
 func split(s string, c string, cutc bool) (string, string) {
@@ -68,47 +68,47 @@ func split(s string, c string, cutc bool) (string, string) {
 	return s[:i], s[i:]
 }
 
-func (u URL) String() string {
-	return fmt.Sprintf("//%s:%s", u.Package, u.Target)
+func (lbl Label) String() string {
+	return fmt.Sprintf("//%s:%s", lbl.Package, lbl.Name)
 }
 
-// BuildDir Returns the BuildDir for a given url
+// BuildDir Returns the BuildDir for a given label
 // it takes two args, workdir and project
-func (u URL) BuildDir() string {
+func (lbl Label) BuildDir() string {
 	wd, _ := os.Getwd()
 	project := project.GetGitDir(wd)
-	if u.Package == "" {
+	if lbl.Package == "" {
 		return wd
 	}
-	return filepath.Join(project, u.Package)
+	return filepath.Join(project, lbl.Package)
 }
 
-func Parse(s string) (*URL, error) {
-	u := new(URL)
+func Parse(s string) (*Label, error) {
+	lbl := new(Label)
 	switch {
 	case strings.HasPrefix(s, "//"):
 		s = s[2:]
-		u.Package, u.Target = split(s, ":", true)
-		if u.Package == "" {
-			u.Package = "." // this is the root of the project
+		lbl.Package, lbl.Name = split(s, ":", true)
+		if lbl.Package == "" {
+			lbl.Package = "." // this is the root of the project
 		}
 	case strings.HasPrefix(s, ":"):
 		s = s[1:]
 		fallthrough
 	default:
-		u.Target = s
+		lbl.Name = s
 		wd, err := os.Getwd()
 		if err != nil {
 			log.Fatal(err)
 		}
-		u.Package, err = filepath.Rel(project.Root(), wd)
+		lbl.Package, err = filepath.Rel(project.Root(), wd)
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
-	if u.Target == "" {
-		u.Target = path.Base(u.Package)
+	if lbl.Name == "" {
+		lbl.Name = path.Base(lbl.Package)
 	}
 
-	return u, nil
+	return lbl, nil
 }

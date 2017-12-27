@@ -5,7 +5,6 @@
 package harvey
 
 import (
-	"crypto/sha1"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -44,7 +43,7 @@ func (u *USB) GetDependencies() []string {
 }
 
 func (u *USB) Hash() []byte {
-	h := sha1.New()
+	h := racy.New()
 	racy.HashFiles(h, []string{u.Conf})
 	io.WriteString(h, u.Name)
 	return []byte{}

@@ -5,7 +5,6 @@
 package build
 
 import (
-	"crypto/sha1"
 	"html/template"
 	"io"
 	"io/ioutil"
@@ -38,7 +37,7 @@ func (t *Template) GetDependencies() []string {
 func (t *Template) Hash() []byte {
 	t.Vars["_CCVER"] = strings.Split(cc.CCVersion, "\n")[0]
 
-	h := sha1.New()
+	h := racy.New()
 	io.WriteString(h, prettyprint.AsJSON(t))
 	return racy.XOR(h.Sum(nil),
 		racy.HashFilesForExt([]string{t.Template}, filepath.Ext(t.Template)))
