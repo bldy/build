@@ -2,11 +2,13 @@ package skylark
 
 import (
 	"errors"
+	"log"
 	"os"
 	"testing"
 
 	"bldy.build/build/label"
 	_ "bldy.build/build/rules/cc"
+	"sevki.org/lib/prettyprint"
 )
 
 func TestNew(t *testing.T) {
@@ -27,7 +29,12 @@ func TestEval(t *testing.T) {
 		err   error
 	}{
 		{
-			name:  "simple",
+			name:  "notexist",
+			label: "//skylark/notexist:libsncmds",
+			err:   errAny,
+		},
+		{
+			name:  "simple_skylark",
 			label: "//skylark/testdata:test",
 			err:   nil,
 		},
@@ -37,9 +44,9 @@ func TestEval(t *testing.T) {
 			err:   nil,
 		},
 		{
-			name:  "notexist",
-			label: "//skylark/notexist:libsncmds",
-			err:   errAny,
+			name:  "native_cc",
+			label: "//skylark/testdata:native_cc",
+			err:   nil,
 		},
 	}
 	for _, test := range tests {
@@ -56,6 +63,9 @@ func TestEval(t *testing.T) {
 			if test.err != errAny && target == nil {
 				t.Fail()
 				return
+			}
+			if target != nil {
+				log.Println(prettyprint.AsJSON(target))
 			}
 		})
 	}

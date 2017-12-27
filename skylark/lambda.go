@@ -31,7 +31,7 @@ type lambdaFunc struct {
 }
 
 func (l *lambdaFunc) Call(thread *skylark.Thread, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
-	return l.makeRule(thread, args, kwargs)
+	return l.makeSkylarkRule(thread, args, kwargs)
 }
 
 func (l *lambdaFunc) Name() string          { return l.name }

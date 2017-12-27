@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 
+	"bldy.build/build/internal"
 	"bldy.build/build/label"
 
 	"bldy.build/build"
@@ -63,6 +64,9 @@ func (s *skylarkVM) GetTarget(l *label.Label) (build.Rule, error) {
 	globals := skylark.StringDict{
 		"rule": skylark.NewBuiltin("rule", s.makeRule),
 	}
+	for _, nativeRule := range internal.Rules() {
+		globals[nativeRule] = skylark.NewBuiltin(nativeRule, s.makeNativeRule)
+	}
 	err = skylark.ExecFile(t, l.String(), bytz, globals)
 	if err != nil {
 		return nil, errors.Wrap(err, "skylark: eval")
@@ -74,7 +78,6 @@ func (s *skylarkVM) GetTarget(l *label.Label) (build.Rule, error) {
 	}
 	return nil, fmt.Errorf("couldn't find the target %s", l.String())
 }
-
 func (s *skylarkVM) load(thread *skylark.Thread, module string) (skylark.StringDict, error) {
 	bytz, err := label.Load(module)
 	if err != nil {

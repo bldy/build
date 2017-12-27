@@ -24,7 +24,7 @@ type skylarkRule struct {
 	attrs        *skylark.Dict
 }
 
-func (l *lambdaFunc) makeRule(thread *skylark.Thread, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
+func (l *lambdaFunc) makeSkylarkRule(thread *skylark.Thread, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
 	var name string
 	var deps *skylark.List
 	err := skylark.UnpackArgs(fmt.Sprintf("new rule (%s)", name), args, kwargs, skylarkKeyName, &name, skylarkKeyDeps, &deps)
