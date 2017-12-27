@@ -7,6 +7,22 @@ import (
 	"github.com/google/skylark"
 )
 
+func (s *skylarkVM) makeRule(thread *skylark.Thread, fn *skylark.Builtin, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
+	var impl *skylark.Function
+	var attrs *skylark.Dict
+	err := skylark.UnpackArgs(fn.Name(), args, kwargs, skylarkKeyImpl, &impl, skylarkKeyAttrs, &attrs)
+	if attrs != nil && err != nil {
+		log.Println(err)
+	}
+	x := &lambdaFunc{
+		skyFunc: impl,
+		attrs:   attrs,
+		vm:      s,
+	}
+
+	return x, nil
+}
+
 type lambdaFunc struct {
 	name    string
 	skyFunc *skylark.Function
@@ -15,32 +31,7 @@ type lambdaFunc struct {
 }
 
 func (l *lambdaFunc) Call(thread *skylark.Thread, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
-	var name string
-	var deps *skylark.List
-	err := skylark.UnpackArgs(fmt.Sprintf("new rule (%s)", name), args, kwargs, skylarkKeyName, &name, skylarkKeyDeps, &deps)
-	if deps != nil && err != nil {
-		log.Println(err)
-	}
-
-	newRule := skylarkRule{
-		Name:      name,
-		args:      args,
-		kwargs:    kwargs,
-		skyFunc:   l.skyFunc,
-		skyThread: thread,
-	}
-
-	if deps != nil {
-		i := deps.Iterate()
-		var p skylark.Value
-		for i.Next(&p) {
-			if dep, ok := p.(skylark.String); ok {
-				newRule.Dependencies = append(newRule.Dependencies, string(dep))
-			}
-		}
-	}
-	l.vm.rules = append(l.vm.rules, &newRule)
-	return skylark.None, nil
+	return l.makeRule(thread, args, kwargs)
 }
 
 func (l *lambdaFunc) Name() string          { return l.name }

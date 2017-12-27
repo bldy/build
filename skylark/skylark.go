@@ -49,7 +49,7 @@ func print(thread *skylark.Thread, msg string) {
 }
 
 func (s *skylarkVM) GetTarget(l *label.Label) (build.Rule, error) {
-	bytz, err := label.LoadURL(l)
+	bytz, err := label.LoadLabel(l)
 	if err != nil {
 		errors.Wrap(err, "get target:")
 	}
@@ -89,19 +89,4 @@ func (s *skylarkVM) load(thread *skylark.Thread, module string) (skylark.StringD
 		return globals, err
 	}
 	return globals, nil
-}
-
-func (s *skylarkVM) makeRule(thread *skylark.Thread, fn *skylark.Builtin, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
-	var impl *skylark.Function
-	var attrs *skylark.Dict
-	err := skylark.UnpackArgs(fn.Name(), args, kwargs, skylarkKeyImpl, &impl, skylarkKeyAttrs, &attrs)
-	if attrs != nil && err != nil {
-		log.Println(err)
-	}
-	x := &lambdaFunc{
-		skyFunc: impl,
-		attrs:   attrs,
-		vm:      s,
-	}
-	return x, nil
 }
