@@ -26,7 +26,7 @@ type URL struct {
 }
 
 // LoadURL takes a URL, which will be a perforce url returns the contents of it.
-func LoadURL(u URL) ([]byte, error) {
+func LoadURL(u *URL) ([]byte, error) {
 	buildpath := path.Join(u.BuildDir(), buildfile)
 	_, err := os.Stat(buildpath)
 	if err != nil {
@@ -50,7 +50,10 @@ func Load(s string) ([]byte, error) {
 		}
 		return bytz, nil
 	}
-	u := Parse(s)
+	u, err := Parse(s)
+	if err != nil {
+		return nil, errors.Wrap(err, "load")
+	}
 	return LoadURL(u)
 }
 
@@ -80,7 +83,8 @@ func (u URL) BuildDir() string {
 	return filepath.Join(project, u.Package)
 }
 
-func Parse(s string) (u URL) {
+func Parse(s string) (*URL, error) {
+	u := new(URL)
 	switch {
 	case strings.HasPrefix(s, "//"):
 		s = s[2:]
@@ -106,5 +110,5 @@ func Parse(s string) (u URL) {
 		u.Target = path.Base(u.Package)
 	}
 
-	return
+	return u, nil
 }

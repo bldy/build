@@ -46,7 +46,7 @@ func TestEval(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			wd, _ := os.Getwd()
 			vm, _ := New(wd + "skylark")
-			u := url.Parse(test.url)
+			u, _ := url.Parse(test.url)
 			target, err := vm.GetTarget(u)
 			if test.err != errAny && err != test.err {
 				t.Log(err)

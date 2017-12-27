@@ -1,6 +1,7 @@
 package skylark
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -47,7 +48,7 @@ func print(thread *skylark.Thread, msg string) {
 	l.Println(msg)
 }
 
-func (s *skylarkVM) GetTarget(u url.URL) (build.Rule, error) {
+func (s *skylarkVM) GetTarget(u *url.URL) (build.Rule, error) {
 	bytz, err := url.LoadURL(u)
 	if err != nil {
 		errors.Wrap(err, "get target:")
@@ -71,7 +72,7 @@ func (s *skylarkVM) GetTarget(u url.URL) (build.Rule, error) {
 			return r, nil
 		}
 	}
-	return nil, errors.New("couldn't find the target rule")
+	return nil, fmt.Errorf("couldn't find the target %s", u.String())
 }
 
 func (s *skylarkVM) load(thread *skylark.Thread, module string) (skylark.StringDict, error) {

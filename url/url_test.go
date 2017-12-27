@@ -78,7 +78,7 @@ func TestTargetURLParse(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			url := Parse(test.URL)
+			url, _ := Parse(test.URL)
 
 			if test, got := test.Package, url.Package; test != got {
 				t.Errorf("testected package %q, got %q", test, got)

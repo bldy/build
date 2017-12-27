@@ -85,13 +85,14 @@ func bldyCache() string {
 }
 
 func (b *Builder) Execute(ctx context.Context, r int) {
-
 	for i := 0; i < r; i++ {
 		go b.work(ctx, i)
 	}
-
 	if b.graph == nil {
-		l.Fatal("Couldn't find the build graph")
+		l.Fatal("couldn't find the build graph")
+	}
+	if b.graph.Root == nil {
+		l.Fatal("couldn't find the graph root")
 	}
 	b.visit(b.graph.Root)
 }
@@ -200,8 +201,8 @@ func (b *Builder) work(ctx context.Context, workerNumber int) {
 		job.Status = build.Building
 
 		b.Updates <- job
-		buildErr := b.build(ctx, job)
 
+		buildErr := b.build(ctx, job)
 		if buildErr != nil {
 			job.Status = build.Fail
 			b.Updates <- job
@@ -234,13 +235,11 @@ func (b *Builder) work(ctx context.Context, workerNumber int) {
 }
 
 func (b *Builder) visit(n *graph.Node) {
-
 	// This is not an airplane so let's make sure children get their masks on before the parents.
 	for _, child := range n.Children {
 		// Visit children first
 		go b.visit(child)
 	}
-
 	n.WG.Wait()
 	n.Priority()
 	b.pq.Push(n)

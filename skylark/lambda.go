@@ -23,7 +23,7 @@ func (l *lambdaFunc) Call(thread *skylark.Thread, args skylark.Tuple, kwargs []s
 	}
 
 	newRule := skylarkRule{
-		name:      name,
+		Name:      name,
 		args:      args,
 		kwargs:    kwargs,
 		skyFunc:   l.skyFunc,
@@ -35,7 +35,7 @@ func (l *lambdaFunc) Call(thread *skylark.Thread, args skylark.Tuple, kwargs []s
 		var p skylark.Value
 		for i.Next(&p) {
 			if dep, ok := p.(skylark.String); ok {
-				newRule.deps = append(newRule.deps, string(dep))
+				newRule.Dependencies = append(newRule.Dependencies, string(dep))
 			}
 		}
 	}

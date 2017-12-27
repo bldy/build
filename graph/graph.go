@@ -14,6 +14,7 @@ import (
 
 	"bldy.build/build"
 	"bldy.build/build/skylark"
+	"github.com/pkg/errors"
 
 	"bldy.build/build/postprocessor"
 	bldytrg "bldy.build/build/rules/build"
@@ -53,21 +54,25 @@ type Graph struct {
 }
 
 // New returns a new build graph relatvie to the working directory
-func New(wd, target string) *Graph {
+func New(wd, target string) (*Graph, error) {
 	vm, err := skylark.New(wd)
 	if err != nil {
-		return nil
+		return nil, errors.Wrap(err, "new graph")
 	}
 	g := Graph{
 		vm:    vm,
 		Nodes: make(map[string]*Node),
 	}
-	g.Root = g.getTarget(url.Parse(target))
+	u, err := url.Parse(target)
+	if err != nil {
+		return nil, errors.Wrap(err, "new graph")
+	}
+	g.Root = g.getTarget(u)
 	g.Root.IsRoot = true
-	return &g
+	return &g, nil
 }
 
-// CountDependents counts how many nodes directly and indirectly depend on
+// Priority counts how many nodes directly and indirectly depend on
 // this node
 func (n *Node) Priority() int {
 	if n.PriorityCount < 0 {
@@ -80,7 +85,7 @@ func (n *Node) Priority() int {
 	return n.PriorityCount
 }
 
-func (g *Graph) getTarget(u url.URL) (n *Node) {
+func (g *Graph) getTarget(u *url.URL) (n *Node) {
 	if gnode, ok := g.Nodes[u.String()]; ok {
 		return gnode
 	}
@@ -122,7 +127,12 @@ func (g *Graph) getTarget(u url.URL) (n *Node) {
 		group.Exports = make(map[string]string)
 	}
 	for _, d := range node.Target.GetDependencies() {
-		c := g.getTarget(url.Parse(d))
+		du, err := url.Parse(d)
+		c := g.getTarget(du)
+		if err != nil {
+			log.Printf("%q is not a valid url", u)
+			continue
+		}
 		node.WG.Add(1)
 		if group != nil {
 			for dst := range c.Target.Installs() {
