@@ -83,6 +83,7 @@ func (lbl Label) BuildDir() string {
 	return filepath.Join(project, lbl.Package)
 }
 
+// Parse takes a string and returns a bazel label
 func Parse(s string) (*Label, error) {
 	lbl := new(Label)
 	switch {
