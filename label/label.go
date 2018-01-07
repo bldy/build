@@ -27,10 +27,10 @@ type Label struct {
 
 // LoadLabel takes a label and returns the contents of it.
 func LoadLabel(lbl *Label) ([]byte, error) {
-	buildpath := path.Join(lbl.BuildDir(), buildfile)
+	buildpath := lbl.BuildFile()
 	_, err := os.Stat(buildpath)
 	if err != nil {
-		return nil, fmt.Errorf("label: load: file %q doesn't exist", buildpath)
+		return nil, fmt.Errorf("label.load: file %q doesn't exist", buildpath)
 	}
 	bytz, err := ioutil.ReadFile(buildpath)
 	if err != nil {
@@ -46,13 +46,13 @@ func Load(s string) ([]byte, error) {
 	if ext != "" {
 		bytz, err := ioutil.ReadFile(s)
 		if err != nil {
-			return nil, errors.Wrap(err, "load: readall")
+			return nil, errors.Wrap(err, "label.load: readall")
 		}
 		return bytz, nil
 	}
 	lbl, err := Parse(s)
 	if err != nil {
-		return nil, errors.Wrap(err, "load")
+		return nil, errors.Wrap(err, "label.load")
 	}
 	return LoadLabel(lbl)
 }
@@ -74,13 +74,17 @@ func (lbl Label) String() string {
 
 // BuildDir Returns the BuildDir for a given label
 // it takes two args, workdir and project
-func (lbl Label) BuildDir() string {
+func (lbl Label) BuildFile() string {
 	wd, _ := os.Getwd()
 	project := project.GetGitDir(wd)
 	if lbl.Package == "" {
 		return wd
 	}
-	return filepath.Join(project, lbl.Package)
+	ext := path.Ext(lbl.Name)
+	if ext != "" {
+		return filepath.Join(project, lbl.Package, lbl.Name)
+	}
+	return filepath.Join(project, lbl.Package, "BUILD")
 }
 
 // Parse takes a string and returns a bazel label

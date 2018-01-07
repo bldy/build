@@ -75,6 +75,8 @@ func TestTargetLabelParse(t *testing.T) {
 		// test root
 		{"root target", "//:label", ".", "label"},
 		{"root and dot", "//.:label", ".", "label"},
+		// test name with extension
+		{"name with extension", "x.bldy", "label", "x.bldy"},
 	}
 
 	for _, test := range tests {
