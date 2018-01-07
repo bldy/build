@@ -91,7 +91,7 @@ func (g *Graph) getTarget(lbl *label.Label) (n *Node) {
 	}
 	t, err := g.vm.GetTarget(lbl)
 	if err != nil {
-		log.Fatal(err)
+		l.Fatal(err)
 	}
 	nLbl := label.Label{
 		Package: lbl.Package,
@@ -130,7 +130,7 @@ func (g *Graph) getTarget(lbl *label.Label) (n *Node) {
 		depLbl, err := label.Parse(d)
 		c := g.getTarget(depLbl)
 		if err != nil {
-			log.Printf("%q is not a valid url", depLbl)
+			l.Printf("%q is not a valid url", depLbl)
 			continue
 		}
 		node.WG.Add(1)
