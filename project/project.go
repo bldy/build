@@ -5,79 +5,33 @@
 package project // import "bldy.build/build/project"
 
 import (
-	"flag"
-	"fmt"
 	"log"
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
 
+	"bldy.build/build/workspace"
 	"github.com/vaughan0/go-ini"
 )
 
 var (
 	file ini.File
-
-	pp = ""
-
-	copyToRoot = flag.Bool("r", false, "set root of the project as build out")
 )
 
 func init() {
-	wd, _ := os.Getwd()
-	pp = GetGitDir(wd)
-	var err error
-	if file, err = ini.LoadFile(filepath.Join(Root(), "bldy.cfg")); err == nil {
+	wd, err := os.Getwd()
+	if err != nil {
+		log.Fatal(err)
+	}
+	s, err := workspace.FindWorkspace(wd, os.Stat)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if file, err = ini.LoadFile(filepath.Join(s, "bldy.cfg")); err == nil {
 		if err != nil {
 			log.Fatalf("error: %v", err)
 		}
 	}
-}
-func SideLoad(wd string) {
-	pp = GetGitDir(wd)
-	var err error
-	if file, err = ini.LoadFile(filepath.Join(Root(), "bldy.cfg")); err == nil {
-		if err != nil {
-			log.Fatalf("error: %v", err)
-		}
-	}
-}
-func Root() (ProjectPath string) {
-	return pp
-}
-func RelPPath(p string) string {
-	rel, _ := filepath.Rel(Root(), p)
-	return rel
-}
-
-func BuildOut() string {
-	if *copyToRoot {
-		return Root()
-	}
-
-	if Getenv("BUILD_OUT") != "" {
-		return Getenv("BUILD_OUT")
-	} else {
-		return filepath.Join(
-			Root(),
-			"build_out",
-		)
-	}
-}
-
-func GetGitDir(p string) string {
-	dirs := strings.Split(p, "/")
-	for i := len(dirs) - 1; i > 0; i-- {
-		frags := append([]string{"/"}, dirs[0:i+1]...)
-		path := filepath.Join(frags...)
-		try := fmt.Sprintf("%s/.git", path)
-		if _, err := os.Lstat(try); os.IsNotExist(err) {
-			continue
-		}
-		return path
-	}
-	return ""
 }
 
 // Getenv returns the envinroment variable. It looks for the envinroment
@@ -91,7 +45,6 @@ func Getenv(s string) string {
 		return val
 	} else if val, exists := file.Get("", s); exists {
 		return val
-	} else {
-		return ""
 	}
+	return ""
 }
