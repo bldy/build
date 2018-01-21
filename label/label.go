@@ -5,15 +5,8 @@
 package label // import "bldy.build/build/label"
 import (
 	"fmt"
-	"io/ioutil"
-	"log"
-	"os"
 	"path"
-	"path/filepath"
 	"strings"
-
-	"bldy.build/build/project"
-	"github.com/pkg/errors"
 )
 
 const buildfile = "BUILD"
@@ -21,40 +14,8 @@ const buildfile = "BUILD"
 // Label represents a perforce label
 // we plan on adding more providers
 type Label struct {
-	Package string
+	Package *string
 	Name    string
-}
-
-// LoadLabel takes a label and returns the contents of it.
-func LoadLabel(lbl *Label) ([]byte, error) {
-	buildpath := lbl.BuildFile()
-	_, err := os.Stat(buildpath)
-	if err != nil {
-		return nil, fmt.Errorf("label.load: file %q doesn't exist", buildpath)
-	}
-	bytz, err := ioutil.ReadFile(buildpath)
-	if err != nil {
-		return nil, errors.Wrap(err, "skylark: readall")
-	}
-	return bytz, nil
-}
-
-// Load takes a string, which can be a label or a filepath and returns
-// the contents of it.
-func Load(s string) ([]byte, error) {
-	ext := path.Ext(s)
-	if ext != "" {
-		bytz, err := ioutil.ReadFile(s)
-		if err != nil {
-			return nil, errors.Wrap(err, "label.load: readall")
-		}
-		return bytz, nil
-	}
-	lbl, err := Parse(s)
-	if err != nil {
-		return nil, errors.Wrap(err, "label.load")
-	}
-	return LoadLabel(lbl)
 }
 
 func split(s string, c string, cutc bool) (string, string) {
@@ -69,22 +30,17 @@ func split(s string, c string, cutc bool) (string, string) {
 }
 
 func (lbl Label) String() string {
-	return fmt.Sprintf("//%s:%s", lbl.Package, lbl.Name)
+	if lbl.Package != nil {
+		return fmt.Sprintf("//%s:%s", *lbl.Package, lbl.Name)
+	} else {
+		return fmt.Sprintf(":%s", lbl.Name)
+
+	}
 }
 
-// BuildDir Returns the BuildDir for a given label
-// it takes two args, workdir and project
-func (lbl Label) BuildFile() string {
-	wd, _ := os.Getwd()
-	project := project.GetGitDir(wd)
-	if lbl.Package == "" {
-		return wd
-	}
-	ext := path.Ext(lbl.Name)
-	if ext != "" {
-		return filepath.Join(project, lbl.Package, lbl.Name)
-	}
-	return filepath.Join(project, lbl.Package, "BUILD")
+func Package(s string) *string {
+	x := s
+	return &x
 }
 
 // Parse takes a string and returns a bazel label
@@ -93,26 +49,26 @@ func Parse(s string) (*Label, error) {
 	switch {
 	case strings.HasPrefix(s, "//"):
 		s = s[2:]
-		lbl.Package, lbl.Name = split(s, ":", true)
-		if lbl.Package == "" {
-			lbl.Package = "." // this is the root of the project
+		pkg, name := split(s, ":", true)
+
+		lbl.Name = name
+		if pkg == "" {
+			lbl.Package = Package(".") // this is the root of the project
+		} else {
+			lbl.Package = Package(pkg)
 		}
 	case strings.HasPrefix(s, ":"):
 		s = s[1:]
 		fallthrough
 	default:
 		lbl.Name = s
-		wd, err := os.Getwd()
-		if err != nil {
-			log.Fatal(err)
-		}
-		lbl.Package, err = filepath.Rel(project.Root(), wd)
-		if err != nil {
-			log.Fatal(err)
-		}
+
+		lbl.Package = nil
+
 	}
-	if lbl.Name == "" {
-		lbl.Name = path.Base(lbl.Package)
+
+	if lbl.Name == "" && lbl.Package != nil {
+		lbl.Name = path.Base(*lbl.Package)
 	}
 
 	return lbl, nil
