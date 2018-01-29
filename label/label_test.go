@@ -6,6 +6,8 @@ package label
 
 import (
 	"testing"
+
+	"sevki.org/lib/prettyprint"
 )
 
 // Test that all valid Labels get parsed into proper (package, target) pairs.
@@ -29,17 +31,35 @@ func TestTargetLabelParse(t *testing.T) {
 		// So within the BUILD file for package my/app (i.e. //my/app:BUILD), the following "relative" labels are all equivalent:
 		{"omit package", ":app", nil, "app"},
 		{"omit package and colon", "app", nil, "app"},
+		//
+		{"filename", "empty/empty.bzl", Package("empty"), "empty.bzl"},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			l, _ := Parse(test.Label)
-
-			if test, got := test.Package, l.Package; (test != nil && got == test) && *test != *got {
-				t.Errorf("tested package %q, got %q", *test, *got)
+			l, err := Parse(test.Label)
+			if err != nil {
+				t.Error(err)
+				return
 			}
-			if test, got := test.Name, l.Name; test != got {
-				t.Errorf("tested target %q, got %q", test, got)
+			{
+				test, got := test.Package, l.Package
+				if test != nil {
+					if got == nil {
+						t.Errorf("wasn't expecting a nil package")
+						t.Fail()
+					}
+				}
+				if (test != nil && got != nil) && *test != *got {
+					t.Errorf("tested package %q, got %q", *test, *got)
+					t.Errorf(prettyprint.AsJSON(l))
+					t.Fail()
+				}
+			}
+			{
+				if test, got := test.Name, l.Name; test != got {
+					t.Errorf("tested target %q, got %q", test, got)
+				}
 			}
 		})
 
