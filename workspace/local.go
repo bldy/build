@@ -23,7 +23,6 @@ func (lw *localWorkspace) Buildfile(lbl *label.Label) string {
 	} else {
 		pkg = *lbl.Package
 	}
-
 	ext := path.Ext(lbl.Name)
 	if ext != "" {
 		return filepath.Join(lw.wd, pkg, lbl.Name)

@@ -50,7 +50,7 @@ func New(a string) (Workspace, error) {
 		}, nil
 	}
 
-	return nil, ErrNotAWorkspace
+	return nil, fmt.Errorf("workspace: new: %s is not a workspace", a)
 }
 
 // Stat checks if a file exists or not in a workspace
@@ -66,9 +66,8 @@ type Stat func(string) (os.FileInfo, error)
 // named WORKSPACE which may be empty, or may contain references to external
 //dependencies required to build the outputs.
 // https://docs.bazel.build/versions/master/build-ref.html#workspace
-func FindWorkspace(p string, stat Stat) (string, error) {
-
-	dirs := strings.Split(p, "/")
+func FindWorkspace(a string, stat Stat) (string, error) {
+	dirs := strings.Split(a, "/")
 	for i := len(dirs) - 1; i > 0; i-- {
 		frags := append([]string{"/"}, dirs[0:i+1]...)
 		path := path.Join(frags...)
@@ -78,5 +77,5 @@ func FindWorkspace(p string, stat Stat) (string, error) {
 		}
 		return path, nil
 	}
-	return "", ErrNotAWorkspace
+	return "", fmt.Errorf("workspace: new: %s is not a workspace", a)
 }
