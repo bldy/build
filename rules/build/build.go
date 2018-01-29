@@ -11,13 +11,7 @@ import (
 )
 
 func init() {
-	if err := internal.Register("gen_rule", GenRule{}); err != nil {
-		log.Fatal(err)
-	}
 	if err := internal.Register("group", Group{}); err != nil {
-		log.Fatal(err)
-	}
-	if err := internal.Register("template", Template{}); err != nil {
 		log.Fatal(err)
 	}
 }

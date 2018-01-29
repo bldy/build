@@ -16,15 +16,15 @@ import (
 )
 
 type CLib struct {
-	Name            string        `cxx_library:"name" cc_library:"name"`
-	Sources         []string      `cxx_library:"srcs" cc_library:"srcs" build:"path" ext:".c,.S,.cpp,.cc"`
-	Dependencies    []string      `cxx_library:"deps" cc_library:"deps"`
-	Includes        Includes      `cxx_library:"headers" cc_library:"includes" build:"path" ext:".h,.c,.S"`
-	Headers         []string      `cxx_library:"exported_headers" cc_library:"hdrs" build:"path" ext:".h,.c,.S"`
-	CompilerOptions CompilerFlags `cxx_library:"compiler_flags" cc_library:"copts"`
-	LinkerOptions   []string      `cxx_library:"linker_flags" cc_library:"linkopts"`
-	LinkStatic      bool          `cxx_library:"linkstatic" cc_library:"linkstatic"`
-	AlwaysLink      bool          `cxx_library:"alwayslink" cc_library:"alwayslink"`
+	Name            string   `cxx_library:"name" cc_library:"name"`
+	Sources         []string `cxx_library:"srcs" cc_library:"srcs" build:"path" ext:".c,.S,.cpp,.cc"`
+	Dependencies    []string `cxx_library:"deps" cc_library:"deps"`
+	Includes        []string `cxx_library:"headers" cc_library:"includes" build:"path" ext:".h,.c,.S"`
+	Headers         []string `cxx_library:"exported_headers" cc_library:"hdrs" build:"path" ext:".h,.c,.S"`
+	CompilerOptions []string `cxx_library:"compiler_flags" cc_library:"copts"`
+	LinkerOptions   []string `cxx_library:"linker_flags" cc_library:"linkopts"`
+	LinkStatic      bool     `cxx_library:"linkstatic" cc_library:"linkstatic"`
+	AlwaysLink      bool     `cxx_library:"alwayslink" cc_library:"alwayslink"`
 }
 
 func (cl *CLib) Hash() []byte {
@@ -50,7 +50,7 @@ func (cl *CLib) Build(e *executor.Executor) error {
 	params := []string{"-c"}
 	params = append(params, cl.CompilerOptions...)
 	params = append(params, cl.LinkerOptions...)
-	params = append(params, cl.Includes.Includes()...)
+	params = append(params, includes(cl.Includes)...)
 	params = append(params, cl.Sources...)
 
 	if err := e.Exec(Compiler(), CCENV, params); err != nil {

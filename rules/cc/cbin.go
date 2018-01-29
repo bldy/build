@@ -2,29 +2,30 @@ package cc
 
 import (
 	"fmt"
+	"log"
 
-	"io"
 	"strings"
 
 	"path/filepath"
 
 	"bldy.build/build/executor"
+	"bldy.build/build/label"
 	"bldy.build/build/racy"
 )
 
 type CBin struct {
-	Name            string        `cxx_binary:"name" cc_binary:"name"`
-	Sources         []string      `cxx_binary:"srcs" cc_binary:"srcs" build:"path" ext:".c,.S,.cpp,.cc"`
-	Dependencies    []string      `cxx_binary:"deps" cc_binary:"deps"`
-	Includes        Includes      `cxx_binary:"headers" cc_binary:"includes" build:"path" ext:".h,.c,.S"`
-	Headers         []string      `cxx_binary:"exported_headers" cc_binary:"hdrs" build:"path" ext:".h,.hh,.hpp"`
-	CompilerOptions CompilerFlags `cxx_binary:"compiler_flags" cc_binary:"copts"`
-	LinkerOptions   []string      `cxx_binary:"linker_flags" cc_binary:"linkopts"`
-	LinkerFile      string        `cxx_binary:"ld" cc_binary:"ld" build:"path"`
-	Static          bool          `cxx_binary:"linkstatic" cc_binary:"linkstatic"`
-	Strip           bool          `cxx_binary:"strip" cc_binary:"strip"`
-	AlwaysLink      bool          `cxx_binary:"alwayslink" cc_binary:"alwayslink"`
-	Install         *string       `cxx_binary:"install" cc_binary:"install"`
+	Name            string   `cxx_binary:"name" cc_binary:"name"`
+	Sources         []string `cxx_binary:"srcs" cc_binary:"srcs" build:"path" ext:".c,.S,.cpp,.cc"`
+	Dependencies    []string `cxx_binary:"deps" cc_binary:"deps"`
+	Includes        []string `cxx_binary:"headers" cc_binary:"includes" build:"path" ext:".h,.c,.S"`
+	Headers         []string `cxx_binary:"exported_headers" cc_binary:"hdrs" build:"path" ext:".h,.hh,.hpp"`
+	CompilerOptions []string `cxx_binary:"compiler_flags" cc_binary:"copts"`
+	LinkerOptions   []string `cxx_binary:"linker_flags" cc_binary:"linkopts"`
+	LinkerFile      string   `cxx_binary:"ld" cc_binary:"ld" build:"path"`
+	Static          bool     `cxx_binary:"linkstatic" cc_binary:"linkstatic"`
+	Strip           bool     `cxx_binary:"strip" cc_binary:"strip"`
+	AlwaysLink      bool     `cxx_binary:"alwayslink" cc_binary:"alwayslink"`
+	Install         *string  `cxx_binary:"install" cc_binary:"install"`
 }
 
 func split(s string, c string) string {
@@ -37,10 +38,9 @@ func split(s string, c string) string {
 }
 func (cb *CBin) Hash() []byte {
 	h := racy.New()
-	io.WriteString(h, CCVersion)
-	io.WriteString(h, cb.Name)
-	racy.HashStrings(h, cb.CompilerOptions)
-	racy.HashStrings(h, cb.LinkerOptions)
+	racy.HashString(h, CCVersion, cb.Name)
+	racy.HashString(h, cb.CCParams()...)
+	racy.HashString(h, cb.LDParams()...)
 	return racy.XOR(
 		h.Sum(nil),
 		racy.HashFilesForExt([]string(cb.Includes), ".h"),
@@ -50,16 +50,32 @@ func (cb *CBin) Hash() []byte {
 }
 
 func (cb *CBin) Build(e *executor.Executor) error {
+	if err := e.Exec(Compiler(), CCENV, cb.CCParams()); err != nil {
+		return err
+	}
+
+	if err := e.Exec(Linker(), CCENV, cb.LDParams()); err != nil {
+		return err
+	}
+	if cb.Strip {
+		sparams := []string{"-o", cb.Name, cb.Name}
+		if err := e.Exec(Stripper(), nil, sparams); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (cb *CBin) CCParams() []string {
 	params := []string{"-c"}
 	params = append(params, cb.CompilerOptions...)
 	params = append(params, cb.Sources...)
 
-	params = append(params, cb.Includes.Includes()...)
+	return append(params, includes(cb.Includes)...)
 
-	if err := e.Exec(Compiler(), CCENV, params); err != nil {
-		return err
-	}
+}
 
+func (cb *CBin) LDParams() []string {
 	ldparams := []string{"-o", cb.Name}
 
 	// This is done under the assumption that each src file put in this thing
@@ -75,7 +91,11 @@ func (cb *CBin) Build(e *executor.Executor) error {
 	}
 	haslib := false
 	for _, dep := range cb.Dependencies {
-		d := split(dep, ":")
+		lbl, err := label.Parse(dep)
+		if err != nil {
+			log.Fatal(err)
+		}
+		d := lbl.Name
 		if len(d) < 3 {
 			continue
 		}
@@ -99,17 +119,7 @@ func (cb *CBin) Build(e *executor.Executor) error {
 			ldparams = append(ldparams, fmt.Sprintf("%s.a", d))
 		}
 	}
-
-	if err := e.Exec(Linker(), CCENV, ldparams); err != nil {
-		return err
-	}
-	if cb.Strip {
-		sparams := []string{"-o", cb.Name, cb.Name}
-		if err := e.Exec(Stripper(), nil, sparams); err != nil {
-			return err
-		}
-	}
-	return nil
+	return ldparams
 }
 
 func (cb *CBin) Installs() map[string]string {

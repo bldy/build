@@ -18,17 +18,17 @@ import (
 )
 
 type CTest struct {
-	Name            string        `cxx_test:"name" cc_test:"name"`
-	Sources         []string      `cxx_test:"srcs" cc_test:"srcs" build:"path"`
-	Dependencies    []string      `cxx_test:"deps" cc_test:"deps"`
-	Includes        Includes      `cxx_test:"headers" cc_test:"includes" build:"path"`
-	Headers         []string      `cxx_test:"exported_headers" cc_test:"hdrs" build:"path"`
-	CompilerOptions CompilerFlags `cxx_test:"compiler_flags" cc_test:"copts"`
-	LinkerOptions   []string      `cxx_test:"linker_flags" cc_test:"linkopts"`
-	LinkerFile      string        `cxx_test:"ld" cc_test:"ld" build:"path"`
-	Static          bool          `cxx_test:"linkstatic" cc_test:"linkstatic"`
-	Strip           bool          `cxx_test:"strip" cc_test:"strip"`
-	AlwaysLink      bool          `cxx_test:"alwayslink" cc_test:"alwayslink"`
+	Name            string   `cxx_test:"name" cc_test:"name"`
+	Sources         []string `cxx_test:"srcs" cc_test:"srcs" build:"path"`
+	Dependencies    []string `cxx_test:"deps" cc_test:"deps"`
+	Includes        []string `cxx_test:"headers" cc_test:"includes" build:"path"`
+	Headers         []string `cxx_test:"exported_headers" cc_test:"hdrs" build:"path"`
+	CompilerOptions []string `cxx_test:"compiler_flags" cc_test:"copts"`
+	LinkerOptions   []string `cxx_test:"linker_flags" cc_test:"linkopts"`
+	LinkerFile      string   `cxx_test:"ld" cc_test:"ld" build:"path"`
+	Static          bool     `cxx_test:"linkstatic" cc_test:"linkstatic"`
+	Strip           bool     `cxx_test:"strip" cc_test:"strip"`
+	AlwaysLink      bool     `cxx_test:"alwayslink" cc_test:"alwayslink"`
 }
 
 func (ct *CTest) Hash() []byte {
@@ -49,8 +49,7 @@ func (ct *CTest) Build(e *executor.Executor) error {
 	params = append(params, ct.CompilerOptions...)
 	params = append(params, ct.Sources...)
 
-	params = append(params, ct.Includes.Includes()...)
-
+	params = append(params, includes(ct.Includes)...)
 	if err := e.Exec(Compiler(), CCENV, params); err != nil {
 		return fmt.Errorf(err.Error())
 	}

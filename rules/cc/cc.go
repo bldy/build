@@ -47,9 +47,6 @@ func init() {
 	if err := internal.Register("cc_library", CLib{}); err != nil {
 		log.Fatal(err)
 	}
-	if err := internal.Register("cxx_library", CLib{}); err != nil {
-		log.Fatal(err)
-	}
 	if err := internal.Register("cc_binary", CBin{}); err != nil {
 		log.Fatal(err)
 	}
@@ -78,7 +75,7 @@ func Linker() string {
 	}
 }
 
-// Had to be done
+// Stripper returns the strip binary
 func Stripper() string {
 	if tpfx := project.Getenv("TOOLPREFIX"); tpfx == "" {
 		return "strip"
@@ -87,11 +84,7 @@ func Stripper() string {
 	}
 }
 
-type CompilerFlags []string
-
-type Includes []string
-
-func (s Includes) Includes() (incs []string) {
+func includes(s []string) (incs []string) {
 	for _, i := range s {
 		incs = append(incs, fmt.Sprintf("-I%s", i))
 	}
