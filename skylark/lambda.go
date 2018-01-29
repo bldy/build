@@ -9,9 +9,9 @@ import (
 
 func (s *skylarkVM) makeRule(thread *skylark.Thread, fn *skylark.Builtin, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
 	var impl *skylark.Function
-	var attrs *skylark.Dict
+	attrs := new(skylark.Dict)
 	err := skylark.UnpackArgs(fn.Name(), args, kwargs, skylarkKeyImpl, &impl, skylarkKeyAttrs, &attrs)
-	if attrs != nil && err != nil {
+	if false && attrs != nil && err != nil {
 		log.Println(err)
 	}
 	x := &lambdaFunc{

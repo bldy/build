@@ -2,23 +2,12 @@ package skylark
 
 import (
 	"errors"
-	"log"
 	"os"
 	"testing"
 
 	"bldy.build/build/label"
-	_ "bldy.build/build/rules/cc"
-	"sevki.org/lib/prettyprint"
+	"bldy.build/build/workspace"
 )
-
-func TestNew(t *testing.T) {
-	wd, _ := os.Getwd()
-	_, err := New(wd)
-	if err != nil {
-		t.Log(err)
-		t.Fail()
-	}
-}
 
 var errAny = errors.New("any error")
 
@@ -30,29 +19,30 @@ func TestEval(t *testing.T) {
 	}{
 		{
 			name:  "notexist",
-			label: "//skylark/notexist:libsncmds",
+			label: "//notexist:libsncmds",
 			err:   errAny,
 		},
 		{
 			name:  "simple_skylark",
-			label: "//skylark/testdata:test",
+			label: "//testdata:test",
 			err:   nil,
 		},
 		{
-			name:  "some_target",
-			label: "//skylark/testdata:some_target",
-			err:   nil,
-		},
-		{
-			name:  "native_cc",
-			label: "//skylark/testdata:native_cc",
+			name:  "noop_skylark",
+			label: "//testdata:noop",
 			err:   nil,
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			wd, _ := os.Getwd()
-			vm, _ := New(wd + "skylark")
+			ws, err := workspace.New(wd)
+			if err != nil {
+				t.Log(err)
+				t.Fail()
+				return
+			}
+			vm, _ := New(ws)
 			l, _ := label.Parse(test.label)
 			target, err := vm.GetTarget(l)
 			if test.err != errAny && err != test.err {
@@ -65,7 +55,7 @@ func TestEval(t *testing.T) {
 				return
 			}
 			if target != nil {
-				log.Println(prettyprint.AsJSON(target))
+				//log.Println(prettyprint.AsJSON(target))
 			}
 		})
 	}

@@ -1,12 +1,14 @@
 package skylark
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"os"
 
 	"bldy.build/build/internal"
 	"bldy.build/build/label"
+	"bldy.build/build/workspace"
 
 	"bldy.build/build"
 	"github.com/google/skylark"
@@ -25,24 +27,39 @@ const (
 )
 
 var (
-	l = log.New(os.Stdout, "skylark: ", log.Lshortfile)
+	l             = log.New(os.Stdout, "skylark: ", log.Lshortfile)
+	errDoesntHash = errors.New("doesn't implement hash")
 )
 
 func init() {
 	skylark.Universe["attr"] = attributer{}
+	skylark.Universe["env"] = skylark.NewBuiltin("env", _env)
 }
 
 type skylarkVM struct {
-	wd    string
-	pkg   string
-	rules []build.Rule
+	pkg     string
+	rules   map[string]build.Rule
+	ws      workspace.Workspace
+	globals skylark.StringDict
 }
 
 // New returns a new skylarkVM
-func New(wd string) (build.VM, error) {
-	return &skylarkVM{
-		wd: wd,
-	}, nil
+func New(ws workspace.Workspace) (build.VM, error) {
+	s := &skylarkVM{
+		ws:    ws,
+		rules: make(map[string]build.Rule),
+	}
+
+	natives := make(nativeMap)
+	for _, nativeRule := range internal.Rules() {
+		natives[nativeRule] = skylark.NewBuiltin(nativeRule, s.makeNativeRule)
+	}
+	globals := skylark.StringDict{
+		"rule":   skylark.NewBuiltin("rule", s.makeRule),
+		"native": natives,
+	}
+	s.globals = globals
+	return s, nil
 }
 
 func print(thread *skylark.Thread, msg string) {
@@ -50,9 +67,13 @@ func print(thread *skylark.Thread, msg string) {
 }
 
 func (s *skylarkVM) GetTarget(l *label.Label) (build.Rule, error) {
-	bytz, err := label.LoadLabel(l)
+	if r, ok := s.rules[l.String()]; ok {
+		return r, nil
+	}
+
+	bytz, err := s.ws.LoadBuildfile(l)
 	if err != nil {
-		errors.Wrap(err, "get target:")
+		errors.Wrap(err, "skylark.get_target:")
 	}
 
 	t := &skylark.Thread{}
@@ -61,35 +82,28 @@ func (s *skylarkVM) GetTarget(l *label.Label) (build.Rule, error) {
 
 	t.SetLocal(threadKeyPackage, l.Package)
 
-	globals := skylark.StringDict{
-		"rule": skylark.NewBuiltin("rule", s.makeRule),
-	}
-	for _, nativeRule := range internal.Rules() {
-		globals[nativeRule] = skylark.NewBuiltin(nativeRule, s.makeNativeRule)
-	}
-	err = skylark.ExecFile(t, l.String(), bytz, globals)
+	err = skylark.ExecFile(t, s.ws.Buildfile(l), bytz, s.globals)
 	if err != nil {
-		return nil, errors.Wrap(err, "skylark: eval")
+		return nil, errors.Wrap(err, "skylark.exec")
 	}
-	for _, r := range s.rules {
-		if r.GetName() == l.Name {
-			return r, nil
-		}
+	if r, ok := s.rules[l.String()]; ok {
+		return r, nil
 	}
-	return nil, fmt.Errorf("couldn't find the target %s", l.String())
+	return nil, fmt.Errorf("skylark: couldn't find the target %s in %s", l.String(), s.ws.Buildfile(l))
 }
+
 func (s *skylarkVM) load(thread *skylark.Thread, module string) (skylark.StringDict, error) {
-	bytz, err := label.Load(module)
+	lbl, err := label.Parse(module)
+	bytz, err := s.ws.LoadBuildfile(lbl)
 	if err != nil {
-		log.Println(err)
-		return nil, errors.Wrap(err, "skylark: eval")
+		buf := bytes.NewBuffer(nil)
+		thread.Caller().WriteBacktrace(buf)
+		return nil, fmt.Errorf("skylark.load: %s\n%s", err.Error(), buf.String())
 	}
-	globals := skylark.StringDict{
-		"rule": skylark.NewBuiltin("rule", s.makeRule),
-	}
-	err = skylark.ExecFile(thread, module, bytz, globals)
+
+	err = skylark.ExecFile(thread, s.ws.Buildfile(lbl), bytz, s.globals)
 	if err != nil {
-		return globals, err
+		return s.globals, err
 	}
-	return globals, nil
+	return s.globals, nil
 }

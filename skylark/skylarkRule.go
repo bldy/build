@@ -4,50 +4,72 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"log"
 
 	"bldy.build/build/executor"
+	"bldy.build/build/label"
 	"bldy.build/build/racy"
 	"github.com/google/skylark"
-	"github.com/pkg/errors"
 )
 
-type skylarkRule struct {
+// Rule is a bazel rule that is implemented in skylark
+type Rule struct {
 	Name         string
 	Dependencies []string
 
-	skyFuncLabel string
+	SkyFuncLabel string
 	skyThread    *skylark.Thread
-	args         skylark.Tuple
-	kwargs       []skylark.Tuple
-	skyFunc      *skylark.Function
-	attrs        *skylark.Dict
+	Args         skylark.Tuple
+	Kwargs       []skylark.Tuple
+	SkyFunc      *skylark.Function
+	FuncAttrs    *skylark.Dict
+	Attrs        nativeMap
+
+	Actions []Action
 }
 
-func (l *lambdaFunc) makeSkylarkRule(thread *skylark.Thread, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
+func (f *lambdaFunc) makeSkylarkRule(thread *skylark.Thread, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
 	var name string
 	var deps *skylark.List
 	err := skylark.UnpackArgs(fmt.Sprintf("new rule (%s)", name), args, kwargs, skylarkKeyName, &name, skylarkKeyDeps, &deps)
-	if deps != nil && err != nil {
-		log.Println(err)
+	// TODO(sevki): add debug mode here
+	if false {
+		l.Println(err)
 	}
 
-	newRule := skylarkRule{
-		Name:         name,
-		args:         args,
-		kwargs:       kwargs,
-		skyFunc:      l.skyFunc,
-		skyThread:    thread,
-		attrs:        l.attrs,
-		skyFuncLabel: l.skyFunc.Name(),
-	}
-	newRule.WalkAttrs(func(kw skylark.Value, attr *attr) { // check the attributes
-		if _, ok := findArg(kw, kwargs); !ok { // try finding the kwarg mentioned in the attribute
-			if attr.def != nil { // if the attribute has a default and it's not in kwargs
-				newRule.kwargs = append(newRule.kwargs, skylark.Tuple{kw, attr.def}) // set it
-			}
+	attrs := make(bldyDict)
+	attrs["name"] = skylark.String(name) // this is added to all attrs https://github.com/bazelbuild/examples/blob/master/rules/attributes/printer.bzl#L20
+
+	WalkDict(f.attrs, func(kw skylark.Value, attr *attr) { // check the attributes
+		if arg, ok := findArg(kw, kwargs); ok { // try finding the kwarg mentioned in the attribute
+			attrs[string(kw.(skylark.String))] = arg
+		} else if attr.def != nil { // if the attribute has a default and it's not in kwargs
+			attrs[string(kw.(skylark.String))] = attr.def
 		}
 	})
+	ctx := newContext(name, attrs)
+	t := &skylark.Thread{
+		Print: ctx.Print,
+	}
+
+	globals := make(skylark.StringDict)
+	t.Push(globals, 0)
+	if _, err := f.skyFunc.Call(t, []skylark.Value{ctx}, nil); err != nil {
+		return skylark.None, err
+	}
+	t.Pop()
+
+	newRule := Rule{
+		Name:         name,
+		Args:         args,
+		Kwargs:       kwargs,
+		SkyFunc:      f.skyFunc,
+		skyThread:    thread,
+		SkyFuncLabel: f.skyFunc.Name(),
+		FuncAttrs:    f.attrs,
+		Attrs:        make(nativeMap),
+		Actions:      ctx.actionRecorder.calls,
+	}
+
 	if deps != nil {
 		i := deps.Iterate()
 		var p skylark.Value
@@ -57,53 +79,35 @@ func (l *lambdaFunc) makeSkylarkRule(thread *skylark.Thread, args skylark.Tuple,
 			}
 		}
 	}
-	l.vm.rules = append(l.vm.rules, &newRule)
+	lbl := label.Label{
+		Name:    newRule.GetName(),
+		Package: thread.Local(threadKeyPackage).(*string),
+	}
+	f.vm.rules[lbl.String()] = &newRule
 	return skylark.None, nil
 }
 
-func (s *skylarkRule) Build(e *executor.Executor) error {
-	ctx := skylarkContext{
-		label: s.skyFuncLabel,
-		attrs: s.attrs,
-	}
-	thread := &skylark.Thread{}
-	_, err := s.skyFunc.Call(thread, []skylark.Value{&ctx}, nil)
-	return err
+// Build builds the skylarkRule
+func (r *Rule) Build(e *executor.Executor) error {
+
+	return nil
 }
 
-func (s *skylarkRule) WalkAttrs(wf walkAttrFunc) {
-	if s.attrs != nil {
-		i := s.attrs.Iterate()
-		var p skylark.Value
-		for i.Next(&p) {
-			val, _, err := s.attrs.Get(p)
-			if err != nil {
-				log.Println(errors.Wrap(err, "skylarkRule walk attrs"))
-			}
-			if attr, ok := val.(*attr); ok {
-				wf(p, attr)
-			}
-		}
-	}
-}
-
-type walkAttrFunc func(skylark.Value, *attr)
-
-func (s *skylarkRule) Hash() []byte {
+// Hash returns the calculated hash of a target
+func (r *Rule) Hash() []byte {
 	h := racy.New()
-	io.WriteString(h, s.skyFuncLabel)
-	funcHash, err := s.skyFunc.Hash()
+	io.WriteString(h, r.SkyFuncLabel)
+	funcHash, err := r.SkyFunc.Hash()
 	if err != nil {
-		log.Fatal(err)
+		l.Fatal(err)
 	}
 	if err := binary.Write(h, binary.BigEndian, funcHash); err != nil {
-		log.Fatal(err)
+		l.Fatal(err)
 	}
 	x := h.Sum(nil)
-	s.WalkAttrs(walkAttrFunc(func(kw skylark.Value, attr *attr) {
-		x = racy.XOR(x, s.hashArg(kw, attr))
-	}))
-
+	WalkDict(r.FuncAttrs, func(kw skylark.Value, attr *attr) {
+		x = racy.XOR(x, r.hashArg(kw, attr))
+	})
 	return x
 }
 
@@ -118,9 +122,9 @@ func findArg(kw skylark.Value, kwargs []skylark.Tuple) (skylark.Value, bool) {
 	return nil, false
 }
 
-func (s *skylarkRule) hashArg(kw skylark.Value, attr *attr) []byte {
+func (r *Rule) hashArg(kw skylark.Value, attr *attr) []byte {
 	h := racy.New()
-	v, ok := findArg(kw, s.kwargs)
+	v, ok := findArg(kw, r.Kwargs)
 	if !ok {
 		return nil
 	}
@@ -129,7 +133,7 @@ func (s *skylarkRule) hashArg(kw skylark.Value, attr *attr) []byte {
 		if num, ok := v.(skylark.Int); ok {
 			if i, ok := num.Int64(); ok {
 				if err := binary.Write(h, binary.BigEndian, i); err != nil {
-					log.Fatal(err)
+					l.Fatal(err)
 				}
 			}
 		}
@@ -147,13 +151,18 @@ func (s *skylarkRule) hashArg(kw skylark.Value, attr *attr) []byte {
 
 	return h.Sum(nil)
 }
-func (s *skylarkRule) GetName() string {
-	return s.Name
+
+// GetName returns the name of the SkylarkRule
+func (r *Rule) GetName() string {
+	return r.Name
 }
 
-func (s *skylarkRule) GetDependencies() []string {
-	return s.Dependencies
+// GetDependencies returns the dependencies of the SkylarkRule
+func (r *Rule) GetDependencies() []string {
+	return r.Dependencies
 }
-func (s *skylarkRule) Installs() map[string]string {
+
+// Installs returns what will be outputed from the execution of the rule
+func (r *Rule) Installs() map[string]string {
 	return nil
 }

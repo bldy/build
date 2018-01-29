@@ -2,8 +2,11 @@ package skylark
 
 import (
 	"fmt"
+	"log"
+	"os"
 
 	"github.com/google/skylark"
+	"github.com/pkg/errors"
 )
 
 type attrType int
@@ -14,33 +17,34 @@ const (
 )
 
 type attr struct {
-	t   attrType
-	def skylark.Value
+	t          attrType
+	def        skylark.Value
+	allowFiles bool
 }
 
 func (a *attr) Name() string          { return "attr" }
-func (a *attr) Hash() (uint32, error) { return 0, nil }
+func (a *attr) Hash() (uint32, error) { return 0, errors.New("attr doesn't implenent hash") }
 func (a *attr) Freeze()               {}
-func (a *attr) String() string        { return fmt.Sprintf("%s.type = %v", a.Name(), a.t.String()[1:]) }
-func (a *attr) Type() string          { return "int_attr" }
-func (a *attr) Truth() skylark.Bool   { return true }
+func (a *attr) String() string {
+	return fmt.Sprintf("attr.type = %v, attr.has_default = %v", a.t.String()[1:], a.def != nil)
+}
+func (a *attr) Type() string        { return "attr" }
+func (a *attr) Truth() skylark.Bool { return true }
 
-func attrLabelList(thread *skylark.Thread, fn *skylark.Builtin, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
-	allowFiles := false
-	err := skylark.UnpackArgs(fn.Name(), args, kwargs, "allow_files", &allowFiles)
-	if err != nil {
-		return nil, err
+func newAttr(t attrType, thread *skylark.Thread, fn *skylark.Builtin, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
+	attr := &attr{t: t}
+	err := skylark.UnpackArgs(fn.Name(), args, kwargs, "allow_files", &attr.allowFiles, "default", &attr.def)
+	if err != nil && os.Getenv("BLDY_DEBUG") == "1" {
+		log.Println(err)
 	}
-	return &attr{t: _labelList}, nil
+	return attr, nil
 }
 
 func attrInt(thread *skylark.Thread, fn *skylark.Builtin, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
-	var d int
-	err := skylark.UnpackArgs(fn.Name(), args, kwargs, "default", &d)
-	if err != nil {
-		return nil, err
-	}
-	return &attr{t: _int, def: skylark.MakeInt(d)}, nil
+	return newAttr(_int, thread, fn, args, kwargs)
+}
+func attrLabelList(thread *skylark.Thread, fn *skylark.Builtin, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
+	return newAttr(_labelList, thread, fn, args, kwargs)
 }
 
 type attributer struct{}
@@ -63,6 +67,7 @@ func (a attributer) Attr(name string) (skylark.Value, error) {
 	}
 	return skylark.None, fmt.Errorf("attr doen't implement %s", name)
 }
+
 func (a attributer) AttrNames() (names []string) {
 	for k := range attrFuncs {
 		names = append(names, k)

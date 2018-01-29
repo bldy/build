@@ -6,17 +6,20 @@ import (
 
 	"bldy.build/build"
 	"bldy.build/build/internal"
+	"bldy.build/build/label"
 	"github.com/google/skylark"
+	"github.com/pkg/errors"
 )
 
 func (s *skylarkVM) makeNativeRule(thread *skylark.Thread, fn *skylark.Builtin, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
-	t := internal.Get(fn.Name()) // the reason why this rule is native is that it is registered as such
+	t := internal.Get(fn.Name()) // the reason why this rule is native is that it is registered as such for each of the native types like CC
 	newReflectType := reflect.New(t)
 	newStruct := newReflectType.Elem()
 	for _, kwarg := range kwargs {
-		strct, err := internal.GasdetFieldByTag(fn.Name(), string(kwarg.Index(0).(skylark.String)), t)
+		strct, err := internal.GetFieldByTag(fn.Name(), string(kwarg.Index(0).(skylark.String)), t)
+
 		if err != nil {
-			log.Println(err)
+			log.Println(errors.Wrap(err, "make native rule"))
 		}
 		f := newStruct.FieldByName(strct.Name)
 		v := kwarg.Index(1)
@@ -43,6 +46,11 @@ func (s *skylarkVM) makeNativeRule(thread *skylark.Thread, fn *skylark.Builtin, 
 			}
 		}
 	}
-	s.rules = append(s.rules, newReflectType.Interface().(build.Rule))
+	newNativeRule := newReflectType.Interface().(build.Rule)
+	lbl := label.Label{
+		Name:    newNativeRule.GetName(),
+		Package: label.Package(thread.Local(threadKeyPackage).(string)),
+	}
+	s.rules[lbl.String()] = newNativeRule
 	return skylark.None, nil
 }
