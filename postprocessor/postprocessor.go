@@ -9,23 +9,31 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path"
 	"path/filepath"
 	"reflect"
 	"strings"
 
 	"bldy.build/build"
+	"bldy.build/build/label"
 	"bldy.build/build/project"
+	"bldy.build/build/workspace"
 )
 
 type PostProcessor struct {
-	projectPath, packagePath string
+	packagePath string
+	ws          workspace.Workspace
 }
 
 // New returns a new PostProcessor
-func New(p string) PostProcessor {
+func New(ws workspace.Workspace, l label.Label) PostProcessor {
+	pkg := ws.AbsPath()
+	if l.Package != nil {
+		pkg = path.Join(pkg, *l.Package)
+	}
 	return PostProcessor{
-		packagePath: p,
-		projectPath: project.Root(),
+		packagePath: pkg,
+		ws:          ws,
 	}
 }
 
@@ -152,13 +160,13 @@ func (pp *PostProcessor) absPath(s string) string {
 	var r string
 	switch {
 	case s[:2] == "//":
-		r = filepath.Join(pp.projectPath, strings.Trim(s, "//"))
+		r = filepath.Join(pp.ws.AbsPath(), strings.Trim(s, "//"))
 	default:
 		r = os.Expand(s, project.Getenv)
 		if filepath.IsAbs(r) {
 			return r
 		}
-		r = filepath.Join(pp.projectPath, pp.packagePath, s)
+		r = filepath.Join(pp.ws.AbsPath(), pp.packagePath, s)
 	}
 	r = os.Expand(r, project.Getenv)
 	return r
