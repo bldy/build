@@ -26,7 +26,6 @@ import (
 
 	"bldy.build/build"
 	"bldy.build/build/graph"
-	"bldy.build/build/project"
 )
 
 const (
@@ -54,20 +53,27 @@ type Builder struct {
 	ptr         *graph.Node
 	graph       *graph.Graph
 	pq          *pqueue.PQueue
+	opts        *Options
 }
 
-func New(g *graph.Graph) (c Builder) {
-	c.Error = make(chan error)
-	c.Done = make(chan *graph.Node)
-	c.Updates = make(chan *graph.Node)
+type Options struct {
+	UseCache bool
+	BuildOut *string
+}
+
+func New(g *graph.Graph, o *Options) (b Builder) {
+	b.Error = make(chan error)
+	b.Done = make(chan *graph.Node)
+	b.Updates = make(chan *graph.Node)
 	var err error
-	c.Wd, err = os.Getwd()
+	b.Wd, err = os.Getwd()
 	if err != nil {
 		l.Fatal(err)
 	}
-	c.pq = pqueue.New()
-	c.graph = g
-	c.ProjectPath = project.Root()
+	b.pq = pqueue.New()
+	b.graph = g
+	b.opts = o
+	b.ProjectPath = g.Workspace().AbsPath()
 	return
 }
 
@@ -208,11 +214,10 @@ func (b *Builder) work(ctx context.Context, workerNumber int) {
 			b.Updates <- job
 			b.Error <- buildErr
 			return
-		} else {
-			job.Status = build.Success
-
-			b.Updates <- job
 		}
+		job.Status = build.Success
+
+		b.Updates <- job
 
 		if !job.IsRoot {
 			b.Done <- job
@@ -222,14 +227,11 @@ func (b *Builder) work(ctx context.Context, workerNumber int) {
 				}
 			})
 		} else {
-			install(job)
-
+			install(job, *b.opts.BuildOut)
 			b.Done <- job
 			close(b.Done)
-			return
 		}
-		defer job.Unlock()
-
+		job.Unlock()
 	}
 
 }
@@ -245,8 +247,7 @@ func (b *Builder) visit(n *graph.Node) {
 	b.pq.Push(n)
 }
 
-func install(job *graph.Node) error {
-	buildOut := project.BuildOut()
+func install(job *graph.Node, buildOut string) error {
 	if err := os.MkdirAll(
 		buildOut,
 		os.ModeDir|os.ModePerm,
