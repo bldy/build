@@ -16,20 +16,21 @@ import (
 
 var (
 	file ini.File
+	l    = log.New(os.Stdout, "project", 0)
 )
 
-func init() {
+func loadFile() {
 	wd, err := os.Getwd()
 	if err != nil {
 		log.Fatal(err)
 	}
 	s, err := workspace.FindWorkspace(wd, os.Stat)
 	if err != nil {
-		log.Fatal(err)
+		l.Println(err)
 	}
 	if file, err = ini.LoadFile(filepath.Join(s, "bldy.cfg")); err == nil {
 		if err != nil {
-			log.Fatalf("error: %v", err)
+			l.Printf("error: %v", err)
 		}
 	}
 }
@@ -39,6 +40,9 @@ func init() {
 // an envinroment variable, checks if it's set in the OS specific section in
 // the .build file, and checks it for common in the .build config file.
 func Getenv(s string) string {
+	if file == nil {
+		loadFile()
+	}
 	if os.Getenv(s) != "" {
 		return os.Getenv(s)
 	} else if val, exists := file.Get(runtime.GOOS, s); exists {
