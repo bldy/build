@@ -93,7 +93,6 @@ func (e *Executor) Println(v ...interface{}) {
 
 // Exec executes a command writing it's outputs to the context
 func (e *Executor) Exec(cmd string, env, args []string) error {
-
 	run := Run{
 		At:   time.Now(),
 		Cmd:  cmd,
