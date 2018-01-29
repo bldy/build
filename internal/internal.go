@@ -39,8 +39,8 @@ func Get(name string) reflect.Type {
 	return nil
 }
 
-// GasdetFieldByTag returns field by tag
-func GasdetFieldByTag(tn, tag string, p reflect.Type) (*reflect.StructField, error) {
+// GetFieldByTag returns field by tag
+func GetFieldByTag(tn, tag string, p reflect.Type) (*reflect.StructField, error) {
 	if p == nil {
 		return nil, fmt.Errorf("%s isn't a registered type", tn)
 	}
