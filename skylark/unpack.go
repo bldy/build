@@ -50,6 +50,8 @@ func skylarkToGo(i interface{}) (interface{}, error) {
 	}
 }
 
+var skyvalue = reflect.TypeOf((*skylark.Value)(nil)).Elem()
+
 // unpackStruct takes kwargs in the form of []skylark.Tuples
 // and unpacks its values in to a struct.
 //
@@ -61,6 +63,7 @@ func skylarkToGo(i interface{}) (interface{}, error) {
 // python style identifiers to go style.
 func unpackStruct(i interface{}, kwargs []skylark.Tuple) error {
 	v := reflect.ValueOf(i).Elem()
+
 	for _, kwarg := range kwargs {
 		name := string(kwarg.Index(0).(skylark.String)) // first is the name
 		value := kwarg.Index(1)
@@ -70,12 +73,20 @@ func unpackStruct(i interface{}, kwargs []skylark.Tuple) error {
 		if !field.IsValid() {
 			return fmt.Errorf("%T doesn't have a field called %s", i, inflect.Camelize(name))
 		}
+		var val interface{}
 
-		val, err := skylarkToGo(value)
-		if err != nil {
-			return err
+		if !field.Type().Implements(skyvalue) {
+			var err error
+			val, err = skylarkToGo(value)
+			if err != nil {
+				return err
+			}
+		} else {
+			val = value
 		}
+
 		field.Set(reflect.ValueOf(val))
 	}
+
 	return nil
 }

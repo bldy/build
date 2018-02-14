@@ -32,7 +32,7 @@ var (
 )
 
 func init() {
-	skylark.Universe["attr"] = attributer{}
+	skylark.Universe["attr"] = attributors()
 	skylark.Universe["env"] = skylark.NewBuiltin("env", _env)
 }
 

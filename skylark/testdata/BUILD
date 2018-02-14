@@ -15,3 +15,6 @@ load("testdata/noop.bzl", "noop")
 noop(
 	name="noop",
 )
+
+
+load("testdata/printer.bzl", "printer")

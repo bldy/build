@@ -1,8 +1,13 @@
 package skylark
 
+import (
+	"fmt"
+	"os"
+
+	"bldy.build/build/executor"
+)
+
 // Run represents a ctx.actions.run functions in bazel land.
-//
-//
 // https://docs.bazel.build/versions/master/skylark/lib/actions.html#run
 type run struct {
 	Outputs               []string          // List of the output files of the action.
@@ -16,6 +21,14 @@ type run struct {
 	ExecutionRequirements map[string]string // Information for scheduling the action. See tags for useful keys.
 }
 
-func (r *run) Do() error {
-	return nil
+func (r *run) Do(e *executor.Executor) error {
+	env := os.Environ()
+	if !r.UseDefaultShellEnv {
+		env = []string{}
+	}
+	for k, v := range r.Env {
+		env = append(env, fmt.Sprintf("%s=%s", k, v))
+	}
+	e.Println(r.ProgressMessage)
+	return e.Exec(r.Executable, env, r.Arguments)
 }

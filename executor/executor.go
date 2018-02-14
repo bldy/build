@@ -19,6 +19,13 @@ var (
 	printenv = flag.Bool("e", false, "prints envinroment variables into the log")
 )
 
+// Action interface is used for deferred actions that get performed
+// during the build stage, unlike rules actions are NOT meant to be executed
+// in parralel.
+type Action interface {
+	Do(*Executor) error
+}
+
 // Executor defines the envinroment in which a target will be built, it
 // provide helper functions for shelling out without having to worry
 // about stdout or stderr outputs.

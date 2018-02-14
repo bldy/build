@@ -58,9 +58,10 @@ func TestListToGo(t *testing.T) {
 
 func TestUnpack(t *testing.T) {
 	tests := []struct {
-		name   string
-		kwargs []skylark.Tuple
-		i      interface{}
+		name     string
+		kwargs   []skylark.Tuple
+		unpackTo interface{}
+		i        interface{}
 	}{
 		{
 			name: "string",

@@ -24,7 +24,7 @@ type Rule struct {
 	FuncAttrs    *skylark.Dict
 	Attrs        nativeMap
 
-	Actions []Action
+	Actions []executor.Action
 }
 
 func (f *lambdaFunc) makeSkylarkRule(thread *skylark.Thread, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
@@ -42,10 +42,11 @@ func (f *lambdaFunc) makeSkylarkRule(thread *skylark.Thread, args skylark.Tuple,
 	WalkDict(f.attrs, func(kw skylark.Value, attr *attr) { // check the attributes
 		if arg, ok := findArg(kw, kwargs); ok { // try finding the kwarg mentioned in the attribute
 			attrs[string(kw.(skylark.String))] = arg
-		} else if attr.def != nil { // if the attribute has a default and it's not in kwargs
-			attrs[string(kw.(skylark.String))] = attr.def
+		} else if attr.Default != nil { // if the attribute has a default and it's not in kwargs
+			attrs[string(kw.(skylark.String))] = attr.Default
 		}
 	})
+
 	ctx := newContext(name, attrs)
 	t := &skylark.Thread{
 		Print: ctx.Print,
@@ -122,33 +123,13 @@ func findArg(kw skylark.Value, kwargs []skylark.Tuple) (skylark.Value, bool) {
 	return nil, false
 }
 
-func (r *Rule) hashArg(kw skylark.Value, attr *attr) []byte {
+func (r *Rule) hashArg(kw skylark.Value, a Attribute) []byte {
 	h := racy.New()
 	v, ok := findArg(kw, r.Kwargs)
 	if !ok {
 		return nil
 	}
-	switch attr.t {
-	case _int:
-		if num, ok := v.(skylark.Int); ok {
-			if i, ok := num.Int64(); ok {
-				if err := binary.Write(h, binary.BigEndian, i); err != nil {
-					l.Fatal(err)
-				}
-			}
-		}
-	case _labelList:
-		if labels, ok := v.(*skylark.List); ok {
-			var p skylark.Value
-			i := labels.Iterate()
-			for i.Next(&p) {
-				if lbl, ok := p.(skylark.String); ok {
-					io.WriteString(h, string(lbl))
-				}
-			}
-		}
-	}
-
+	io.WriteString(h, v.String())
 	return h.Sum(nil)
 }
 
