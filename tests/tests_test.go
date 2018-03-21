@@ -2,7 +2,9 @@ package tests
 
 import (
 	"context"
+	"fmt"
 	"go/build"
+	"io/ioutil"
 	"os"
 	"path"
 	"testing"
@@ -19,6 +21,10 @@ var tests = []struct {
 	{
 		name:  "empty",
 		label: "//empty:nothing",
+	},
+	{
+		name:  "run",
+		label: "//run:sh",
 	},
 }
 
@@ -54,8 +60,10 @@ func TestBuild(t *testing.T) {
 			if g == nil {
 				t.Fail()
 			}
-			b := builder.New(g, &builder.Options{
+			tmpDir, _ := ioutil.TempDir("", fmt.Sprintf("bldy_test_%s_", test.name))
+			b := builder.New(g, &builder.Config{
 				UseCache: false,
+				BuildOut: &tmpDir,
 			})
 			cpus := 1
 			ctx := context.Background()

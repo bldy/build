@@ -7,7 +7,7 @@ package label
 import (
 	"testing"
 
-	"sevki.org/lib/prettyprint"
+	"sevki.org/x/pretty"
 )
 
 // Test that all valid Labels get parsed into proper (package, target) pairs.
@@ -33,6 +33,8 @@ func TestTargetLabelParse(t *testing.T) {
 		{"omit package and colon", "app", nil, "app"},
 		//
 		{"filename", "empty/empty.bzl", Package("empty"), "empty.bzl"},
+		//
+		{"filename with out package", ":execute.bzl", nil, "execute.bzl"},
 	}
 
 	for _, test := range tests {
@@ -52,13 +54,13 @@ func TestTargetLabelParse(t *testing.T) {
 				}
 				if (test != nil && got != nil) && *test != *got {
 					t.Errorf("tested package %q, got %q", *test, *got)
-					t.Errorf(prettyprint.AsJSON(l))
+					t.Errorf(pretty.JSON(l))
 					t.Fail()
 				}
 			}
 			{
 				if test, got := test.Name, l.Name; test != got {
-					t.Errorf("tested target %q, got %q", test, got)
+					t.Errorf("expected %q, got %q", test, got)
 				}
 			}
 		})

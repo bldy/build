@@ -53,15 +53,15 @@ type Builder struct {
 	ptr         *graph.Node
 	graph       *graph.Graph
 	pq          *pqueue.PQueue
-	opts        *Options
+	config      *Config
 }
 
-type Options struct {
+type Config struct {
 	UseCache bool
 	BuildOut *string
 }
 
-func New(g *graph.Graph, o *Options) (b Builder) {
+func New(g *graph.Graph, c *Config) (b Builder) {
 	b.Error = make(chan error)
 	b.Done = make(chan *graph.Node)
 	b.Updates = make(chan *graph.Node)
@@ -72,7 +72,7 @@ func New(g *graph.Graph, o *Options) (b Builder) {
 	}
 	b.pq = pqueue.New()
 	b.graph = g
-	b.opts = o
+	b.config = c
 	b.ProjectPath = g.Workspace().AbsPath()
 	return
 }
@@ -113,8 +113,9 @@ func (b *Builder) build(ctx context.Context, n *graph.Node) (err error) {
 		BLDYCACHE,
 		nodeHash,
 	)
+
 	// check if this node was build before
-	if _, err := os.Lstat(outDir); !os.IsNotExist(err) {
+	if _, err := os.Lstat(outDir); !b.config.UseCache && !os.IsNotExist(err) {
 		n.Cached = true
 		if file, err := os.Open(filepath.Join(outDir, FAILLOG)); err == nil {
 			errString, _ := ioutil.ReadAll(file)
@@ -227,7 +228,7 @@ func (b *Builder) work(ctx context.Context, workerNumber int) {
 				}
 			})
 		} else {
-			install(job, *b.opts.BuildOut)
+			install(job, *b.config.BuildOut)
 			b.Done <- job
 			close(b.Done)
 		}

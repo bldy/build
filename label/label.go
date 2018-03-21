@@ -35,21 +35,25 @@ func Package(s string) *string {
 }
 
 type parser struct {
-	err         error
-	s           string
-	q           chan byte
-	i           int
-	lastSlash   int
-	packageName []rune
-	targetName  []rune
-	state       stateFn
+	err          error
+	s            string
+	q            chan byte
+	i            int
+	lastNonPrint int
+	firstLetter  int
+	packageName  []rune
+	targetName   []rune
+	state        stateFn
+	file         bool
 }
 
 func newParser(a string) *parser {
 	p := parser{
-		s:     a,
-		q:     make(chan byte),
-		state: nil,
+		s:            a,
+		q:            make(chan byte),
+		state:        nil,
+		lastNonPrint: 0,
+		file:         false,
 	}
 	return &p
 }
@@ -61,22 +65,26 @@ func (p *parser) peek() rune {
 }
 
 func (p *parser) next() rune {
+
 	p.i++
 	if i := p.i; i >= len(p.s) {
 		return EOF
 	}
+	x := rune(p.s[p.i])
 
-	x := p.s[p.i]
-	if x == '/' {
-		p.lastSlash = p.i
+	switch x {
+	case '/', ':':
+		p.lastNonPrint = p.i
 	}
-	return rune(x)
+	return x
 }
 
 func (p *parser) backoff() {
-	d := p.i - p.lastSlash
-	p.i = p.lastSlash
-	p.packageName = p.packageName[:len(p.packageName)-d]
+	//	d := p.i - p.firstLetter
+	p.i = p.lastNonPrint
+	//log.Println(string(p.packageName[:]), len(p.packageName)-d)
+
+	//p.packageName = p.packageName[:len(p.packageName)-d]
 }
 
 func (p *parser) Error(link, format string, args ...interface{}) {
@@ -148,6 +156,7 @@ func parsePackageName(p *parser) stateFn {
 	first := true
 	for {
 		c := p.next()
+
 		if first && c == '_' {
 			p.Error("https://docs.bazel.build/versions/master/build-ref.html#package-names-package-name", "package names can't start with underscore")
 			return nil
@@ -156,6 +165,7 @@ func parsePackageName(p *parser) stateFn {
 
 		switch c {
 		case '.':
+			p.file = true
 			p.backoff()
 			return parseTargetName
 		case ':':

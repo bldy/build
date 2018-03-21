@@ -32,6 +32,11 @@ func TestEval(t *testing.T) {
 			label: "//testdata:noop",
 			err:   nil,
 		},
+		{
+			name:  "printer",
+			label: "//testdata:print",
+			err:   nil,
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
