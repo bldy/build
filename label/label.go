@@ -18,14 +18,14 @@ var (
 // we plan on adding more providers
 type Label struct {
 	Package *string
-	Target  string
+	Name    string
 }
 
 func (lbl Label) String() string {
 	if lbl.Package == nil {
-		return fmt.Sprintf("//%s:%s", ".", lbl.Target)
+		return fmt.Sprintf("//%s:%s", ".", lbl.Name)
 	}
-	return fmt.Sprintf("//%s:%s", *lbl.Package, lbl.Target)
+	return fmt.Sprintf("//%s:%s", *lbl.Package, lbl.Name)
 }
 
 func Package(s string) *string {
@@ -114,11 +114,11 @@ func Parse(s string) (*Label, error) {
 		case "package":
 			l.Package = &frags[i]
 		case "target":
-			l.Target = frags[i]
+			l.Name = frags[i]
 		}
 	}
-	if l.Target == "" {
-		_, l.Target = path.Split(*l.Package)
+	if l.Name == "" {
+		_, l.Name = path.Split(*l.Package)
 	}
 	return l, nil
 }
