@@ -4,29 +4,28 @@
 
 package label // import "bldy.build/build/label"
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"path"
-	"unicode"
+	"regexp"
 )
 
-const (
-	EOF = rune(26)
+var (
+	ErrInvalidLabel = errors.New("label couldn't be parsed")
 )
 
 // Label represents a perforce label
 // we plan on adding more providers
 type Label struct {
 	Package *string
-	Name    string
+	Target  string
 }
 
 func (lbl Label) String() string {
-	if lbl.Package != nil {
-		return fmt.Sprintf("//%s:%s", *lbl.Package, lbl.Name)
+	if lbl.Package == nil {
+		return fmt.Sprintf("//%s:%s", ".", lbl.Target)
 	}
-	return fmt.Sprintf(":%s", lbl.Name)
+	return fmt.Sprintf("//%s:%s", *lbl.Package, lbl.Target)
 }
 
 func Package(s string) *string {
@@ -34,185 +33,92 @@ func Package(s string) *string {
 	return &x
 }
 
-type parser struct {
-	err          error
-	s            string
-	q            chan byte
-	i            int
-	lastNonPrint int
-	firstLetter  int
-	packageName  []rune
-	targetName   []rune
-	state        stateFn
-	file         bool
-}
-
-func newParser(a string) *parser {
-	p := parser{
-		s:            a,
-		q:            make(chan byte),
-		state:        nil,
-		lastNonPrint: 0,
-		file:         false,
-	}
-	return &p
-}
-func (p *parser) current() rune {
-	return rune(p.s[p.i])
-}
-func (p *parser) peek() rune {
-	return rune(p.s[p.i+1])
-}
-
-func (p *parser) next() rune {
-
-	p.i++
-	if i := p.i; i >= len(p.s) {
-		return EOF
-	}
-	x := rune(p.s[p.i])
-
-	switch x {
-	case '/', ':':
-		p.lastNonPrint = p.i
-	}
-	return x
-}
-
-func (p *parser) backoff() {
-	//	d := p.i - p.firstLetter
-	p.i = p.lastNonPrint
-	//log.Println(string(p.packageName[:]), len(p.packageName)-d)
-
-	//p.packageName = p.packageName[:len(p.packageName)-d]
-}
-
-func (p *parser) Error(link, format string, args ...interface{}) {
-	buf := bytes.NewBuffer(nil)
-	msg := make([]byte, len(p.s))
-	for i := 0; i < len(p.s); i++ {
-		if i < p.i {
-			msg[i] = '>'
-		} else if i > p.i {
-			msg[i] = '<'
-		} else {
-			msg[i] = '^'
-		}
-	}
-	fmt.Fprintf(buf, format, args...)
-
-	fmt.Fprintln(buf)
-	fmt.Fprintln(buf, p.s)
-	fmt.Fprintln(buf, string(msg))
-	fmt.Fprintf(buf, "char %d\n", p.i)
-
-	if link != "" {
-		fmt.Fprintf(buf, "please refer to %s for more details.", link)
-	}
-
-	p.err = errors.New(buf.String())
-}
-
-type stateFn func(*parser) stateFn
-
-func parseLabel(p *parser) stateFn {
-	switch p.current() {
-	case '/':
-		return parseAbsolute
-	case ':':
-		return parsePackageName
-	default:
-		p.i--
-		return parsePackageName
-	}
-}
-
-func parseAbsolute(p *parser) stateFn {
-	for i := 0; i < 1; i++ {
-		if c := p.next(); c != '/' {
-			p.Error("", "was expecting '/' got '%c' instead", c)
-			return nil
-		}
-	}
-	return parsePackageName
-}
-
-func parseTargetName(p *parser) stateFn {
-	for {
-		c := p.next()
-		if c == EOF {
-			return nil
-		}
-		if isValidTargetNameChar(c) {
-			p.targetName = append(p.targetName, c)
-		} else {
-			p.Error("https://docs.bazel.build/versions/master/build-ref.html#name", "target names can't have '%c' characters", c)
-			return nil
-		}
-	}
-}
-
-func parsePackageName(p *parser) stateFn {
-	first := true
-	for {
-		c := p.next()
-
-		if first && c == '_' {
-			p.Error("https://docs.bazel.build/versions/master/build-ref.html#package-names-package-name", "package names can't start with underscore")
-			return nil
-		}
-		inValid := !isValidPackageChar(c)
-
-		switch c {
-		case '.':
-			p.file = true
-			p.backoff()
-			return parseTargetName
-		case ':':
-			return parseTargetName
-		case EOF:
-			return nil
-		}
-
-		if inValid {
-			p.Error("https://docs.bazel.build/versions/master/build-ref.html#package-names-package-name", "package names can't have '%c'", c)
-			return nil
-		}
-		p.packageName = append(p.packageName, c)
-		first = false
-	}
-}
-
-//Package names must be composed entirely of characters drawn from the set A-Z, a–z, 0–9, '/', '-', '.', and '_', and cannot start with a slash.
+// Parse splits an label.Label into package and label pair
 //
-// https://docs.bazel.build/versions/master/build-ref.html#package-names-package-name
-func isValidPackageChar(r rune) bool {
-	return unicode.IsLetter(r) || unicode.IsDigit(r) || r == '/' || r == '-' || r == '.' || r == '_'
-}
-
-//Target names must be composed entirely of characters drawn from the set a–z, A–Z, 0–9, and the punctuation symbols _/.+-=,@~.
+// 	<label> := //<package name>:<target name>
 //
-// https://docs.bazel.build/versions/master/build-ref.html#name
-func isValidTargetNameChar(r rune) bool {
-	return unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' || r == '/' || r == '.' || r == '+' || r == '-' || r == '=' || r == ',' || r == '@' || r == '~'
-}
-
-// Parse takes a string and returns a bazel label
+// 	<package name> :=
+//
+//	https://docs.bazel.build/versions/master/build-ref.html#package-names-package-name
+//
+//	The name of a package is the name of the directory containing its BUILD file,
+//	relative to the top-level directory of the source tree. For example: my/app.
+//	Package names must be composed entirely of characters drawn from the
+//	set A-Z, a–z, 0–9, '/', '-', '.', and '_', and cannot start with a slash.
+//
+//	For a language with a directory structure that is significant to its module system
+//	(e.g. Java), it is important to choose directory names that are valid identifiers in the language.
+//
+//	Although Bazel allows a package at the build root (e.g. //:foo), this is not advised
+//	and projects should attempt to use more descriptively named packages.
+//
+//	Package names may not contain the substring //, nor end with a slash.
+//
+// 	<target name> :=
+//
+// 	https://docs.bazel.build/versions/master/build-ref.html#name
+//
+//	Target names must be composed entirely of characters drawn from
+//	the set a–z, A–Z, 0–9, and the punctuation symbols _/.+-=,@~.
+//	Do not use .. to refer to files in other packages; use //packagename:filename instead.
+//	Filenames must be relative pathnames in normal form, which
+//	means they must neither start nor end with a slash (e.g. /foo and foo/ are forbidden)
+//	nor contain multiple consecutive slashes as path separators (e.g. foo//bar).
+//	Similarly, up-level references (..) and current-directory references (./) are forbidden.
+//	The sole exception to this rule is that a target name may consist of exactly '.'.
+//
+//	While it is common to use / in the name of a file target, we recommend
+//	that you avoid the use of / in the names of rules. Especially when the shorthand form
+//	of a label is used, it may confuse the reader. The label //foo/bar/wiz is always a
+//	shorthand for //foo/bar/wiz:wiz, even if there is no such package foo/bar/wiz;
+//	it never refers to //foo:bar/wiz, even if that target exists.
+//
+//	However, there are some situations where use of a slash is convenient, or sometimes
+//	even necessary. For example, the name of certain rules must match their principal
+//	source file, which may reside in a subdirectory of the package.
 func Parse(s string) (*Label, error) {
-	p := newParser(s)
-	for p.state = parseLabel; p.state != nil; {
-		p.state = p.state(p)
-	}
-	if p.err != nil {
-		return nil, p.err
-	}
-	l := new(Label)
-	pkgName := string(p.packageName)
-	l.Package = Package(pkgName)
+	var (
+		fullLabel   = regexp.MustCompile("//(?P<package>[[:alnum:]-_.]*[[:alnum:]-_./]*):(?P<target>[[:alnum:]_/.+-=,@~.]*)+")
+		packageOnly = regexp.MustCompile("//(?P<package>[[:alnum:]-_.][[:alnum:]-_./]+)")
+		targetOnly  = regexp.MustCompile(":?(?P<target>[[:alnum:]_/?.+-=,@~.]*)+")
 
-	l.Name = string(p.targetName)
-	if l.Name == "" {
-		_, l.Name = path.Split(pkgName)
+		//filename
+		fileName = regexp.MustCompile(`(?P<package>\A[[:alnum:]]+[[:alnum:]/]+?)/(?P<target>[[:alnum:]]+.[[:alnum:]]+)`)
+	)
+	_ = targetOnly.MatchString(s)
+	l := &Label{}
+	matches := [][]string{}
+	names := []string{}
+	switch {
+	case fileName.MatchString(s):
+		matches = fileName.FindAllStringSubmatch(s, 1)
+		names = fileName.SubexpNames()
+	case fullLabel.MatchString(s):
+		matches = fullLabel.FindAllStringSubmatch(s, 1)
+		names = fullLabel.SubexpNames()
+	case packageOnly.MatchString(s):
+		matches = packageOnly.FindAllStringSubmatch(s, 1)
+		names = packageOnly.SubexpNames()
+	case targetOnly.MatchString(s):
+		matches = targetOnly.FindAllStringSubmatch(s, 1)
+		names = targetOnly.SubexpNames()
+	default:
+		return nil, ErrInvalidLabel
+	}
+	if len(matches) < 1 {
+		return nil, ErrInvalidLabel
+	}
+	frags := matches[0]
+	for i, name := range names {
+		switch name {
+		case "package":
+			l.Package = &frags[i]
+		case "target":
+			l.Target = frags[i]
+		}
+	}
+	if l.Target == "" {
+		_, l.Target = path.Split(*l.Package)
 	}
 	return l, nil
 }

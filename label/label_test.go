@@ -59,7 +59,7 @@ func TestTargetLabelParse(t *testing.T) {
 				}
 			}
 			{
-				if test, got := test.Name, l.Name; test != got {
+				if test, got := test.Name, l.Target; test != got {
 					t.Errorf("expected %q, got %q", test, got)
 				}
 			}
