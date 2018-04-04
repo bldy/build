@@ -82,7 +82,7 @@ func (s *skylarkVM) GetTarget(l *label.Label) (build.Rule, error) {
 
 	t.SetLocal(threadKeyPackage, l.Package)
 
-	err = skylark.ExecFile(t, s.ws.Buildfile(l), bytz, s.globals)
+	_, err = skylark.ExecFile(t, s.ws.Buildfile(l), bytz, s.globals)
 	if err != nil {
 		return nil, errors.Wrap(err, "skylark.exec")
 	}
@@ -93,6 +93,7 @@ func (s *skylarkVM) GetTarget(l *label.Label) (build.Rule, error) {
 }
 
 func (s *skylarkVM) load(thread *skylark.Thread, module string) (skylark.StringDict, error) {
+
 	lbl, err := label.Parse(module)
 	bytz, err := s.ws.LoadBuildfile(lbl)
 	if err != nil {
@@ -101,9 +102,5 @@ func (s *skylarkVM) load(thread *skylark.Thread, module string) (skylark.StringD
 		return nil, fmt.Errorf("skylark.load: %s\n%s", err.Error(), buf.String())
 	}
 
-	err = skylark.ExecFile(thread, s.ws.Buildfile(lbl), bytz, s.globals)
-	if err != nil {
-		return s.globals, err
-	}
-	return s.globals, nil
+	return skylark.ExecFile(thread, s.ws.Buildfile(lbl), bytz, s.globals)
 }

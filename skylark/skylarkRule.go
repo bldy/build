@@ -52,12 +52,9 @@ func (f *lambdaFunc) makeSkylarkRule(thread *skylark.Thread, args skylark.Tuple,
 		Print: ctx.Print,
 	}
 
-	globals := make(skylark.StringDict)
-	t.Push(globals, 0)
 	if _, err := f.skyFunc.Call(t, []skylark.Value{ctx}, nil); err != nil {
 		return skylark.None, err
 	}
-	t.Pop()
 
 	newRule := Rule{
 		Name:         name,
