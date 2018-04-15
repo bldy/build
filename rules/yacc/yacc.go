@@ -47,12 +47,11 @@ func init() {
 	}
 }
 func (y *Yacc) Hash() []byte {
-	h := racy.New()
-	io.WriteString(h, YaccVersion)
-	io.WriteString(h, y.Name)
-	racy.HashFiles(h, y.Sources)
-	racy.HashStrings(h, y.YaccOptions)
-	return h.Sum(nil)
+	r := racy.New()
+	r.HashStrings(YaccVersion, y.Name)
+	r.HashFiles(y.Sources...)
+	r.HashStrings(y.YaccOptions...)
+	return r.Sum(nil)
 }
 
 func (y *Yacc) Build(e *executor.Executor) error {

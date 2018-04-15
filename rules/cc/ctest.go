@@ -8,13 +8,12 @@ package cc
 
 import (
 	"fmt"
-	"io"
 	"path/filepath"
 	"strings"
 
 	"bldy.build/build/executor"
 	"bldy.build/build/racy"
-	"sevki.org/lib/prettyprint"
+	"sevki.org/x/pretty"
 )
 
 type CTest struct {
@@ -33,18 +32,19 @@ type CTest struct {
 
 func (ct *CTest) Hash() []byte {
 
-	h := racy.New()
-	io.WriteString(h, CCVersion)
-	io.WriteString(h, ct.Name)
-	racy.HashFilesWithExt(h, []string(ct.Includes), ".h")
-	racy.HashFilesWithExt(h, ct.Sources, ".c")
-	racy.HashStrings(h, ct.CompilerOptions)
-	racy.HashStrings(h, ct.LinkerOptions)
-	return h.Sum(nil)
+	r := racy.New(
+		racy.AllowExtension(".h"),
+		racy.AllowExtension(".c"),
+	)
+	r.HashStrings(CCVersion, ct.Name)
+	r.HashFiles(append([]string(ct.Includes), ct.Sources...)...)
+	r.HashStrings(ct.CompilerOptions...)
+	r.HashStrings(ct.LinkerOptions...)
+	return r.Sum(nil)
 }
 
 func (ct *CTest) Build(e *executor.Executor) error {
-	e.Println(prettyprint.AsJSON(ct))
+	e.Println(pretty.JSON(ct))
 	params := []string{"-c"}
 	params = append(params, ct.CompilerOptions...)
 	params = append(params, ct.Sources...)

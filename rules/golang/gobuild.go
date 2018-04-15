@@ -6,7 +6,6 @@ package golang
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 
@@ -29,11 +28,10 @@ func (g *GoBuild) GetDependencies() []string {
 }
 
 func (g *GoBuild) Hash() []byte {
-	h := racy.New()
-	io.WriteString(h, gover)
-	io.WriteString(h, g.Name)
-	racy.HashFiles(h, []string(g.Sources))
-	return h.Sum(nil)
+	r := racy.New()
+	r.HashStrings(gover,g.Name)
+	r.HashFiles([]string(g.Sources)...)
+	return r.Sum(nil)
 }
 
 func (g *GoBuild) Build(e *executor.Executor) error {

@@ -37,16 +37,20 @@ func split(s string, c string) string {
 	return s[i+1:]
 }
 func (cb *CBin) Hash() []byte {
-	h := racy.New()
-	racy.HashString(h, CCVersion, cb.Name)
-	racy.HashString(h, cb.CCParams()...)
-	racy.HashString(h, cb.LDParams()...)
-	return racy.XOR(
-		h.Sum(nil),
-		racy.HashFilesForExt([]string(cb.Includes), ".h"),
-		racy.HashFilesForExt(cb.Sources, ".c"),
-		racy.HashFilesForExt(cb.Sources, ".S"),
+	r := racy.New(
+		racy.AllowExtension(".h"),
+		racy.AllowExtension(".S"),
+		racy.AllowExtension(".c"),
 	)
+
+	r.HashStrings(CCVersion, cb.Name)
+	r.HashStrings(cb.CCParams()...)
+	r.HashStrings(cb.LDParams()...)
+
+	r.HashFiles(cb.Sources...)
+	r.HashFiles([]string(cb.Includes)...)
+
+	return r.Sum(nil)
 }
 
 func (cb *CBin) Build(e *executor.Executor) error {

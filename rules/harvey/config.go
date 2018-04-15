@@ -7,7 +7,6 @@ import (
 	"os"
 	"text/template"
 
-	"io"
 	"strings"
 
 	"bldy.build/build/executor"
@@ -39,18 +38,17 @@ func split(s string, c string) string {
 	return s[i+1:]
 }
 func (k *Config) Hash() []byte {
-
-	h := racy.New()
-	racy.HashFiles(h, k.RamFiles)
-	racy.HashStrings(h, k.Code)
-	racy.HashStrings(h, k.Dev)
-	racy.HashStrings(h, k.Ip)
-	racy.HashStrings(h, k.Link)
-	racy.HashStrings(h, k.Sd)
-	racy.HashStrings(h, k.Uart)
-	racy.HashStrings(h, k.VGA)
-	io.WriteString(h, k.Name)
-	return h.Sum(nil)
+	r := racy.New()
+	r.HashFiles(k.RamFiles...)
+	r.HashStrings(k.Code...)
+	r.HashStrings(k.Dev...)
+	r.HashStrings(k.Ip...)
+	r.HashStrings(k.Link...)
+	r.HashStrings(k.Sd...)
+	r.HashStrings(k.Uart...)
+	r.HashStrings(k.VGA...)
+	r.HashStrings(k.Name)
+	return r.Sum(nil)
 }
 
 func (k *Config) Build(e *executor.Executor) error {

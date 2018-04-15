@@ -6,7 +6,6 @@ package cc
 
 import (
 	"fmt"
-	"io"
 	"strings"
 
 	"bldy.build/build/executor"
@@ -28,22 +27,25 @@ type CLib struct {
 }
 
 func (cl *CLib) Hash() []byte {
-	h := racy.New()
-
-	io.WriteString(h, CCVersion)
-	io.WriteString(h, cl.Name)
-	io.WriteString(h, "clib")
-	racy.HashStrings(h, cl.CompilerOptions)
-	racy.HashStrings(h, cl.LinkerOptions)
-	if cl.LinkStatic {
-		io.WriteString(h, "static")
-	}
-	return racy.XOR(
-		h.Sum(nil),
-		racy.HashFilesForExt([]string(cl.Includes), ".h"),
-		racy.HashFilesForExt(cl.Sources, ".c"),
-		racy.HashFilesForExt(cl.Sources, ".S"),
+	r := racy.New(
+		racy.AllowExtension(".h"),
+		racy.AllowExtension(".S"),
+		racy.AllowExtension(".c"),
 	)
+
+	r.HashStrings(CCVersion, cl.Name, "clib")
+
+	if cl.LinkStatic {
+		r.HashStrings("static")
+	}
+
+	r.HashStrings(cl.CompilerOptions...)
+	r.HashStrings(cl.LinkerOptions...)
+
+	r.HashFiles(cl.Sources...)
+	r.HashFiles([]string(cl.Includes)...)
+
+	return r.Sum(nil)
 }
 
 func (cl *CLib) Build(e *executor.Executor) error {

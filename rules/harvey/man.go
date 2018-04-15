@@ -2,7 +2,6 @@ package harvey
 
 import (
 	"fmt"
-	"io"
 	"path/filepath"
 
 	"strings"
@@ -20,13 +19,12 @@ type ManPage struct {
 }
 
 func (mp *ManPage) Hash() []byte {
-	h := racy.New()
+	r := racy.New()
 
-	io.WriteString(h, mp.Name)
-
-	racy.HashFiles(h, mp.Sources)
-	racy.HashStrings(h, os.Environ())
-	return []byte{}
+	r.HashStrings(mp.Name)
+	r.HashStrings(os.Environ()...)
+	r.HashFiles(mp.Sources...)
+	return r.Sum(nil)
 }
 
 func (mp *ManPage) Build(e *executor.Executor) error {

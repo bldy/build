@@ -7,7 +7,6 @@ package harvey
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"text/template"
@@ -43,10 +42,10 @@ func (u *USB) GetDependencies() []string {
 }
 
 func (u *USB) Hash() []byte {
-	h := racy.New()
-	racy.HashFiles(h, []string{u.Conf})
-	io.WriteString(h, u.Name)
-	return []byte{}
+	r := racy.New()
+	r.HashFiles( u.Conf)
+	r.HashStrings(u.Name)
+	return r.Sum(nil)
 }
 func (s *USB) Installs() map[string]string {
 	installs := make(map[string]string)

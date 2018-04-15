@@ -13,7 +13,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"path/filepath"
@@ -22,7 +21,7 @@ import (
 
 	"bldy.build/build/executor"
 	"bldy.build/build/racy"
-	"sevki.org/lib/prettyprint"
+	"sevki.org/x/pretty"
 )
 
 type Syscall struct {
@@ -69,13 +68,11 @@ type MkSys struct {
 
 func (cl *MkSys) Hash() []byte {
 
-	h := racy.New()
-	io.WriteString(h, cl.Mode)
-	io.WriteString(h, cl.ARCH)
-	io.WriteString(h, cl.Mode)
-	racy.HashFiles(h, []string{cl.SysConf})
+	r := racy.New()
+	r.HashStrings(cl.Mode, cl.ARCH, cl.Mode)
+	r.HashFiles(cl.SysConf)
 
-	return h.Sum(nil)
+	return r.Sum(nil)
 }
 
 func (mkSys *MkSys) readSysconf() (*Sysconf, error) {
@@ -137,7 +134,7 @@ func (mkSys *MkSys) GetDependencies() []string {
 
 func (mkSys *MkSys) Build(e *executor.Executor) error {
 
-	e.Println(prettyprint.AsJSON(mkSys))
+	e.Println(pretty.JSON(mkSys))
 
 	sysconf, err := mkSys.readSysconf()
 	if err != nil {
