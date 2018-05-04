@@ -5,4 +5,4 @@ def _empty_impl(ctx):
   # You may use print for debugging.
   print("This rule does nothing")
 
-empty = rule(implementation=_empty_impl)
+empty = rule(implementation = _empty_impl)
