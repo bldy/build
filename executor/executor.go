@@ -6,6 +6,7 @@ package executor // import "bldy.build/build/executor"
 import (
 	"bytes"
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -112,13 +113,15 @@ func (e *Executor) Exec(cmd string, env, args []string) error {
 	run.Output, run.Err = x.CombinedOutput()
 	e.run = append(e.run, &run)
 	e.log = append(e.log, &run)
+	if run.Err != nil {
+		return errors.New(string(run.Output))
+	}
 	return run.Err
 }
 
 // Run executes a command writing it's outputs to the context
 func (e *Executor) Run(ctx context.Context, cmd string, env, params []string) *exec.Cmd {
 	x := exec.CommandContext(ctx, cmd, params...)
-
 	x.Dir = e.wd
 	x.Env = env
 	return x
