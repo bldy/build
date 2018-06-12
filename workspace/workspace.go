@@ -28,6 +28,7 @@ var (
 type Workspace interface {
 	AbsPath() string
 	Buildfile(*label.Label) string
+	PackageDir(*label.Label) string
 	LoadBuildfile(*label.Label) ([]byte, error)
 }
 

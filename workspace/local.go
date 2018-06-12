@@ -15,7 +15,17 @@ type localWorkspace struct {
 func (lw *localWorkspace) AbsPath() string {
 	return lw.wd
 }
+func (lw *localWorkspace) PackageDir(lbl *label.Label) string {
+	var pkg string
+	if lbl.Package == nil {
+		pkg = lw.wd
+	} else {
+		pkg = *lbl.Package
+	}
 
+	return filepath.Join(lw.wd, pkg)
+
+}
 func (lw *localWorkspace) Buildfile(lbl *label.Label) string {
 	var pkg string
 	if lbl.Package == nil {
