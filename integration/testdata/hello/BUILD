@@ -3,9 +3,7 @@ load(":clang.bzl", "clang")
 clang(
     name = "world",
     srcs = [
-        "body.html",
-        "footer.html",
-        "header.html",
+        "hello.c",
     ],
-    out = "page.html",
+    out = "hello",
 )

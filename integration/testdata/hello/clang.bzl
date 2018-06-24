@@ -8,8 +8,12 @@ and users cannot redefine it.
 
 def _impl(ctx):
 	# The list of arguments we pass to the script.
-	args = [ctx.outputs.out.path] + [f.path for f in ctx.files.srcs]
+	args = [f.path for f in ctx.files.srcs] + ["-o"] + [ctx.outputs.out.path]  
 	print(args)
+  	ctx.actions.run(
+ 		arguments=args,
+      		progress_message="Running: %s" % args,
+		executable="clang")
 
 clang = rule(
     attrs = {

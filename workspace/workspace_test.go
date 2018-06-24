@@ -14,13 +14,13 @@ var tests = []struct {
 }{
 	{
 		name: "testdata",
-		dir:  path.Join(build.Default.GOPATH, "src", "bldy.build", "build", "tests", "testdata"),
-		wd:   path.Join(build.Default.GOPATH, "src", "bldy.build", "build", "tests", "testdata"),
+		dir:  path.Join(build.Default.GOPATH, "src", "bldy.build", "build", "integration", "testdata"),
+		wd:   path.Join(build.Default.GOPATH, "src", "bldy.build", "build", "integration", "testdata"),
 	},
 	{
 		name: "testdatafromempty",
-		dir:  path.Join(build.Default.GOPATH, "src", "bldy.build", "build", "tests", "testdata", "empty"),
-		wd:   path.Join(build.Default.GOPATH, "src", "bldy.build", "build", "tests", "testdata"),
+		dir:  path.Join(build.Default.GOPATH, "src", "bldy.build", "build", "integration", "testdata", "empty"),
+		wd:   path.Join(build.Default.GOPATH, "src", "bldy.build", "build", "integration", "testdata"),
 	},
 	{
 		name: "temp",
