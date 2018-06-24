@@ -99,6 +99,15 @@ func (e *Executor) Println(v ...interface{}) {
 	e.log = append(e.log, Message(fmt.Sprintln(v...)))
 }
 
+func (e *Executor) CombinedLog() string {
+	log := e.Log()
+	buf := bytes.Buffer{}
+	for _, logEntry := range log {
+		buf.WriteString(logEntry.String())
+	}
+	return buf.String()
+}
+
 // Exec executes a command writing it's outputs to the context
 func (e *Executor) Exec(cmd string, env, args []string) error {
 	run := Run{

@@ -5,7 +5,6 @@
 package builder
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -17,20 +16,15 @@ import (
 	"time"
 
 	"bldy.build/build/executor"
+	"bldy.build/build/namespace"
+	"github.com/pkg/errors"
 
 	"sevki.org/pqueue"
-
-	"io/ioutil"
 
 	"strings"
 
 	"bldy.build/build"
 	"bldy.build/build/graph"
-)
-
-const (
-	SCSSLOG = "success"
-	FAILLOG = "fail"
 )
 
 type Update struct {
@@ -46,25 +40,28 @@ type Builder struct {
 	Wd          string
 	ProjectPath string
 	Total       int
-	Done        chan *graph.Node
-	Error       chan error
-	Timeout     chan bool
-	Updates     chan *graph.Node
+	Timeout     chan bool `json:"-"`
 	ptr         *graph.Node
 	graph       *graph.Graph
-	pq          *pqueue.PQueue
+	pq          *pqueue.PQueue `json:"-"`
 	config      *Config
+	notifier    Notifier `json:"-"`
+	start       time.Time
+}
+
+type Notifier interface {
+	Update(*graph.Node)
+	Error(error)
+	Done(time.Duration)
 }
 
 type Config struct {
 	UseCache bool
 	BuildOut *string
+	Cache    *string
 }
 
-func New(g *graph.Graph, c *Config) (b Builder) {
-	b.Error = make(chan error)
-	b.Done = make(chan *graph.Node)
-	b.Updates = make(chan *graph.Node)
+func New(g *graph.Graph, c *Config, n Notifier) (b Builder) {
 	var err error
 	b.Wd, err = os.Getwd()
 	if err != nil {
@@ -72,25 +69,30 @@ func New(g *graph.Graph, c *Config) (b Builder) {
 	}
 	b.pq = pqueue.New()
 	b.graph = g
+	b.notifier = n
+	if c.Cache == nil {
+		c.Cache = bldyCache()
+	}
 	b.config = c
 	b.ProjectPath = g.Workspace().AbsPath()
 	return
 }
 
 var (
-	BLDYCACHE = bldyCache()
-	l         = log.New(os.Stdout, "builder: ", 0)
+	l = log.New(os.Stdout, "builder: ", 0)
 )
 
-func bldyCache() string {
+func bldyCache() *string {
 	usr, err := user.Current()
 	if err != nil {
 		l.Fatal(err)
 	}
-	return path.Join(usr.HomeDir, "/.cache/bldy")
+	x := path.Join(usr.HomeDir, "/.cache/bldy")
+	return &x
 }
 
 func (b *Builder) Execute(ctx context.Context, r int) {
+	b.start = time.Now()
 	for i := 0; i < r; i++ {
 		go b.work(ctx, i)
 	}
@@ -103,103 +105,31 @@ func (b *Builder) Execute(ctx context.Context, r int) {
 	b.visit(b.graph.Root)
 }
 
-func (b *Builder) build(ctx context.Context, n *graph.Node) (err error) {
-	buildErr := ctx.Err()
-	if err != nil {
-		return err
-	}
-	nodeHash := fmt.Sprintf("%s-%x", n.Target.GetName(), n.HashNode())
-	outDir := filepath.Join(
-		BLDYCACHE,
-		nodeHash,
-	)
-
-	// check if this node was build before
-	if _, err := os.Lstat(outDir); !b.config.UseCache && !os.IsNotExist(err) {
-		n.Cached = true
-		if file, err := os.Open(filepath.Join(outDir, FAILLOG)); err == nil {
-			errString, _ := ioutil.ReadAll(file)
-			return fmt.Errorf("%s", errString)
-		} else if _, err := os.Lstat(filepath.Join(outDir, SCSSLOG)); err == nil {
-			return nil
-		}
-	}
-
-	os.MkdirAll(outDir, os.ModeDir|os.ModePerm)
-
-	// check failed builds.
-	for _, e := range n.Children {
-		if e.Status == build.Fail {
-			buildErr = fmt.Errorf("dependency %s failed to build", e.Target.GetName())
-		} else {
-			for dst, src := range e.Target.Installs() {
-
-				target := filepath.Base(dst)
-				targetDir := strings.TrimRight(dst, target)
-
-				if targetDir != "" {
-					if err := os.MkdirAll(
-						filepath.Join(
-							outDir,
-							targetDir,
-						),
-						os.ModeDir|os.ModePerm,
-					); err != nil {
-						l.Fatalf("installing dependency %s for %s: %s", e.Target.GetName(), n.Target.GetName(), err.Error())
-					}
-				}
-				os.Symlink(
-					filepath.Join(
-						BLDYCACHE,
-						fmt.Sprintf("%s-%x", e.Target.GetName(), e.HashNode()),
-						src,
-					),
-					filepath.Join(
-						outDir,
-						targetDir,
-						target),
-				)
-
-			}
-		}
-	}
-
-	runner := executor.New(ctx, outDir)
+func (b *Builder) build(ctx context.Context, n *graph.Node) error {
+	executor := executor.New(ctx, b.buildpath(n))
 	n.Start = time.Now().UnixNano()
 
-	buildErr = n.Target.Build(runner)
+	err := n.Target.Build(executor)
+
 	n.End = time.Now().UnixNano()
 
-	logName := FAILLOG
-	if buildErr == nil {
-		logName = SCSSLOG
-	}
-	if logFile, err := os.Create(filepath.Join(outDir, logName)); err != nil {
-		l.Fatalf("error creating log for %s: %s", n.Target.GetName(), err.Error())
-	} else {
-		log := runner.Log()
-		buf := bytes.Buffer{}
-		for _, logEntry := range log {
-			buf.WriteString(logEntry.String())
-		}
-		n.Output = buf.String()
-		_, err = logFile.Write(buf.Bytes())
-		if err != nil {
-			l.Fatalf("error writing log for %s: %s", n.Target.GetName(), err.Error())
-		}
-		if buildErr != nil {
-			return fmt.Errorf("%s: \n%s", buildErr, buf.Bytes())
-		}
+	n.Status = build.Fail
+	if err == nil {
+		n.Status = build.Success
 	}
 
-	return buildErr
+	n.Output = executor.CombinedLog()
+
+	b.saveLog(n)
+	return fmt.Errorf("%s: \n%s", err, n.Output)
 }
 
 func (b *Builder) work(ctx context.Context, workerNumber int) {
-
 	for {
 		job := b.pq.Pop().(*graph.Node)
+
 		job.Worker = fmt.Sprintf("%d", workerNumber)
+
 		if job.Status != build.Pending {
 			continue
 		}
@@ -207,30 +137,41 @@ func (b *Builder) work(ctx context.Context, workerNumber int) {
 
 		job.Status = build.Building
 
-		b.Updates <- job
+		go b.notifier.Update(job)
 
-		buildErr := b.build(ctx, job)
-		if buildErr != nil {
-			job.Status = build.Fail
-			b.Updates <- job
-			b.Error <- buildErr
-			return
+		if b.cached(job) {
+			if err := b.builderror(job); err != nil {
+				go b.notifier.Error(err)
+			}
+			go b.notifier.Update(job)
+			continue
 		}
-		job.Status = build.Success
 
-		b.Updates <- job
+		// prepare
+		if err := namespace.New(b.buildpath(job)); err != nil {
+			go b.notifier.Error(errors.Wrap(err, "build"))
+		}
 
-		if !job.IsRoot {
-			b.Done <- job
-			job.Once.Do(func() {
-				for _, parent := range job.Parents {
-					parent.WG.Done()
-				}
-			})
-		} else {
+		if err := ctx.Err(); err != nil {
+			go b.notifier.Error(err)
+			continue
+		}
+
+		if err := b.build(ctx, job); err != nil {
+			go b.notifier.Error(err)
+		}
+
+		job.Once.Do(func() {
+			for _, parent := range job.Parents {
+				parent.WG.Done()
+			}
+		})
+
+		go b.notifier.Update(job)
+
+		if job.IsRoot {
 			install(job, *b.config.BuildOut)
-			b.Done <- job
-			close(b.Done)
+			b.notifier.Done(time.Now().Sub(b.start))
 		}
 		job.Unlock()
 	}
@@ -257,7 +198,6 @@ func install(job *graph.Node, buildOut string) error {
 	}
 
 	for dst, src := range job.Target.Installs() {
-
 		target := filepath.Base(dst)
 		targetDir := strings.TrimRight(dst, target)
 
@@ -265,6 +205,8 @@ func install(job *graph.Node, buildOut string) error {
 			buildOut,
 			targetDir,
 		)
+		log.Println(dst)
+
 		if err := os.MkdirAll(
 			buildOutTarget,
 			os.ModeDir|os.ModePerm,
@@ -273,10 +215,11 @@ func install(job *graph.Node, buildOut string) error {
 		}
 		srcp, _ := filepath.EvalSymlinks(
 			filepath.Join(
-				BLDYCACHE,
+				buildOut,
 				fmt.Sprintf("%s-%x", job.Target.GetName(), job.HashNode()),
 				src,
-			))
+			),
+		)
 
 		dstp := filepath.Join(
 			buildOutTarget,
