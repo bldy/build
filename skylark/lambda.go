@@ -14,6 +14,7 @@ func (s *skylarkVM) makeRule(thread *skylark.Thread, fn *skylark.Builtin, args s
 	if false && attrs != nil && err != nil {
 		log.Println(err)
 	}
+
 	x := &lambdaFunc{
 		skyFunc: impl,
 		attrs:   attrs,

@@ -4,6 +4,9 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"path"
+
+	"github.com/pkg/errors"
 
 	"bldy.build/build/executor"
 	"bldy.build/build/label"
@@ -24,6 +27,8 @@ type Rule struct {
 	FuncAttrs    *skylark.Dict
 	Attrs        nativeMap
 
+	installs map[string]string
+
 	Actions []executor.Action
 }
 
@@ -35,19 +40,15 @@ func (f *lambdaFunc) makeSkylarkRule(thread *skylark.Thread, args skylark.Tuple,
 	if false {
 		l.Println(err)
 	}
+	lbl := label.Label{
+		Name:    name,
+		Package: label.Package(thread.Local(threadKeyPackage).(string)),
+	}
 
-	attrs := make(bldyDict)
-	attrs["name"] = skylark.String(name) // this is added to all attrs https://github.com/bazelbuild/examples/blob/master/rules/attributes/printer.bzl#L20
-
-	WalkDict(f.attrs, func(kw skylark.Value, attr *attr) { // check the attributes
-		if arg, ok := findArg(kw, kwargs); ok { // try finding the kwarg mentioned in the attribute
-			attrs[string(kw.(skylark.String))] = arg
-		} else if attr.Default != nil { // if the attribute has a default and it's not in kwargs
-			attrs[string(kw.(skylark.String))] = attr.Default
-		}
-	})
-
-	ctx := newContext(name, attrs)
+	ctx, err := newContext(name, f.attrs, kwargs, f.vm.GetPackageDir(&lbl))
+	if err != nil {
+		return nil, errors.Wrap(err, "makeskylarkrule")
+	}
 	t := &skylark.Thread{
 		Print: ctx.Print,
 	}
@@ -66,6 +67,14 @@ func (f *lambdaFunc) makeSkylarkRule(thread *skylark.Thread, args skylark.Tuple,
 		FuncAttrs:    f.attrs,
 		Attrs:        make(nativeMap),
 		Actions:      ctx.actionRecorder.calls,
+		installs:     make(map[string]string),
+	}
+	outputs := skylark.StringDict{}
+	ctx.outputs.ToStringDict(outputs)
+	for _, file := range outputs {
+		p := file.(*File).Path()
+		_, file := path.Split(p)
+		newRule.installs[path.Join("bin", file)] = p
 	}
 
 	if deps != nil {
@@ -77,18 +86,22 @@ func (f *lambdaFunc) makeSkylarkRule(thread *skylark.Thread, args skylark.Tuple,
 			}
 		}
 	}
-	lbl := label.Label{
-		Name:    newRule.GetName(),
-		Package: thread.Local(threadKeyPackage).(*string),
-	}
+
 	f.vm.rules[lbl.String()] = &newRule
+
 	return skylark.None, nil
 }
 
 // Build builds the skylarkRule
 func (r *Rule) Build(e *executor.Executor) error {
-
+	for _, action := range r.Actions {
+		if err := action.Do(e); err != nil {
+			panic(err)
+			return err
+		}
+	}
 	return nil
+
 }
 
 // Hash returns the calculated hash of a target
@@ -103,8 +116,9 @@ func (r *Rule) Hash() []byte {
 		l.Fatal(err)
 	}
 	x := h.Sum(nil)
-	WalkDict(r.FuncAttrs, func(kw skylark.Value, attr *attr) {
+	WalkDict(r.FuncAttrs, func(kw skylark.Value, attr Attribute) error {
 		x = racy.XOR(x, r.hashArg(kw, attr))
+		return nil
 	})
 	return x
 }
@@ -142,5 +156,5 @@ func (r *Rule) GetDependencies() []string {
 
 // Installs returns what will be outputed from the execution of the rule
 func (r *Rule) Installs() map[string]string {
-	return nil
+	return r.installs
 }

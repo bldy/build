@@ -81,6 +81,19 @@ func unpackStruct(i interface{}, kwargs []skylark.Tuple) error {
 			if err != nil {
 				return err
 			}
+
+			// special case with enums
+			if inflect.Camelize(name) == "Cfg" {
+				switch val.(string) {
+				case "host":
+					val = Host
+				case "data":
+					val = Data
+				case "target":
+					val = Target
+				}
+			}
+
 		} else {
 			val = value
 		}

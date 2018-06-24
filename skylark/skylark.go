@@ -12,6 +12,7 @@ import (
 
 	"bldy.build/build"
 	"github.com/google/skylark"
+	"github.com/google/skylark/skylarkstruct"
 	"github.com/pkg/errors"
 )
 
@@ -57,15 +58,20 @@ func New(ws workspace.Workspace) (build.VM, error) {
 	globals := skylark.StringDict{
 		"rule":   skylark.NewBuiltin("rule", s.makeRule),
 		"native": natives,
+		"struct": skylark.NewBuiltin("struct", skylarkstruct.Make),
 	}
 	s.globals = globals
 	return s, nil
 }
 
 func print(thread *skylark.Thread, msg string) {
-	l.Println(msg)
+	l.Println("something something ", msg)
 }
 
+func (s *skylarkVM) GetPackageDir(l *label.Label) string {
+	return s.ws.PackageDir(l)
+
+}
 func (s *skylarkVM) GetTarget(l *label.Label) (build.Rule, error) {
 	if r, ok := s.rules[l.String()]; ok {
 		return r, nil
@@ -80,7 +86,7 @@ func (s *skylarkVM) GetTarget(l *label.Label) (build.Rule, error) {
 	t.Load = s.load
 	t.Print = print
 
-	t.SetLocal(threadKeyPackage, l.Package)
+	t.SetLocal(threadKeyPackage, *l.Package)
 
 	_, err = skylark.ExecFile(t, s.ws.Buildfile(l), bytz, s.globals)
 	if err != nil {
@@ -95,6 +101,10 @@ func (s *skylarkVM) GetTarget(l *label.Label) (build.Rule, error) {
 func (s *skylarkVM) load(thread *skylark.Thread, module string) (skylark.StringDict, error) {
 
 	lbl, err := label.Parse(module)
+	if lbl.Package == nil {
+		lbl.Package = label.Package(thread.Local(threadKeyPackage).(string))
+	}
+
 	bytz, err := s.ws.LoadBuildfile(lbl)
 	if err != nil {
 		buf := bytes.NewBuffer(nil)

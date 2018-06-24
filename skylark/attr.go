@@ -1,6 +1,8 @@
 package skylark
 
 import (
+	"fmt"
+
 	"github.com/google/skylark"
 	"github.com/pkg/errors"
 )
@@ -54,14 +56,15 @@ func (a attributer) Call(thread *skylark.Thread, args skylark.Tuple, kwargs []sk
 		i = &labelKeyedStringDictAttr{attr: x}
 	case "label_list":
 		i = &labelListAttr{attr: x}
+	case "output":
+		i = &outputAttr{attr: x}
 	case "license",
-		"output",
 		"output_list",
 		"string",
 		"string_dict",
 		"string_list",
 		"string_list_dict":
-		panic("not implemented")
+		panic(fmt.Sprintf("%s not implemented", a.attrType))
 	}
 	if err := unpackStruct(i, kwargs); err != nil {
 		return nil, errors.Wrap(err, "attiributor.call")
@@ -73,7 +76,12 @@ func (a attributer) Call(thread *skylark.Thread, args skylark.Tuple, kwargs []sk
 // Use the attr module to create an Attribute.
 // They are only for use with a rule or an aspect.
 // https://docs.bazel.build/versions/master/skylark/lib/Attribute.html
-type Attribute skylark.Value
+type Attribute interface {
+	skylark.Value
+
+	GetDefault() skylark.Value
+	HasDefault() bool
+}
 
 // https://docs.bazel.build/versions/master/skylark/lib/attr.html#modules.attr
 type attr struct {
@@ -91,6 +99,9 @@ func (a *attr) Freeze()               {}
 func (a *attr) String() string        { return a.attrType }
 func (a *attr) Type() string          { return "attr." + a.attrType }
 func (a *attr) Truth() skylark.Bool   { return true }
+
+func (a *attr) GetDefault() skylark.Value { return a.Default }
+func (a *attr) HasDefault() bool          { return a.Default != nil }
 
 // https://docs.bazel.build/versions/master/skylark/lib/attr.html#bool
 type boolAttr struct {

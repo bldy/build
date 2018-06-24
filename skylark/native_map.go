@@ -23,7 +23,7 @@ func (x nativeMap) Attr(name string) (skylark.Value, error) {
 }
 
 // WalkAttrs traverses attributes
-func WalkDict(x *skylark.Dict, wf WalkAttrFunc) {
+func WalkDict(x *skylark.Dict, wf WalkAttrFunc) error {
 	if x == nil {
 		panic("can't be nil")
 	}
@@ -34,10 +34,13 @@ func WalkDict(x *skylark.Dict, wf WalkAttrFunc) {
 		if err != nil {
 			l.Println(errors.Wrap(err, "skylarkRule walk attrs"))
 		}
-		if Attr, ok := val.(*attr); ok {
-			wf(p, Attr)
+		if Attr, ok := val.(Attribute); ok {
+			if err := wf(p, Attr); err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }
 
-type WalkAttrFunc func(skylark.Value, *attr)
+type WalkAttrFunc func(skylark.Value, Attribute) error
