@@ -35,7 +35,7 @@ var tests = []struct {
 }
 
 func setup(t *testing.T) string {
-	wd := path.Join(gobuild.Default.GOPATH, "src", "bldy.build", "build", "integration", "testdata")
+	wd := path.Join(gobuild.Default.GOPATH, "src", "bldy.build", "build", "tests", "testdata")
 	os.Chdir(wd)
 	return wd
 }
