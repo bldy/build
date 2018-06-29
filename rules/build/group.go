@@ -8,11 +8,12 @@ import (
 	"path/filepath"
 
 	"bldy.build/build/executor"
+	"bldy.build/build/label"
 )
 
 type Group struct {
-	Name         string   `group:"name"`
-	Dependencies []string `group:"deps"`
+	Name         string        `group:"name"`
+	Dependencies []label.Label `group:"deps"`
 	Exports      map[string]string
 	Prefix       *string `group:"prefix" group:"prefix" build:"expand"`
 }
@@ -29,7 +30,7 @@ func (g *Group) GetName() string {
 	return g.Name
 }
 
-func (g *Group) GetDependencies() []string {
+func (g *Group) GetDependencies() []label.Label {
 	return g.Dependencies
 }
 func (g *Group) Installs() map[string]string {

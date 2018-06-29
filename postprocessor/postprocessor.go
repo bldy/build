@@ -43,30 +43,16 @@ func (pp *PostProcessor) ProcessDependencies(t build.Rule) error {
 
 	v := reflect.ValueOf(t)
 
-	deps := v.Elem().FieldByName("Dependencies").Interface().([]string)
+	deps := v.Elem().FieldByName("Dependencies").Interface().([]label.Label)
 
 	seen := make(map[string]bool)
 
-	for i, d := range deps {
-		if _, ok := seen[d]; ok {
+	for _, d := range deps {
+		if _, ok := seen[d.String()]; ok {
 			return fmt.Errorf("post process dependencies: %s is duplicated", d)
-		} else {
-			seen[d] = true
 		}
-		switch {
-		case d[:2] == "//":
-			continue
-		case d[0] == ':':
-			deps[i] = fmt.Sprintf("//%s%s", pp.packagePath, d)
-			break
-		default:
-			errorf := `dependency '%s' in %s is not a valid URL for a target.
-		a target url can only start with a '//' or a ':' for relative targets.`
+		seen[d.String()] = true
 
-			return fmt.Errorf(errorf, d, t.GetName())
-		}
-
-		seen[d] = true
 	}
 
 	v.Elem().FieldByName("Dependencies").Set(reflect.ValueOf(deps))

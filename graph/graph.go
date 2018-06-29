@@ -95,10 +95,9 @@ func (g *Graph) getTarget(lbl *label.Label) (n *Node) {
 	}
 
 	for _, d := range node.Target.GetDependencies() {
-		depLbl, err := label.Parse(d)
-		c := g.getTarget(depLbl)
+		c := g.getTarget(&d)
 		if err != nil {
-			l.Printf("%q is not a valid label", depLbl)
+			l.Printf("%q is not a valid label", d.String())
 			continue
 		}
 		node.WG.Add(1)
@@ -109,7 +108,7 @@ func (g *Graph) getTarget(lbl *label.Label) (n *Node) {
 		}
 		deps = append(deps, c.Target)
 
-		node.Children[d] = c
+		node.Children[d.String()] = c
 		c.Parents[nLbl.String()] = &node
 	}
 

@@ -13,7 +13,7 @@ import (
 // Rule defines the interface that rules must implement for becoming build targets.
 type Rule interface {
 	GetName() string
-	GetDependencies() []string
+	GetDependencies() []label.Label
 	Hash() []byte
 	Build(*executor.Executor) error
 	Installs() map[string]string

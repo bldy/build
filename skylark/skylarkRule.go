@@ -17,7 +17,7 @@ import (
 // Rule is a bazel rule that is implemented in skylark
 type Rule struct {
 	Name         string
-	Dependencies []string
+	Dependencies []label.Label
 
 	SkyFuncLabel string
 	skyThread    *skylark.Thread
@@ -82,7 +82,11 @@ func (f *lambdaFunc) makeSkylarkRule(thread *skylark.Thread, args skylark.Tuple,
 		var p skylark.Value
 		for i.Next(&p) {
 			if dep, ok := p.(skylark.String); ok {
-				newRule.Dependencies = append(newRule.Dependencies, string(dep))
+				lbl, err := label.Parse(dep.String())
+				if err != nil {
+					return nil, err
+				}
+				newRule.Dependencies = append(newRule.Dependencies, *lbl)
 			}
 		}
 	}
@@ -150,7 +154,7 @@ func (r *Rule) GetName() string {
 }
 
 // GetDependencies returns the dependencies of the SkylarkRule
-func (r *Rule) GetDependencies() []string {
+func (r *Rule) GetDependencies() []label.Label {
 	return r.Dependencies
 }
 
