@@ -19,7 +19,7 @@ func Bind(new, old string, flags int)  {}
 func Mount(new, old string, flags int) {}
 
 func New(name string) error {
-	if err := os.MkdirAll(name, 0644); err != nil {
+	if err := os.MkdirAll(name, 0755); err != nil {
 		return errors.Wrap(err, "new namespace")
 	}
 	return nil
