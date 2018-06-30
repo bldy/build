@@ -6,7 +6,6 @@ package executor // import "bldy.build/build/executor"
 import (
 	"bytes"
 	"context"
-	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -14,6 +13,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"sevki.org/x/debug"
 )
 
 var (
@@ -123,7 +124,21 @@ func (e *Executor) Exec(cmd string, env, args []string) error {
 	e.run = append(e.run, &run)
 	e.log = append(e.log, &run)
 	if run.Err != nil {
-		return errors.New(string(run.Output))
+		errbuf := bytes.NewBuffer(run.Output)
+		debug.Indent(errbuf, 2)
+		return fmt.Errorf(`%s
+	command: %s
+	emv: %s
+	wd: %s
+	output:
+%s
+`,
+			run.Err,
+			append([]string{cmd}, args...),
+			env,
+			e.wd,
+			errbuf.String(),
+		)
 	}
 	return run.Err
 }
