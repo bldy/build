@@ -12,9 +12,9 @@ import (
 	"time"
 
 	"bldy.build/build"
-
 	"bldy.build/build/builder"
 	"bldy.build/build/graph"
+	"sevki.org/x/debug"
 )
 
 var tests = []struct {
@@ -22,14 +22,14 @@ var tests = []struct {
 	label string
 	err   error
 }{
-	/*	{
+	{
 		name:  "empty",
 		label: "//empty:nothing",
 		err:   nil,
-	},*/
+	},
 	{
 		name:  "hello",
-		label: "//hello:world",
+		label: "//cc:binary",
 		err:   nil,
 	},
 }
@@ -106,12 +106,12 @@ func TestBuild(t *testing.T) {
 			b.Execute(ctx, cpus)
 
 			files, err := ioutil.ReadDir(tmpDir)
-			log.Printf("reading %s", tmpDir)
+			debug.Println("reading %s", tmpDir)
 			if err != nil {
 				log.Fatal(err)
 			}
 			for _, file := range files {
-				log.Println(file.Name())
+				debug.Println(file.Name())
 			}
 		})
 	}
