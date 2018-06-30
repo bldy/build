@@ -30,8 +30,8 @@ func (b *Builder) cached(n *graph.Node) bool {
 		os.RemoveAll(b.buildpath(n))
 	}
 	_, err := os.Lstat(b.buildpath(n))
-	n.Cached = b.cached(n)
-	return !os.IsNotExist(err)
+	n.Cached = !os.IsNotExist(err)
+	return n.Cached
 }
 
 func (b *Builder) builderror(n *graph.Node) error {

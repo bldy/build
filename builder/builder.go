@@ -13,6 +13,7 @@ import (
 	"os/user"
 	"path"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"bldy.build/build/executor"
@@ -47,6 +48,8 @@ type Builder struct {
 	config      *Config
 	notifier    Notifier `json:"-"`
 	start       time.Time
+
+	wg sync.WaitGroup
 }
 
 type Notifier interface {
@@ -102,7 +105,9 @@ func (b *Builder) Execute(ctx context.Context, r int) {
 	if b.graph.Root == nil {
 		l.Fatal("couldn't find the graph root")
 	}
+	b.wg.Add(1)
 	b.visit(b.graph.Root)
+	b.wg.Wait()
 }
 
 func (b *Builder) build(ctx context.Context, n *graph.Node) error {
@@ -172,6 +177,7 @@ func (b *Builder) work(ctx context.Context, workerNumber int) {
 		if job.IsRoot {
 			install(job, *b.config.BuildOut)
 			b.notifier.Done(time.Now().Sub(b.start))
+			b.wg.Done()
 		}
 		job.Unlock()
 	}
