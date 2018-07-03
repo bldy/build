@@ -12,11 +12,11 @@ import (
 
 // Rule defines the interface that rules must implement for becoming build targets.
 type Rule interface {
-	GetName() string
-	GetDependencies() []label.Label
+	Name() string
+	Dependencies() []label.Label
+	Outputs() []string
 	Hash() []byte
 	Build(*executor.Executor) error
-	Installs() map[string]string
 }
 
 // VM seperate the parsing and evauluating targets logic from rest of bldy
