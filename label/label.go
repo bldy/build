@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"path"
 	"regexp"
+
+	"github.com/google/skylark"
 )
 
 var (
@@ -19,13 +21,6 @@ var (
 type Label struct {
 	Package *string
 	Name    string
-}
-
-func (lbl Label) String() string {
-	if lbl.Package == nil {
-		return fmt.Sprintf("//%s:%s", ".", lbl.Name)
-	}
-	return fmt.Sprintf("//%s:%s", *lbl.Package, lbl.Name)
 }
 
 func Package(s string) *string {
@@ -117,8 +112,44 @@ func Parse(s string) (*Label, error) {
 			l.Name = frags[i]
 		}
 	}
+
 	if l.Name == "" {
+		if l.Package == nil {
+			return nil, fmt.Errorf("label in incorrect format %q", s)
+		}
 		_, l.Name = path.Split(*l.Package)
 	}
 	return l, nil
+}
+
+func (lbl Label) Type() string        { return "label" }
+func (lbl Label) Freeze()             {}
+func (lbl Label) Truth() skylark.Bool { return skylark.Bool(true) }
+func (lbl Label) Hash() (uint32, error) {
+	s := lbl.String()
+	var h uint32
+	for i := 0; i < len(s); i++ {
+		h ^= uint32(s[i])
+		h *= 16777619
+	}
+	return h, nil
+}
+func (lbl Label) String() string {
+	if lbl.Package == nil {
+		return fmt.Sprintf("//%s:%s", ".", lbl.Name)
+	}
+	return fmt.Sprintf("//%s:%s", *lbl.Package, lbl.Name)
+}
+
+func (lbl Label) Attr(name string) (skylark.Value, error) {
+	switch name {
+	case "name":
+		return skylark.String(lbl.Name), nil
+	default:
+		return nil, fmt.Errorf("label has no attribute called %q", name)
+	}
+}
+
+func (lbl Label) AttrNames() []string {
+	panic("not implemented")
 }
