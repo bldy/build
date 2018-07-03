@@ -15,8 +15,8 @@ import (
 	"bldy.build/build/workspace"
 	"github.com/pkg/errors"
 
+	"bldy.build/build/depset"
 	"bldy.build/build/postprocessor"
-	bldytrg "bldy.build/build/rules/build"
 )
 
 var (
@@ -72,7 +72,7 @@ func (g *Graph) getTarget(lbl *label.Label) (n *Node) {
 
 	nLbl := label.Label{
 		Package: lbl.Package,
-		Name:    t.GetName(),
+		Name:    t.Name(),
 	}
 
 	node := NewNode(nLbl, t)
@@ -87,14 +87,14 @@ func (g *Graph) getTarget(lbl *label.Label) (n *Node) {
 	var deps []build.Rule
 
 	//group is a special case
-	var group *bldytrg.Group
+	var group *depset.Depset
 	switch node.Target.(type) {
-	case *bldytrg.Group:
-		group = node.Target.(*bldytrg.Group)
-		group.Exports = make(map[string]string)
+	case *depset.Depset:
+		group = node.Target.(*depset.Depset)
+
 	}
 
-	for _, d := range node.Target.GetDependencies() {
+	for _, d := range node.Target.Dependencies() {
 		c := g.getTarget(&d)
 		if err != nil {
 			l.Printf("%q is not a valid label", d.String())
@@ -102,8 +102,8 @@ func (g *Graph) getTarget(lbl *label.Label) (n *Node) {
 		}
 		node.WG.Add(1)
 		if group != nil {
-			for dst := range c.Target.Installs() {
-				group.Exports[dst] = dst
+			for _, output := range c.Target.Outputs() {
+				group.AddOutput(output)
 			}
 		}
 		deps = append(deps, c.Target)
@@ -117,10 +117,10 @@ func (g *Graph) getTarget(lbl *label.Label) (n *Node) {
 	}
 
 	g.Nodes[nLbl.String()] = &node
-	if t.GetName() == lbl.Name {
+	if t.Name() == lbl.Name {
 		n = &node
 	} else {
-		l.Fatalf("target name %q and url target %q don't match", t.GetName(), lbl.Name)
+		l.Fatalf("target name %q and url target %q don't match", t.Name(), lbl.Name)
 	}
 	return n
 }
