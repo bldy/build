@@ -15,7 +15,9 @@ const (
 type Namespace string
 
 // Namespace is where builds are run, interface is the same as the plan9 namespaces
-func Bind(new, old string, flags int)  {}
+func Bind(new, old string, flags int) {
+	os.Symlink(new, old)
+}
 func Mount(new, old string, flags int) {}
 
 func New(name string) error {
