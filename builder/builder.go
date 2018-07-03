@@ -76,8 +76,14 @@ func New(g *graph.Graph, c *Config, n Notifier) (b Builder) {
 	if c.Cache == nil {
 		c.Cache = bldyCache()
 	}
+	if c.BuildOut == nil {
+		x := path.Join(g.Workspace().AbsPath(), "build_out")
+		c.BuildOut = &x
+	}
+
 	b.config = c
 	b.ProjectPath = g.Workspace().AbsPath()
+
 	return
 }
 
@@ -126,7 +132,10 @@ func (b *Builder) build(ctx context.Context, n *graph.Node) error {
 	n.Output = executor.CombinedLog()
 
 	b.saveLog(n)
-	return fmt.Errorf("%s: \n%s", err, n.Output)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (b *Builder) work(ctx context.Context, workerNumber int) {
@@ -151,10 +160,9 @@ func (b *Builder) work(ctx context.Context, workerNumber int) {
 			go b.notifier.Update(job)
 			continue
 		}
-
-		// prepare
-		if err := namespace.New(b.buildpath(job)); err != nil {
+		if err := b.prepare(job); err != nil {
 			go b.notifier.Error(errors.Wrap(err, "build"))
+
 		}
 
 		if err := ctx.Err(); err != nil {
@@ -175,7 +183,7 @@ func (b *Builder) work(ctx context.Context, workerNumber int) {
 		go b.notifier.Update(job)
 
 		if job.IsRoot {
-			install(job, *b.config.BuildOut)
+			b.install(job)
 			b.notifier.Done(time.Now().Sub(b.start))
 			b.wg.Done()
 		}
@@ -195,46 +203,46 @@ func (b *Builder) visit(n *graph.Node) {
 	b.pq.Push(n)
 }
 
-func install(job *graph.Node, buildOut string) error {
+func (b *Builder) install(job *graph.Node) error {
 	if err := os.MkdirAll(
-		buildOut,
+		*b.config.BuildOut,
 		os.ModeDir|os.ModePerm,
 	); err != nil {
-		l.Fatalf("copying job %s failed: %s", job.Target.GetName(), err.Error())
+		l.Fatalf("copying job %s failed: %s", job.Target.Name(), err.Error())
 	}
 
-	for dst, src := range job.Target.Installs() {
-		target := filepath.Base(dst)
-		targetDir := strings.TrimRight(dst, target)
-
+	for _, output := range job.Target.Outputs() {
+		target := filepath.Base(output)
+		targetDir := strings.TrimRight(output, target)
 		buildOutTarget := filepath.Join(
-			buildOut,
+			*b.config.BuildOut,
 			targetDir,
 		)
-		log.Println(dst)
+
+		src := filepath.Join(
+			b.buildpath(job),
+			output,
+		)
+		dst := filepath.Join(
+			buildOutTarget,
+			target,
+		)
 
 		if err := os.MkdirAll(
 			buildOutTarget,
 			os.ModeDir|os.ModePerm,
 		); err != nil {
-			l.Fatalf("linking job %s failed: %s", job.Target.GetName(), err.Error())
+			l.Fatalf("linking job %s failed: %s", job.Target.Name(), err.Error())
 		}
-		srcp, _ := filepath.EvalSymlinks(
-			filepath.Join(
-				buildOut,
-				fmt.Sprintf("%s-%x", job.Target.GetName(), job.HashNode()),
-				src,
-			),
-		)
 
 		dstp := filepath.Join(
 			buildOutTarget,
 			target,
 		)
 
-		in, err := os.Open(srcp)
+		in, err := os.Open(src)
 		if err != nil {
-			l.Fatalf("copy: can't finiliaze %s. copying %q to %q failed: %s\n", job.Target.GetName(), srcp, dstp, err)
+			l.Fatalf("copy: can't finiliaze %s. copying %q to %q failed: %s\n", job.Target.Name(), src, dstp, err)
 		}
 		out, err := os.Create(dstp)
 		if err != nil {
@@ -242,7 +250,7 @@ func install(job *graph.Node, buildOut string) error {
 		}
 
 		if _, err := io.Copy(out, in); err != nil {
-			l.Fatalf("copy: can't finiliaze %s. copying from %q to %q failed: %s\n", job.Target.GetName(), src, dst, err)
+			l.Fatalf("copy: can't finiliaze %s. copying from %q to %q failed: %s\n", job.Target.Name(), src, dst, err)
 		}
 		if err := in.Close(); err != nil {
 			l.Fatal(err)
@@ -253,4 +261,28 @@ func install(job *graph.Node, buildOut string) error {
 	}
 
 	return nil
+}
+
+func (b *Builder) createOutputDirs(n *graph.Node) error {
+	for _, output := range n.Target.Outputs() {
+		target := filepath.Base(output)
+		targetDir := strings.TrimRight(output, target)
+		outputDir := filepath.Join(
+			b.buildpath(n),
+			targetDir,
+		)
+
+		if err := os.MkdirAll(outputDir, 0755); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+func (b *Builder) prepare(n *graph.Node) error {
+	// prepare
+	if err := namespace.New(b.buildpath(n)); err != nil {
+		return err
+	}
+	return b.createOutputDirs(n)
+
 }

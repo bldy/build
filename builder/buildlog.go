@@ -17,7 +17,7 @@ const (
 )
 
 func nodens(n *graph.Node) string {
-	return fmt.Sprintf("%s-%x", n.Target.GetName(), n.HashNode())
+	return fmt.Sprintf("%s-%x", n.Target.Name(), n.HashNode())
 }
 func (b *Builder) buildpath(n *graph.Node) string {
 	return filepath.Join(
@@ -57,10 +57,10 @@ func (b *Builder) saveLog(n *graph.Node) {
 	}
 
 	if logfile, err := os.Create(filepath.Join(b.buildpath(n), logName)); err != nil {
-		l.Fatalf("error creating log for %s: %s", n.Target.GetName(), err.Error())
+		l.Fatalf("error creating log for %s: %s", n.Target.Name(), err.Error())
 	} else {
 		if _, err := io.WriteString(logfile, n.Output); err != nil {
-			l.Fatalf("error writing log for %s: %s", n.Target.GetName(), err.Error())
+			l.Fatalf("error writing log for %s: %s", n.Target.Name(), err.Error())
 		}
 	}
 }

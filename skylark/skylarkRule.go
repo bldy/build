@@ -2,11 +2,10 @@ package skylark
 
 import (
 	"encoding/binary"
-	"fmt"
 	"io"
-	"path"
 
 	"github.com/pkg/errors"
+	"sevki.org/x/debug"
 
 	"bldy.build/build/executor"
 	"bldy.build/build/label"
@@ -16,8 +15,8 @@ import (
 
 // Rule is a bazel rule that is implemented in skylark
 type Rule struct {
-	Name         string
-	Dependencies []label.Label
+	name string
+	deps []label.Label
 
 	SkyFuncLabel string
 	skyThread    *skylark.Thread
@@ -27,56 +26,13 @@ type Rule struct {
 	FuncAttrs    *skylark.Dict
 	Attrs        nativeMap
 
-	installs map[string]string
+	outputs []string
 
 	Actions []executor.Action
 }
 
-func (f *lambdaFunc) makeSkylarkRule(thread *skylark.Thread, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
-	var name string
-	var deps *skylark.List
-	err := skylark.UnpackArgs(fmt.Sprintf("new rule (%s)", name), args, kwargs, skylarkKeyName, &name, skylarkKeyDeps, &deps)
-	// TODO(sevki): add debug mode here
-	if false {
-		l.Println(err)
-	}
-	lbl := label.Label{
-		Name:    name,
-		Package: label.Package(thread.Local(threadKeyPackage).(string)),
-	}
-
-	ctx, err := newContext(name, f.attrs, kwargs, f.vm.GetPackageDir(&lbl))
-	if err != nil {
-		return nil, errors.Wrap(err, "makeskylarkrule")
-	}
-	t := &skylark.Thread{
-		Print: ctx.Print,
-	}
-
-	if _, err := f.skyFunc.Call(t, []skylark.Value{ctx}, nil); err != nil {
-		return skylark.None, err
-	}
-
-	newRule := Rule{
-		Name:         name,
-		Args:         args,
-		Kwargs:       kwargs,
-		SkyFunc:      f.skyFunc,
-		skyThread:    thread,
-		SkyFuncLabel: f.skyFunc.Name(),
-		FuncAttrs:    f.attrs,
-		Attrs:        make(nativeMap),
-		Actions:      ctx.actionRecorder.calls,
-		installs:     make(map[string]string),
-	}
-	outputs := skylark.StringDict{}
-	ctx.outputs.ToStringDict(outputs)
-	for _, file := range outputs {
-		p := file.(*File).Path()
-		_, file := path.Split(p)
-		newRule.installs[path.Join("bin", file)] = p
-	}
-
+func normalDeps(deps *skylark.List) ([]label.Label, error) {
+	deplbls := []label.Label{}
 	if deps != nil {
 		i := deps.Iterate()
 		var p skylark.Value
@@ -84,11 +40,71 @@ func (f *lambdaFunc) makeSkylarkRule(thread *skylark.Thread, args skylark.Tuple,
 			if dep, ok := p.(skylark.String); ok {
 				lbl, err := label.Parse(dep.String())
 				if err != nil {
-					return nil, err
+					return []label.Label{}, err
 				}
-				newRule.Dependencies = append(newRule.Dependencies, *lbl)
+				deplbls = append(deplbls, *lbl)
 			}
 		}
+	}
+	return deplbls, nil
+}
+
+func (f *lambdaFunc) makeSkylarkRule(thread *skylark.Thread, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
+	pkg := thread.Local(threadKeyPackage).(string)
+
+	var name string
+	var deps *skylark.List
+	var outputs *skylark.List
+	_ = outputs
+	if n, ok := findArg(skylark.String(skylarkKeyName), kwargs); ok {
+		if name, ok = skylark.AsString(n); !ok {
+			return nil, errors.New("rule names have to be strings")
+		}
+	} else {
+		return nil, errors.New("bldy rules need to have names")
+	}
+	if dps, ok := findArg(skylark.String(skylarkKeyDeps), kwargs); ok {
+		if d, ok := dps.(*skylark.List); !ok {
+			deps = d
+		}
+	}
+	if outs, ok := findArg(skylark.String(skylarkKeyOutputs), kwargs); ok {
+		if o, ok := outs.(*skylark.List); !ok {
+			outputs = o
+		}
+	}
+	lbl := label.Label{
+		Name:    name,
+		Package: &pkg,
+	}
+
+	ctx, outs, err := newContext(name, f.attrs, f.outputs, kwargs, f.vm.GetPackageDir(&lbl))
+	if err != nil {
+		return nil, errors.Wrap(err, "makeskylarkrule")
+	}
+
+	t := &skylark.Thread{
+		Print: ctx.Print,
+	}
+	if _, err := f.skyFunc.Call(t, []skylark.Value{ctx}, nil); err != nil {
+		return skylark.None, err
+	}
+
+	newRule := Rule{
+		name:         name,
+		Args:         args,
+		Kwargs:       kwargs,
+		SkyFunc:      f.skyFunc,
+		skyThread:    thread,
+		SkyFuncLabel: f.skyFunc.Name(),
+		FuncAttrs:    f.attrs,
+		Actions:      ctx.actionRecorder.calls,
+		outputs:      outs,
+	}
+
+	if newRule.deps, err = normalDeps(deps); err != nil {
+		debug.Println(err)
+		return nil, errors.Wrap(err, "makeSkylarkRule")
 	}
 
 	f.vm.rules[lbl.String()] = &newRule
@@ -149,16 +165,16 @@ func (r *Rule) hashArg(kw skylark.Value, a Attribute) []byte {
 }
 
 // GetName returns the name of the SkylarkRule
-func (r *Rule) GetName() string {
-	return r.Name
+func (r *Rule) Name() string {
+	return r.name
 }
 
 // GetDependencies returns the dependencies of the SkylarkRule
-func (r *Rule) GetDependencies() []label.Label {
-	return r.Dependencies
+func (r *Rule) Dependencies() []label.Label {
+	return r.deps
 }
 
 // Installs returns what will be outputed from the execution of the rule
-func (r *Rule) Installs() map[string]string {
-	return r.installs
+func (r *Rule) Outputs() []string {
+	return r.outputs
 }

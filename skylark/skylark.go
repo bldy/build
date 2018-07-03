@@ -17,14 +17,15 @@ import (
 )
 
 const (
-	skylarkKeyImpl   = "implementation"
-	skylarkKeyAttrs  = "attrs"
-	skylarkKeyDeps   = "deps"
-	skylarkKeyName   = "name"
-	threadKeyTargets = "__targets"
-	threadKeyWD      = "__wd"
-	threadKeyContext = "__ctx"
-	threadKeyPackage = "__package"
+	skylarkKeyImpl    = "implementation"
+	skylarkKeyAttrs   = "attrs"
+	skylarkKeyDeps    = "deps"
+	skylarkKeyOutputs = "outputs"
+	skylarkKeyName    = "name"
+	threadKeyTargets  = "__targets"
+	threadKeyWD       = "__wd"
+	threadKeyContext  = "__ctx"
+	threadKeyPackage  = "__package"
 )
 
 var (
@@ -88,8 +89,7 @@ func (s *skylarkVM) GetTarget(l *label.Label) (build.Rule, error) {
 
 	t.SetLocal(threadKeyPackage, *l.Package)
 
-	_, err = skylark.ExecFile(t, s.ws.Buildfile(l), bytz, s.globals)
-	if err != nil {
+	if _, err = skylark.ExecFile(t, s.ws.Buildfile(l), bytz, s.globals); err != nil {
 		return nil, errors.Wrap(err, "skylark.exec")
 	}
 	if r, ok := s.rules[l.String()]; ok {

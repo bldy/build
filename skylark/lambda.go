@@ -10,7 +10,9 @@ import (
 func (s *skylarkVM) makeRule(thread *skylark.Thread, fn *skylark.Builtin, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
 	var impl *skylark.Function
 	attrs := new(skylark.Dict)
-	err := skylark.UnpackArgs(fn.Name(), args, kwargs, skylarkKeyImpl, &impl, skylarkKeyAttrs, &attrs)
+	outputs := new(skylark.Dict)
+
+	err := skylark.UnpackArgs(fn.Name(), args, kwargs, skylarkKeyImpl, &impl, skylarkKeyAttrs, &attrs, skylarkKeyOutputs, &outputs)
 	if false && attrs != nil && err != nil {
 		log.Println(err)
 	}
@@ -18,6 +20,7 @@ func (s *skylarkVM) makeRule(thread *skylark.Thread, fn *skylark.Builtin, args s
 	x := &lambdaFunc{
 		skyFunc: impl,
 		attrs:   attrs,
+		outputs: outputs,
 		vm:      s,
 	}
 
@@ -29,6 +32,7 @@ type lambdaFunc struct {
 	skyFunc *skylark.Function
 	attrs   *skylark.Dict
 	vm      *skylarkVM
+	outputs *skylark.Dict
 }
 
 func (l *lambdaFunc) Call(thread *skylark.Thread, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
