@@ -19,6 +19,10 @@ import (
 
 var (
 	printenv = flag.Bool("e", false, "prints envinroment variables into the log")
+	envvars  = append(os.Environ(),
+		fmt.Sprintf("%s=%s", "C_INCLUDE_PATH", "include"),
+		fmt.Sprintf("%s=%s", "LIBRARY_PATH", "lib"),
+	)
 )
 
 // Action interface is used for deferred actions that get performed
@@ -111,12 +115,14 @@ func (e *Executor) CombinedLog() string {
 
 // Exec executes a command writing it's outputs to the context
 func (e *Executor) Exec(cmd string, env, args []string) error {
+	env = append(envvars, env...)
 	run := Run{
 		At:   time.Now(),
 		Cmd:  cmd,
 		Args: args,
 		Env:  env,
 	}
+
 	x := exec.CommandContext(e.ctx, cmd, args...)
 	x.Dir = e.wd
 	x.Env = env
