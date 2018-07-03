@@ -28,8 +28,8 @@ var tests = []struct {
 		err:   nil,
 	},
 	{
-		name:  "hello",
-		label: "//cc:binary",
+		name:  "binary",
+		label: "//cc:hello",
 		err:   nil,
 	},
 }
@@ -106,7 +106,7 @@ func TestBuild(t *testing.T) {
 			b.Execute(ctx, cpus)
 
 			files, err := ioutil.ReadDir(tmpDir)
-			debug.Println("reading %s", tmpDir)
+
 			if err != nil {
 				log.Fatal(err)
 			}

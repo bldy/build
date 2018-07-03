@@ -1,9 +1,8 @@
 load(":cc_binary.bzl", "cc_binary")
 
 cc_binary(
-    name = "binary",
+    name = "hello",
     srcs = [
         "hello.c",
     ],
-    out = "hello",
 )

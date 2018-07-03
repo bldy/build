@@ -3,7 +3,7 @@
 
 def _impl(ctx):
     # The list of arguments we pass to the script.
-    args = [f.path for f in ctx.files.srcs] + ["-o"] + [ctx.outputs.out.path]
+    args = [f.path for f in ctx.files.srcs] + ["-o"] + [ctx.outputs.binary.path]
     print(args)
     ctx.actions.run(
         arguments = args,
@@ -14,8 +14,8 @@ def _impl(ctx):
 cc_binary = rule(
     attrs = {
         "srcs": attr.label_list(allow_files = True),
-        "out": attr.output(mandatory = True),
         "deps": attr.label_list(),
     },
+    outputs = {"binary": "bin/%{name}"},
     implementation = _impl,
 )
