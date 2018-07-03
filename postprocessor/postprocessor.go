@@ -41,9 +41,7 @@ func New(ws workspace.Workspace, l label.Label) PostProcessor {
 // absolute paths.
 func (pp *PostProcessor) ProcessDependencies(t build.Rule) error {
 
-	v := reflect.ValueOf(t)
-
-	deps := v.Elem().FieldByName("Dependencies").Interface().([]label.Label)
+	deps := t.Dependencies()
 
 	seen := make(map[string]bool)
 
@@ -52,10 +50,8 @@ func (pp *PostProcessor) ProcessDependencies(t build.Rule) error {
 			return fmt.Errorf("post process dependencies: %s is duplicated", d)
 		}
 		seen[d.String()] = true
-
 	}
 
-	v.Elem().FieldByName("Dependencies").Set(reflect.ValueOf(deps))
 	return nil
 }
 
@@ -78,12 +74,17 @@ func (pp *PostProcessor) ProcessPaths(t build.Rule, deps []build.Rule) error {
 
 		isExported := func(s string) bool {
 			for _, d := range deps {
-				if _, ok := d.Installs()[s]; ok {
-					return true
+				for _, output := range d.Outputs() {
+					if output == s {
+						return true
+					}
+
 				}
+
 			}
 			return false
 		}
+
 		exp := func(s string) string {
 			if tag == "path" {
 				return pp.absPath(s)
