@@ -32,6 +32,11 @@ var tests = []struct {
 		label: "//cc:hello",
 		err:   nil,
 	},
+	{
+		name:  "library",
+		label: "//cc:hellowithlib",
+		err:   nil,
+	},
 }
 
 func setup(t *testing.T) string {
