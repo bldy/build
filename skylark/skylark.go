@@ -82,12 +82,15 @@ func (s *skylarkVM) GetTarget(l *label.Label) (build.Rule, error) {
 	if err != nil {
 		errors.Wrap(err, "skylark.get_target:")
 	}
+	if l.Package == nil {
+		return nil, errors.New("skylark vm can't figure out labels without packages, for the root package please use '.'.")
+	}
 
 	t := &skylark.Thread{}
 	t.Load = s.load
 	t.Print = print
-
-	t.SetLocal(threadKeyPackage, *l.Package)
+	initPkgStack(t)
+	pushPkg(t, *l.Package)
 
 	if _, err = skylark.ExecFile(t, s.ws.Buildfile(l), bytz, s.globals); err != nil {
 		return nil, errors.Wrap(err, "skylark.exec")
@@ -99,11 +102,14 @@ func (s *skylarkVM) GetTarget(l *label.Label) (build.Rule, error) {
 }
 
 func (s *skylarkVM) load(thread *skylark.Thread, module string) (skylark.StringDict, error) {
-
+	pkg := getPkg(thread)
 	lbl, err := label.Parse(module)
 	if lbl.Package == nil {
-		lbl.Package = label.Package(thread.Local(threadKeyPackage).(string))
+		lbl.Package = label.Package(pkg)
 	}
+
+	pushPkg(thread, *lbl.Package)
+	defer popPkg(thread)
 
 	bytz, err := s.ws.LoadBuildfile(lbl)
 	if err != nil {

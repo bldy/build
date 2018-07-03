@@ -83,6 +83,10 @@ type Attribute interface {
 	HasDefault() bool
 }
 
+type AllowsEmpty interface {
+	Empty() skylark.Value
+}
+
 // https://docs.bazel.build/versions/master/skylark/lib/attr.html#modules.attr
 type attr struct {
 	attrType string
@@ -166,12 +170,17 @@ type labelListAttr struct {
 
 	Executable           bool
 	AllowFiles           bool
+	AllowEmpty           bool
 	AllowdExtensionsList []string
 	Providers            [][]string
 
 	SingleFile bool
 
 	Cfg configuration
+}
+
+func (l *labelListAttr) Empty() skylark.Value {
+	return skylark.NewList([]skylark.Value{})
 }
 
 // https://docs.bazel.build/versions/master/skylark/lib/attr.html#license

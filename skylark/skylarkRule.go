@@ -5,7 +5,6 @@ import (
 	"io"
 
 	"github.com/pkg/errors"
-	"sevki.org/x/debug"
 
 	"bldy.build/build/executor"
 	"bldy.build/build/label"
@@ -31,16 +30,19 @@ type Rule struct {
 	Actions []executor.Action
 }
 
-func normalDeps(deps *skylark.List) ([]label.Label, error) {
+func normalDeps(deps *skylark.List, pkg string) ([]label.Label, error) {
 	deplbls := []label.Label{}
 	if deps != nil {
 		i := deps.Iterate()
 		var p skylark.Value
 		for i.Next(&p) {
-			if dep, ok := p.(skylark.String); ok {
-				lbl, err := label.Parse(dep.String())
+			if dep, ok := skylark.AsString(p); ok {
+				lbl, err := label.Parse(dep)
 				if err != nil {
 					return []label.Label{}, err
+				}
+				if lbl.Package == nil {
+					lbl.Package = label.Package(pkg)
 				}
 				deplbls = append(deplbls, *lbl)
 			}
@@ -50,7 +52,7 @@ func normalDeps(deps *skylark.List) ([]label.Label, error) {
 }
 
 func (f *lambdaFunc) makeSkylarkRule(thread *skylark.Thread, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
-	pkg := thread.Local(threadKeyPackage).(string)
+	pkg := getPkg(thread)
 
 	var name string
 	var deps *skylark.List
@@ -64,7 +66,7 @@ func (f *lambdaFunc) makeSkylarkRule(thread *skylark.Thread, args skylark.Tuple,
 		return nil, errors.New("bldy rules need to have names")
 	}
 	if dps, ok := findArg(skylark.String(skylarkKeyDeps), kwargs); ok {
-		if d, ok := dps.(*skylark.List); !ok {
+		if d, ok := dps.(*skylark.List); ok {
 			deps = d
 		}
 	}
@@ -102,11 +104,9 @@ func (f *lambdaFunc) makeSkylarkRule(thread *skylark.Thread, args skylark.Tuple,
 		outputs:      outs,
 	}
 
-	if newRule.deps, err = normalDeps(deps); err != nil {
-		debug.Println(err)
-		return nil, errors.Wrap(err, "makeSkylarkRule")
+	if newRule.deps, err = normalDeps(deps, pkg); err != nil {
+		return nil, errors.Wrap(err, "makeSkylarkRule.normalDeps")
 	}
-
 	f.vm.rules[lbl.String()] = &newRule
 
 	return skylark.None, nil
