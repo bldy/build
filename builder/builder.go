@@ -278,11 +278,44 @@ func (b *Builder) createOutputDirs(n *graph.Node) error {
 	}
 	return nil
 }
+
+func (b *Builder) bindChildOutputs(n *graph.Node) error {
+	for _, c := range n.Children {
+		for _, output := range c.Target.Outputs() {
+
+			src := filepath.Join(
+				b.buildpath(c),
+				output,
+			)
+			dst := filepath.Join(
+				b.buildpath(n),
+				output,
+			)
+
+			target := filepath.Base(output)
+			targetDir := strings.TrimRight(output, target)
+			outputDir := filepath.Join(
+				b.buildpath(n),
+				targetDir,
+			)
+
+			if err := os.MkdirAll(outputDir, 0755); err != nil {
+				return err
+			}
+			namespace.Bind(src, dst, namespace.MREPL)
+		}
+	}
+	return nil
+}
 func (b *Builder) prepare(n *graph.Node) error {
 	// prepare
 	if err := namespace.New(b.buildpath(n)); err != nil {
 		return err
 	}
+	if err := b.bindChildOutputs(n); err != nil {
+		return err
+	}
+
 	return b.createOutputDirs(n)
 
 }
