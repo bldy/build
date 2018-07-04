@@ -98,7 +98,8 @@ func (s *skylarkVM) GetTarget(l *label.Label) (build.Rule, error) {
 	if r, ok := s.rules[l.String()]; ok {
 		return r, nil
 	}
-	return nil, fmt.Errorf("skylark: couldn't find the target %s in %s", l.String(), s.ws.Buildfile(l))
+
+	return nil, fmt.Errorf("skylark: couldn't find the target %q in %s", l.Name, s.ws.Buildfile(l))
 }
 
 func (s *skylarkVM) load(thread *skylark.Thread, module string) (skylark.StringDict, error) {
@@ -108,9 +109,6 @@ func (s *skylarkVM) load(thread *skylark.Thread, module string) (skylark.StringD
 		lbl.Package = label.Package(pkg)
 	}
 
-	pushPkg(thread, *lbl.Package)
-	defer popPkg(thread)
-
 	bytz, err := s.ws.LoadBuildfile(lbl)
 	if err != nil {
 		buf := bytes.NewBuffer(nil)
@@ -118,5 +116,8 @@ func (s *skylarkVM) load(thread *skylark.Thread, module string) (skylark.StringD
 		return nil, fmt.Errorf("skylark.load: %s\n%s", err.Error(), buf.String())
 	}
 
-	return skylark.ExecFile(thread, s.ws.Buildfile(lbl), bytz, s.globals)
+	pushPkg(thread, *lbl.Package)
+	dict, err := skylark.ExecFile(thread, s.ws.Buildfile(lbl), bytz, s.globals)
+	popPkg(thread)
+	return dict, err
 }
