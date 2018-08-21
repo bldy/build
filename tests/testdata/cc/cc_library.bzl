@@ -8,7 +8,7 @@ def _impl(ctx):
     ctx.actions.run(
         arguments = args,
         progress_message = "Running: %s" % args,
-        executable = "clang",
+        executable = "/usr/bin/clang",
     )
 
 cc_library = rule(

@@ -8,13 +8,13 @@ def _impl(ctx):
     ctx.actions.run(
         arguments = args,
         progress_message = "Running: %s" % args,
-        executable = "clang",
+        executable = "/usr/bin/clang",
     )
 
 cc_binary = rule(
     attrs = {
         "srcs": attr.label_list(allow_files = True),
-        "deps": attr.label_list(),
+        "deps": attr.label_list(allow_empty = True),
     },
     outputs = {"binary": "bin/%{name}"},
     implementation = _impl,

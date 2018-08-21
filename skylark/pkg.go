@@ -2,7 +2,6 @@ package skylark
 
 import (
 	"github.com/google/skylark"
-	"sevki.org/x/debug"
 )
 
 type pkgStack struct {
@@ -47,7 +46,7 @@ func pushPkg(thread *skylark.Thread, x string) {
 func popPkg(thread *skylark.Thread) string {
 	pkgStck := thread.Local(threadKeyPackage).(*pkgStack)
 	x := pkgStck.pop()
-	debug.Printf("popping pkg=%s", x)
+
 	return x
 }
 

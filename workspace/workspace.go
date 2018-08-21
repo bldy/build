@@ -27,9 +27,10 @@ var (
 // https://docs.bazel.build/versions/master/be/workspace.html
 type Workspace interface {
 	AbsPath() string
-	Buildfile(*label.Label) string
-	PackageDir(*label.Label) string
-	LoadBuildfile(*label.Label) ([]byte, error)
+	Buildfile(label.Label) string
+	File(label.Label) string
+	PackageDir(label.Label) string
+	LoadBuildfile(label.Label) ([]byte, error)
 }
 
 // New given a URL returns a workspace

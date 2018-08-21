@@ -114,11 +114,11 @@ func (r *Racy) allowedExt(file string) bool {
 	return false
 }
 
-func (r *Racy) HashFiles(files ...string) {
+func (r *Racy) HashFiles(files ...string) error {
 	for _, file := range files {
 		stat, err := os.Stat(file)
 		if err != nil {
-			log.Fatalf("racy.HashFiles: error opening file: %v", err)
+			return fmt.Errorf("racy.HashFiles: error opening file: %v", err)
 		}
 		if !stat.IsDir() {
 			r.hashFile(file)
@@ -126,7 +126,7 @@ func (r *Racy) HashFiles(files ...string) {
 			r.hashDir(file)
 		}
 	}
-	return
+	return nil
 }
 
 // HashStrings hashes strings written to Racy

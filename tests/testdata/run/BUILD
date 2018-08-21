@@ -1,4 +1,4 @@
-load(":execute.bzl", "concat")
+load(":execute.sky", "concat")
 
 concat(
     name = "sh",

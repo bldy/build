@@ -1,0 +1,9 @@
+"""A rule for testing hashing"""
+
+def _hashtest_impl(ctx):
+    ctx.actions.do_nothing(mnemonic = "nothing")
+
+test = rule(
+    attrs = {"srcs": attr.label_list(allow_files = True, allow_empty = True)},
+    implementation = _hashtest_impl,
+)

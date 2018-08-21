@@ -60,7 +60,7 @@ func (g *Graph) Workspace() workspace.Workspace {
 	return g.ws
 }
 
-func (g *Graph) getTarget(lbl *label.Label) (n *Node) {
+func (g *Graph) getTarget(lbl label.Label) (n *Node) {
 	if gnode, ok := g.Nodes[lbl.String()]; ok {
 		return gnode
 	}
@@ -70,10 +70,7 @@ func (g *Graph) getTarget(lbl *label.Label) (n *Node) {
 		l.Fatal(err)
 	}
 
-	nLbl := label.Label{
-		Package: lbl.Package,
-		Name:    t.Name(),
-	}
+	nLbl := label.New(lbl.Package(), t.Name())
 
 	node := NewNode(nLbl, t)
 
@@ -95,7 +92,7 @@ func (g *Graph) getTarget(lbl *label.Label) (n *Node) {
 	}
 
 	for _, d := range node.Target.Dependencies() {
-		c := g.getTarget(&d)
+		c := g.getTarget(d)
 		if err != nil {
 			l.Printf("%q is not a valid label", d.String())
 			continue
@@ -117,10 +114,10 @@ func (g *Graph) getTarget(lbl *label.Label) (n *Node) {
 	}
 
 	g.Nodes[nLbl.String()] = &node
-	if t.Name() == lbl.Name {
+	if t.Name() == lbl.Name() {
 		n = &node
 	} else {
-		l.Fatalf("target name %q and url target %q don't match", t.Name(), lbl.Name)
+		l.Fatalf("target name %q and url target %q don't match", t.Name(), lbl.Name())
 	}
 	return n
 }

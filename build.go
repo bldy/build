@@ -22,9 +22,10 @@ type Rule interface {
 // VM seperate the parsing and evauluating targets logic from rest of bldy
 // so we can implement and use new grammars like jsonnet or go it self.
 type VM interface {
-	GetTarget(*label.Label) (Rule, error)
+	GetTarget(label.Label) (Rule, error)
 }
 
+//go:generate stringer -type=Status
 // Status represents a nodes status.
 type Status int
 

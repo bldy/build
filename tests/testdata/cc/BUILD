@@ -1,5 +1,5 @@
-load(":cc_binary.bzl", "cc_binary")
-load(":cc_library.bzl", "cc_library")
+load("cc_binary.bzl", "cc_binary")
+load("cc_library.bzl", "cc_library")
 
 cc_binary(
     name = "hello",

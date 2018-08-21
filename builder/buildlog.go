@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"bldy.build/build"
 	"bldy.build/build/graph"
@@ -17,7 +18,7 @@ const (
 )
 
 func nodens(n *graph.Node) string {
-	return fmt.Sprintf("%s-%x", n.Target.Name(), n.HashNode())
+	return fmt.Sprintf("%s-%s-bldy-%s-%x", n.Target.Name(), runtime.GOARCH, runtime.GOOS, n.HashNode())
 }
 func (b *Builder) buildpath(n *graph.Node) string {
 	return filepath.Join(
@@ -26,9 +27,6 @@ func (b *Builder) buildpath(n *graph.Node) string {
 	)
 }
 func (b *Builder) cached(n *graph.Node) bool {
-	if !b.config.UseCache {
-		os.RemoveAll(b.buildpath(n))
-	}
 	_, err := os.Lstat(b.buildpath(n))
 	n.Cached = !os.IsNotExist(err)
 	return n.Cached
@@ -42,7 +40,6 @@ func (b *Builder) builderror(n *graph.Node) error {
 		return fmt.Errorf("%s", errString)
 	} else if _, err := os.Lstat(filepath.Join(nspath, SCSSLOG)); err == nil {
 		n.Status = build.Success
-
 	}
 	return nil
 }

@@ -46,11 +46,10 @@ func (s *skylarkVM) makeNativeRule(thread *skylark.Thread, fn *skylark.Builtin, 
 			}
 		}
 	}
+	pkg := getPkg(thread)
+
 	newNativeRule := newReflectType.Interface().(build.Rule)
-	lbl := label.Label{
-		Name:    newNativeRule.Name(),
-		Package: label.Package(thread.Local(threadKeyPackage).(string)),
-	}
+	lbl := label.New(pkg, newNativeRule.Name())
 	s.rules[lbl.String()] = newNativeRule
 	return skylark.None, nil
 }

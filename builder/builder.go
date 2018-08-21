@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/user"
@@ -59,7 +60,7 @@ type Notifier interface {
 }
 
 type Config struct {
-	UseCache bool
+	Fresh    bool
 	BuildOut *string
 	Cache    *string
 }
@@ -73,7 +74,13 @@ func New(g *graph.Graph, c *Config, n Notifier) (b Builder) {
 	b.pq = pqueue.New()
 	b.graph = g
 	b.notifier = n
-	if c.Cache == nil {
+	if c.Fresh {
+		tmpDir, err := ioutil.TempDir("", fmt.Sprintf("bldy_tmp_%s_", g.Root.Label.Name()))
+		if err != nil {
+			log.Fatal(err)
+		}
+		c.Cache = &tmpDir
+	} else if c.Cache == nil {
 		c.Cache = bldyCache()
 	}
 	if c.BuildOut == nil {
@@ -151,39 +158,42 @@ func (b *Builder) work(ctx context.Context, workerNumber int) {
 
 		job.Status = build.Building
 
-		go b.notifier.Update(job)
+		b.notifier.Update(job)
 
 		if b.cached(job) {
 			if err := b.builderror(job); err != nil {
-				go b.notifier.Error(err)
+				b.notifier.Update(job)
+				b.notifier.Error(err)
 			}
-			go b.notifier.Update(job)
-			continue
-		}
-		if err := b.prepare(job); err != nil {
-			go b.notifier.Error(errors.Wrap(err, "build"))
+		} else {
+			if err := b.prepare(job); err != nil {
+				b.notifier.Update(job)
+				b.notifier.Error(errors.Wrap(err, "build"))
+			}
 
-		}
+			if err := ctx.Err(); err != nil {
+				b.notifier.Update(job)
+				b.notifier.Error(err)
+			}
 
-		if err := ctx.Err(); err != nil {
-			go b.notifier.Error(err)
-			continue
-		}
+			if err := b.build(ctx, job); err != nil {
+				b.notifier.Update(job)
+				b.notifier.Error(err)
 
-		if err := b.build(ctx, job); err != nil {
-			go b.notifier.Error(err)
+			}
 		}
-
 		job.Once.Do(func() {
 			for _, parent := range job.Parents {
 				parent.WG.Done()
 			}
 		})
 
-		go b.notifier.Update(job)
+		b.notifier.Update(job)
 
 		if job.IsRoot {
-			b.install(job)
+			if job.Status == build.Success {
+				b.install(job)
+			}
 			b.notifier.Done(time.Now().Sub(b.start))
 			b.wg.Done()
 		}
@@ -227,7 +237,6 @@ func (b *Builder) install(job *graph.Node) error {
 			buildOutTarget,
 			target,
 		)
-
 		if err := os.MkdirAll(
 			buildOutTarget,
 			os.ModeDir|os.ModePerm,
@@ -239,12 +248,18 @@ func (b *Builder) install(job *graph.Node) error {
 			buildOutTarget,
 			target,
 		)
+		d, err := filepath.EvalSymlinks(src)
+		stat, err := os.Stat(d)
 
-		in, err := os.Open(src)
+		if os.IsNotExist(err) {
+			return fmt.Errorf("cannot install %s: file %s doesn't exist", job.Target.Name(), src)
+		}
+		in, err := os.Open(d)
 		if err != nil {
 			l.Fatalf("copy: can't finiliaze %s. copying %q to %q failed: %s\n", job.Target.Name(), src, dstp, err)
 		}
-		out, err := os.Create(dstp)
+
+		out, err := os.OpenFile(dstp, os.O_RDWR|os.O_CREATE, stat.Mode())
 		if err != nil {
 			l.Fatal(err)
 		}
@@ -291,7 +306,6 @@ func (b *Builder) bindChildOutputs(n *graph.Node) error {
 				b.buildpath(n),
 				output,
 			)
-
 			target := filepath.Base(output)
 			targetDir := strings.TrimRight(output, target)
 			outputDir := filepath.Join(

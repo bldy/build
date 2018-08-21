@@ -14,7 +14,6 @@ import (
 	"bldy.build/build"
 	"bldy.build/build/builder"
 	"bldy.build/build/graph"
-	"sevki.org/x/debug"
 )
 
 var tests = []struct {
@@ -35,6 +34,11 @@ var tests = []struct {
 	{
 		name:  "library",
 		label: "//cc:hellowithlib",
+		err:   nil,
+	},
+	{
+		name:  "debian",
+		label: "//deb:clang",
 		err:   nil,
 	},
 }
@@ -101,7 +105,7 @@ func TestBuild(t *testing.T) {
 			b := builder.New(
 				g,
 				&builder.Config{
-					UseCache: false,
+					Fresh:    true,
 					BuildOut: &tmpDir,
 				},
 				&testNotifier{t},
@@ -116,7 +120,8 @@ func TestBuild(t *testing.T) {
 				log.Fatal(err)
 			}
 			for _, file := range files {
-				debug.Println(file.Name())
+				_ = file
+				//	debug.Println(file.Name())
 			}
 		})
 	}

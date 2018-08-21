@@ -1,0 +1,11 @@
+{{- define "BUILD" -}}
+load("//.:hashtest.sky", "test")
+{{ range . }}
+test(
+    name = "{{ .Name }}",
+    srcs = [{{ range .Files}} "{{.}}.c", {{ end }}],
+)
+{{ end }}
+{{ end }}
+
+

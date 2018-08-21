@@ -1,10 +1,14 @@
 package skylark
 
 import (
+	"bytes"
 	"encoding/binary"
+	"fmt"
 	"io"
+	"path/filepath"
 
 	"github.com/pkg/errors"
+	"sevki.org/x/debug"
 
 	"bldy.build/build/executor"
 	"bldy.build/build/label"
@@ -23,28 +27,29 @@ type Rule struct {
 	Kwargs       []skylark.Tuple
 	SkyFunc      *skylark.Function
 	FuncAttrs    *skylark.Dict
-	Attrs        nativeMap
+	Attrs        *skylark.Dict
 
 	outputs []string
-
+	files   []string
 	Actions []executor.Action
 }
 
-func normalDeps(deps *skylark.List, pkg string) ([]label.Label, error) {
+func normalDeps(deps *skylark.List, rulepkg string) ([]label.Label, error) {
 	deplbls := []label.Label{}
 	if deps != nil {
 		i := deps.Iterate()
 		var p skylark.Value
 		for i.Next(&p) {
-			if dep, ok := skylark.AsString(p); ok {
-				lbl, err := label.Parse(dep)
+			if dep, ok := p.(label.Label); ok {
+				_, name, err := dep.Split()
 				if err != nil {
-					return []label.Label{}, err
+					return nil, err
 				}
-				if lbl.Package == nil {
-					lbl.Package = label.Package(pkg)
+				if !dep.IsAbs() {
+					dep = label.New(rulepkg, name)
 				}
-				deplbls = append(deplbls, *lbl)
+
+				deplbls = append(deplbls, dep)
 			}
 		}
 	}
@@ -53,7 +58,6 @@ func normalDeps(deps *skylark.List, pkg string) ([]label.Label, error) {
 
 func (f *lambdaFunc) makeSkylarkRule(thread *skylark.Thread, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
 	pkg := getPkg(thread)
-
 	var name string
 	var deps *skylark.List
 	var outputs *skylark.List
@@ -65,22 +69,15 @@ func (f *lambdaFunc) makeSkylarkRule(thread *skylark.Thread, args skylark.Tuple,
 	} else {
 		return nil, errors.New("bldy rules need to have names")
 	}
-	if dps, ok := findArg(skylark.String(skylarkKeyDeps), kwargs); ok {
-		if d, ok := dps.(*skylark.List); ok {
-			deps = d
-		}
-	}
+
 	if outs, ok := findArg(skylark.String(skylarkKeyOutputs), kwargs); ok {
 		if o, ok := outs.(*skylark.List); !ok {
 			outputs = o
 		}
 	}
-	lbl := label.Label{
-		Name:    name,
-		Package: &pkg,
-	}
+	lbl := label.New(pkg, name)
 
-	ctx, outs, err := newContext(name, f.attrs, f.outputs, kwargs, f.vm.GetPackageDir(&lbl))
+	ctx, skyio, err := newContext(name, f.attrs, f.outputs, kwargs, lbl, f.vm.ws)
 	if err != nil {
 		return nil, errors.Wrap(err, "makeskylarkrule")
 	}
@@ -88,8 +85,12 @@ func (f *lambdaFunc) makeSkylarkRule(thread *skylark.Thread, args skylark.Tuple,
 	t := &skylark.Thread{
 		Print: ctx.Print,
 	}
+
 	if _, err := f.skyFunc.Call(t, []skylark.Value{ctx}, nil); err != nil {
-		return skylark.None, err
+		buf := bytes.NewBuffer(nil)
+		thread.Caller().WriteBacktrace(buf)
+		debug.Indent(buf, 1)
+		return nil, fmt.Errorf("skylark: makeskylarkrule: call: %s\n%s", err.Error(), buf.String())
 	}
 
 	newRule := Rule{
@@ -101,9 +102,15 @@ func (f *lambdaFunc) makeSkylarkRule(thread *skylark.Thread, args skylark.Tuple,
 		SkyFuncLabel: f.skyFunc.Name(),
 		FuncAttrs:    f.attrs,
 		Actions:      ctx.actionRecorder.calls,
-		outputs:      outs,
+		outputs:      skyio.outputs,
+		files:        skyio.files,
 	}
 
+	if dps, ok := ctx.attrs[skylarkKeyDeps]; ok {
+		if d, ok := dps.(*skylark.List); ok {
+			deps = d
+		}
+	}
 	if newRule.deps, err = normalDeps(deps, pkg); err != nil {
 		return nil, errors.Wrap(err, "makeSkylarkRule.normalDeps")
 	}
@@ -116,7 +123,6 @@ func (f *lambdaFunc) makeSkylarkRule(thread *skylark.Thread, args skylark.Tuple,
 func (r *Rule) Build(e *executor.Executor) error {
 	for _, action := range r.Actions {
 		if err := action.Do(e); err != nil {
-			panic(err)
 			return err
 		}
 	}
@@ -126,7 +132,17 @@ func (r *Rule) Build(e *executor.Executor) error {
 
 // Hash returns the calculated hash of a target
 func (r *Rule) Hash() []byte {
-	h := racy.New()
+
+	opts := []racy.Option{}
+	for _, f := range r.files {
+		opts = append(opts, racy.AllowExtension(filepath.Ext(f)))
+	}
+	h := racy.New(opts...)
+
+	if err := h.HashFiles(r.files...); err != nil {
+		panic(err)
+	}
+
 	io.WriteString(h, r.SkyFuncLabel)
 	funcHash, err := r.SkyFunc.Hash()
 	if err != nil {
@@ -140,6 +156,7 @@ func (r *Rule) Hash() []byte {
 		x = racy.XOR(x, r.hashArg(kw, attr))
 		return nil
 	})
+
 	return x
 }
 

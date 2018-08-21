@@ -99,7 +99,7 @@ func (cb *CBin) LDParams() []string {
 		if err != nil {
 			log.Fatal(err)
 		}
-		d := lbl.Name
+		d := lbl.Name()
 		if len(d) < 3 {
 			continue
 		}

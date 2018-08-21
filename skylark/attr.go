@@ -3,6 +3,7 @@ package skylark
 import (
 	"fmt"
 
+	"bldy.build/build/label"
 	"github.com/google/skylark"
 	"github.com/pkg/errors"
 )
@@ -83,8 +84,13 @@ type Attribute interface {
 	HasDefault() bool
 }
 
-type AllowsEmpty interface {
+type CanAllowEmpty interface {
+	AllowsEmpty() bool
 	Empty() skylark.Value
+}
+
+type Converts interface {
+	Convert(skylark.Value) (skylark.Value, error)
 }
 
 // https://docs.bazel.build/versions/master/skylark/lib/attr.html#modules.attr
@@ -150,6 +156,18 @@ type labelAttr struct {
 	Cfg configuration
 }
 
+func (l *labelAttr) Convert(arg skylark.Value) (skylark.Value, error) {
+	lblString, ok := arg.(skylark.String)
+	if !ok {
+		return nil, fmt.Errorf("attribute should be of type string")
+	}
+	if lbl, err := label.Parse(string(lblString)); err == nil {
+		return lbl, nil
+	} else {
+		return nil, err
+	}
+}
+
 // https://docs.bazel.build/versions/master/skylark/lib/attr.html#label_keyed_string_dict
 type labelKeyedStringDictAttr struct {
 	attr
@@ -179,8 +197,37 @@ type labelListAttr struct {
 	Cfg configuration
 }
 
+func (l *labelListAttr) AllowsEmpty() bool {
+	return l.AllowEmpty
+}
+
 func (l *labelListAttr) Empty() skylark.Value {
-	return skylark.NewList([]skylark.Value{})
+	if l.AllowEmpty {
+		return skylark.NewList([]skylark.Value{})
+	} else {
+		return nil
+	}
+}
+func (l *labelListAttr) Convert(arg skylark.Value) (skylark.Value, error) {
+	lblList, ok := arg.(*skylark.List)
+	if !ok {
+		return nil, fmt.Errorf("attribute should be of type list consisting of strings")
+	}
+	i := lblList.Iterate()
+	list := []skylark.Value{}
+	var p skylark.Value
+	for i.Next(&p) {
+		val, ok := skylark.AsString(p)
+		if !ok {
+			return nil, fmt.Errorf("%v is not a valid skylark string", val)
+		}
+		if lbl, err := label.Parse(val); err == nil {
+			list = append(list, lbl)
+		} else {
+			return nil, err
+		}
+	}
+	return skylark.NewList(list), nil
 }
 
 // https://docs.bazel.build/versions/master/skylark/lib/attr.html#license

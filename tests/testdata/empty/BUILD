@@ -1,4 +1,4 @@
-load("empty/empty.bzl", "empty")
+load("empty.sky", "empty")
 
 empty(
     name = "nothing",

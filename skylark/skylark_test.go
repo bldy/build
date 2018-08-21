@@ -3,6 +3,7 @@ package skylark
 import (
 	"errors"
 	"os"
+	"path"
 	"testing"
 
 	"bldy.build/build/label"
@@ -14,33 +15,45 @@ var errAny = errors.New("any error")
 func TestEval(t *testing.T) {
 	tests := []struct {
 		name  string
+		wd    string
 		label string
 		err   error
 	}{
 		{
 			name:  "notexist",
+			wd:    "",
 			label: "//notexist:libsncmds",
 			err:   errAny,
 		},
 		{
-			name:  "simple_skylark",
-			label: "//testdata:test",
+			name:  "empty",
+			wd:    "empty",
+			label: "//.:test",
 			err:   nil,
 		},
 		{
 			name:  "noop_skylark",
-			label: "//testdata:noop",
+			wd:    "noop",
+			label: "//.:noop",
 			err:   nil,
 		},
 		{
 			name:  "printer",
-			label: "//testdata:print",
+			wd:    "printer",
+			label: "//.:print",
+			err:   nil,
+		},
+		{
+			name:  "deb",
+			wd:    "deb",
+			label: "//.:clang",
 			err:   nil,
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			wd, _ := os.Getwd()
+			wd = path.Join(wd, "testdata", test.wd)
 			ws, err := workspace.New(wd)
 			if err != nil {
 				t.Log(err)
@@ -60,7 +73,9 @@ func TestEval(t *testing.T) {
 				return
 			}
 			if target != nil {
-				//		log.Println(prettyprint.AsJSON(target))
+			} else if test.err == nil && target == nil {
+				t.Fail()
+				return
 			}
 		})
 	}

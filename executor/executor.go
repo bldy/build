@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -19,10 +20,6 @@ import (
 
 var (
 	printenv = flag.Bool("e", false, "prints envinroment variables into the log")
-	envvars  = append(os.Environ(),
-		fmt.Sprintf("%s=%s", "C_INCLUDE_PATH", "include"),
-		fmt.Sprintf("%s=%s", "LIBRARY_PATH", "lib"),
-	)
 )
 
 // Action interface is used for deferred actions that get performed
@@ -113,9 +110,50 @@ func (e *Executor) CombinedLog() string {
 	return buf.String()
 }
 
+func (e *Executor) env() []string {
+	env := []string{}
+	for key, paths := range map[string][]string{
+		"PATH":           []string{"/usr/local/sbin", "/usr/local/bin", "/usr/sbin", "/usr/bin", "/sbin", "/bin", "usr/lib/llvm-3.8/bin/"},
+		"C_INCLUDE_PATH": []string{"/usr/local/include", "/usr/include", "/include"},
+		"LIBRARY_PATH":   []string{"/usr/local/lib", "/usr/lib", "/lib", "usr/lib/x86_64-linux-gnu"},
+	} {
+		namespaced := []string{}
+		for _, p := range paths {
+			namespaced = append(namespaced, path.Join(e.wd, p))
+		}
+		env = append(env, fmt.Sprintf("%s=%s", key, strings.Join(namespaced, ":")))
+	}
+	return env
+}
+
+/*
+	qids, err := syscall.Getgroups()
+	if err != nil {
+		return err
+	}
+	groups := []uint32{}
+	for _, qid := range qids {
+		groups = append(groups, uint32(qid))
+	}
+
+	x.SysProcAttr = &syscall.SysProcAttr{
+		Chroot: e.wd,
+		Credential: &syscall.Credential{
+			Uid:         uint32(syscall.Getuid()),
+			Gid:         uint32(syscall.Getgid()),
+			Groups:      groups,
+			NoSetGroups: true,
+		},
+		Setsid:  true,
+		Setpgid: true,
+		Pgid:    syscall.Getgid(),
+	}
+*/
+
 // Exec executes a command writing it's outputs to the context
 func (e *Executor) Exec(cmd string, env, args []string) error {
-	env = append(envvars, env...)
+	env = append(e.env(), env...)
+
 	run := Run{
 		At:   time.Now(),
 		Cmd:  cmd,
@@ -123,10 +161,20 @@ func (e *Executor) Exec(cmd string, env, args []string) error {
 		Env:  env,
 	}
 
-	x := exec.CommandContext(e.ctx, cmd, args...)
+	x := exec.CommandContext(e.ctx, "true", args...)
+
+	if xPath, err := lookPath(cmd, env); err == nil {
+		x.Path = xPath
+	} else {
+		return err
+	}
+
+	x.Args = append([]string{cmd}, args...)
 	x.Dir = e.wd
 	x.Env = env
+
 	run.Output, run.Err = x.CombinedOutput()
+
 	e.run = append(e.run, &run)
 	e.log = append(e.log, &run)
 	if run.Err != nil {
@@ -149,7 +197,7 @@ func (e *Executor) Exec(cmd string, env, args []string) error {
 	return run.Err
 }
 
-// Run executes a command writing it's outputs to the context
+// Run executes a command writing it's outputs to the namespace
 func (e *Executor) Run(ctx context.Context, cmd string, env, params []string) *exec.Cmd {
 	x := exec.CommandContext(ctx, cmd, params...)
 	x.Dir = e.wd
@@ -157,12 +205,17 @@ func (e *Executor) Run(ctx context.Context, cmd string, env, params []string) *e
 	return x
 }
 
-// Create creates and returns a new file with the given name in the context
+// Create creates and returns a new file with the given name in the namespace
 func (e *Executor) Create(name string) (*os.File, error) {
 	return os.Create(filepath.Join(e.wd, name))
 }
 
-// Open creates and returns a new file with the given name in the context
+// OpenFile creates and returns a new file with the given name, flags and mode in the namespace
+func (e *Executor) OpenFile(name string, flag int, perm os.FileMode) (*os.File, error) {
+	return os.OpenFile(filepath.Join(e.wd, name), flag, perm)
+}
+
+// Open creates and returns a new file with the given name in the namespace
 func (e *Executor) Open(name string) (*os.File, error) {
 	if filepath.IsAbs(name) {
 		return os.Open(name)

@@ -21,8 +21,8 @@ func (a *action) Name() string          { return a.name }
 func (a *action) Freeze()               {}
 func (a *action) Truth() skylark.Bool   { return true }
 func (a *action) String() string        { return fmt.Sprintf("action.%s", a.name) }
-func (a *action) Hash() (uint32, error) { return hashString(a.name), nil }
 func (a *action) Type() string          { return fmt.Sprintf("actions.%s", a.name) }
+func (a *action) Hash() (uint32, error) { return hashString(a.name), nil }
 
 func (a *action) Call(thread *skylark.Thread, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
 

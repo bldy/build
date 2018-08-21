@@ -3,12 +3,15 @@ package skylark
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
+	"path"
 
 	"bldy.build/build/internal"
 	"bldy.build/build/label"
 	"bldy.build/build/workspace"
+	"sevki.org/x/debug"
 
 	"bldy.build/build"
 	"github.com/google/skylark"
@@ -52,14 +55,15 @@ func New(ws workspace.Workspace) (build.VM, error) {
 		rules: make(map[string]build.Rule),
 	}
 
-	natives := make(nativeMap)
+	natives := skylark.StringDict{}
 	for _, nativeRule := range internal.Rules() {
 		natives[nativeRule] = skylark.NewBuiltin(nativeRule, s.makeNativeRule)
 	}
 	globals := skylark.StringDict{
 		"rule":   skylark.NewBuiltin("rule", s.makeRule),
-		"native": natives,
+		"native": skylarkstruct.FromStringDict(skylarkstruct.Default, natives),
 		"struct": skylark.NewBuiltin("struct", skylarkstruct.Make),
+		"deb":    skylark.NewBuiltin("deb", s.makeDebRule),
 	}
 	s.globals = globals
 	return s, nil
@@ -69,20 +73,25 @@ func print(thread *skylark.Thread, msg string) {
 	l.Println("something something ", msg)
 }
 
-func (s *skylarkVM) GetPackageDir(l *label.Label) string {
+func (s *skylarkVM) GetPackageDir(l label.Label) string {
 	return s.ws.PackageDir(l)
 
 }
-func (s *skylarkVM) GetTarget(l *label.Label) (build.Rule, error) {
+func (s *skylarkVM) GetTarget(l label.Label) (build.Rule, error) {
+
 	if r, ok := s.rules[l.String()]; ok {
 		return r, nil
 	}
 
 	bytz, err := s.ws.LoadBuildfile(l)
 	if err != nil {
-		errors.Wrap(err, "skylark.get_target:")
+		return nil, errors.Wrap(err, "skylark.get_target:")
 	}
-	if l.Package == nil {
+	pkg, _, err := l.Split()
+	if err != nil {
+		return nil, errors.Wrap(err, "skylark.get_target:")
+	}
+	if pkg == "" {
 		return nil, errors.New("skylark vm can't figure out labels without packages, for the root package please use '.'.")
 	}
 
@@ -90,34 +99,50 @@ func (s *skylarkVM) GetTarget(l *label.Label) (build.Rule, error) {
 	t.Load = s.load
 	t.Print = print
 	initPkgStack(t)
-	pushPkg(t, *l.Package)
+	pushPkg(t, pkg)
 
 	if _, err = skylark.ExecFile(t, s.ws.Buildfile(l), bytz, s.globals); err != nil {
-		return nil, errors.Wrap(err, "skylark.exec")
+		return nil, errors.Wrap(err, "skylark: gettarget: exec")
 	}
 	if r, ok := s.rules[l.String()]; ok {
 		return r, nil
 	}
 
-	return nil, fmt.Errorf("skylark: couldn't find the target %q in %s", l.Name, s.ws.Buildfile(l))
+	return nil, fmt.Errorf("skylark: couldn't find the target %q in %s", l, s.ws.Buildfile(l))
 }
 
 func (s *skylarkVM) load(thread *skylark.Thread, module string) (skylark.StringDict, error) {
 	pkg := getPkg(thread)
-	lbl, err := label.Parse(module)
-	if lbl.Package == nil {
-		lbl.Package = label.Package(pkg)
+	l, err := label.Parse(module)
+
+	if err != nil {
+		return nil, errors.Wrap(err, "skylark.load")
+	}
+	if !l.IsAbs() {
+		l = label.New(pkg, module)
 	}
 
-	bytz, err := s.ws.LoadBuildfile(lbl)
+	file := ""
+	if path.Ext(l.Name()) != "" {
+		file = s.ws.File(l)
+	} else {
+		file = s.ws.Buildfile(l)
+	}
+	bytz, err := ioutil.ReadFile(file)
 	if err != nil {
 		buf := bytes.NewBuffer(nil)
 		thread.Caller().WriteBacktrace(buf)
 		return nil, fmt.Errorf("skylark.load: %s\n%s", err.Error(), buf.String())
 	}
 
-	pushPkg(thread, *lbl.Package)
-	dict, err := skylark.ExecFile(thread, s.ws.Buildfile(lbl), bytz, s.globals)
+	pushPkg(thread, l.Package())
+	dict, err := skylark.ExecFile(thread, s.ws.Buildfile(l), bytz, s.globals)
+	if err != nil {
+		buf := bytes.NewBuffer(nil)
+		debug.Indent(buf, 1)
+		thread.Caller().WriteBacktrace(buf)
+		return nil, fmt.Errorf("skylark: load: exec: %s\n%s", err.Error(), buf.String())
+	}
 	popPkg(thread)
 	return dict, err
 }
