@@ -1,67 +1,55 @@
-package build
+package query
 
 import (
+	"context"
+	"flag"
 	"fmt"
+	"io"
 	"os"
 
-	"bldy.build/build/cmd/internal/cmds"
 	"bldy.build/build/graph"
-	cli "gopkg.in/urfave/cli.v2"
+	"bldy.build/build/label"
+	"github.com/google/subcommands"
 	"sevki.org/x/pretty"
 )
 
-func init() {
-	cmds.RegisterCommand(&cli.Command{
-		Name:    "query",
-		Aliases: []string{"q"},
-		Usage:   "prints a target",
-		Action:  queryMain,
-	})
-	cmds.RegisterCommand(&cli.Command{
-		Name:    "deps",
-		Aliases: []string{"d"},
-		Usage:   "prints dependencies of a target",
-		Action:  depsMain,
-	})
+type QueryCmd struct {
+	fresh bool
 }
 
-func queryMain(c *cli.Context) error {
-	args := c.Args()
-	if args.Len() < 1 {
-		return cli.Exit("build requires atleast 1 argument", 1)
-	}
-
-	wd, err := os.Getwd()
-	if err != nil {
-		return cli.Exit(err.Error(), 3)
-	}
-	g, err := graph.New(wd, args.Get(0))
-	if err != nil {
-		return cli.Exit(err.Error(), 4)
-	}
-	if g == nil {
-		return cli.Exit("we could not construct your graph", 1)
-	}
-	fmt.Println(pretty.JSON(g.Root.Target))
-	return nil
+func (*QueryCmd) Name() string     { return "query" }
+func (*QueryCmd) Synopsis() string { return "queries a target" }
+func (*QueryCmd) Usage() string {
+	return `query //<package>:<name>
+{
+...
 }
-func depsMain(c *cli.Context) error {
-	args := c.Args()
-	if args.Len() < 1 {
-		return cli.Exit("build requires atleast 1 argument", 1)
-	}
+`
+}
 
+func (q *QueryCmd) SetFlags(f *flag.FlagSet) {}
+
+func (q *QueryCmd) Execute(ctx context.Context, f *flag.FlagSet, args ...interface{}) subcommands.ExitStatus {
+	if len(args) != 1 {
+		return subcommands.ExitUsageError
+	}
+	l, ok := args[0].(label.Label)
+	if !ok {
+		return subcommands.ExitUsageError
+	}
 	wd, err := os.Getwd()
 	if err != nil {
-		return cli.Exit(err.Error(), 3)
+		fmt.Println(err.Error())
+		return 4
 	}
-	g, err := graph.New(wd, args.Get(0))
+	g, err := graph.New(wd, string(l))
 	if err != nil {
-		return cli.Exit(err.Error(), 4)
+		fmt.Println(err.Error())
+		return 4
 	}
 	if g == nil {
-		return cli.Exit("we could not construct your graph", 1)
+		io.WriteString(subcommands.DefaultCommander.Error, "we could not construct your graph")
 	}
-	fmt.Println(pretty.JSON(g.Root.Target.Dependencies()))
-	return nil
+	fmt.Fprintln(subcommands.DefaultCommander.Output, pretty.JSON(g.Root.Target))
+	return subcommands.ExitSuccess
 }
