@@ -24,14 +24,31 @@ type Label string
 func New(pkg, name string) Label {
 	return Label(fmt.Sprintf("//%s:%s", pkg, name))
 }
+func (l Label) Repo() string {
+	if f, err := l.Split(); err == nil {
+		if r, ok := f["repo"]; ok {
+			return r
+		}
+	}
+	return ""
+}
+
+func (l Label) Package() string {
+	if f, err := l.Split(); err == nil {
+		if r, ok := f["package"]; ok {
+			return r
+		}
+	}
+	return ""
+}
 
 func (l Label) Name() string {
-	_, n, _ := l.Split()
-	return n
-}
-func (l Label) Package() string {
-	p, _, _ := l.Split()
-	return p
+	if f, err := l.Split(); err == nil {
+		if r, ok := f["target"]; ok {
+			return r
+		}
+	}
+	return ""
 }
 
 func (l Label) IsAbs() bool {
@@ -43,9 +60,14 @@ func Package(s string) *string {
 	return &x
 }
 
+func (l Label) Valid() error {
+	_, err := l.Split()
+	return err
+}
+
 func Parse(s string) (Label, error) {
 	l := Label(s)
-	_, _, err := l.Split()
+	_, err := l.Split()
 	return l, err
 }
 
@@ -92,9 +114,9 @@ func Parse(s string) (Label, error) {
 //	However, there are some situations where use of a slash is convenient, or sometimes
 //	even necessary. For example, the name of certain rules must match their principal
 //	source file, which may reside in a subdirectory of the package.
-func (l Label) Split() (string, string, error) {
+func (l Label) Split() (map[string]string, error) {
 	var (
-		fullLabel   = regexp.MustCompile("//(?P<package>[[:alnum:]-_.]*[[:alnum:]-_./]*):(?P<target>[[:alnum:]_/.+-=,@~.]*)+")
+		fullLabel   = regexp.MustCompile("(@(?P<repo>[[:alnum:]-_.]*[[:alnum:]-_./]*))?//(?P<package>[[:alnum:]-_.]*[[:alnum:]-_./]*):(?P<target>[[:alnum:]_/.+-=,@~.]*)+")
 		packageOnly = regexp.MustCompile("//(?P<package>[[:alnum:]-_.][[:alnum:]-_./]+)")
 		targetOnly  = regexp.MustCompile(":?(?P<target>[[:alnum:]_/?.+-=,@~.]*)+")
 
@@ -106,6 +128,7 @@ func (l Label) Split() (string, string, error) {
 	_ = targetOnly.MatchString(s)
 	matches := [][]string{}
 	names := []string{}
+
 	switch {
 	case fullLabel.MatchString(s):
 		matches = fullLabel.FindAllStringSubmatch(s, 1)
@@ -127,29 +150,25 @@ func (l Label) Split() (string, string, error) {
 		matches = fileName.FindAllStringSubmatch(s, 1)
 		names = fileName.SubexpNames()
 	default:
-		return "", "", ErrInvalidLabel
+		return nil, ErrInvalidLabel
 	}
 	if len(matches) < 1 {
-		return "", "", ErrInvalidLabel
+		return nil, ErrInvalidLabel
 	}
-	frags := matches[0]
-	pkg, name := "", ""
+	parts := matches[0]
+	frags := make(map[string]string)
 	for i, match := range names {
-		switch match {
-		case "package":
-			pkg = frags[i]
-		case "target":
-			name = frags[i]
+		frags[match] = parts[i]
+	}
+	if _, ok := frags["target"]; !ok {
+		if pkg, ok := frags["package"]; ok {
+			_, frags["target"] = path.Split(pkg)
+		} else {
+			return nil, fmt.Errorf("label in incorrect format %q", s)
 		}
 	}
 
-	if name == "" {
-		if pkg == "" {
-			return "", "", fmt.Errorf("label in incorrect format %q", s)
-		}
-		_, name = path.Split(pkg)
-	}
-	return pkg, name, nil
+	return frags, nil
 }
 
 func (lbl Label) Type() string        { return "label" }
@@ -170,17 +189,16 @@ func (lbl Label) String() string {
 }
 
 func (lbl Label) Attr(attr string) (skylark.Value, error) {
-
-	switch attr {
-	case "name":
-		_, name, err := lbl.Split()
-		if err != nil {
-			return skylark.None, err
-		}
-		return skylark.String(name), nil
-	default:
-		return nil, fmt.Errorf("label(%q) has no attribute called %q", lbl, attr)
+	if attr == "name" {
+		attr = "target"
 	}
+	if frags, err := lbl.Split(); err == nil {
+		if a, ok := frags[attr]; ok {
+			return skylark.String(a), nil
+		}
+	}
+
+	return nil, fmt.Errorf("label(%q) has no attribute called %q", lbl, attr)
 }
 
 func (lbl Label) AttrNames() []string {
