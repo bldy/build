@@ -7,8 +7,10 @@ package depset
 import (
 	"path/filepath"
 
+	"bldy.build/build"
 	"bldy.build/build/executor"
 	"bldy.build/build/label"
+	"bldy.build/build/workspace"
 )
 
 type Depset struct {
@@ -46,3 +48,6 @@ func (d *Depset) Outputs() []string {
 func (d *Depset) AddOutput(output string) {
 	d.outputs = append(d.outputs, output)
 }
+
+func (d *Depset) Platform() label.Label          { return build.DefaultPlatform }
+func (d *Depset) Workspace() workspace.Workspace { return nil }

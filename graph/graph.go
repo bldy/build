@@ -85,6 +85,7 @@ func (g *Graph) getTarget(lbl label.Label) (n *Node) {
 
 	//group is a special case
 	var group *depset.Depset
+
 	switch node.Target.(type) {
 	case *depset.Depset:
 		group = node.Target.(*depset.Depset)
