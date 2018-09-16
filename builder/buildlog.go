@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"runtime"
 
 	"bldy.build/build"
 	"bldy.build/build/graph"
@@ -17,15 +16,13 @@ const (
 	FAILLOG = "fail"
 )
 
-func nodens(n *graph.Node) string {
-	return fmt.Sprintf("%s-%s-bldy-%s-%x", n.Target.Name(), runtime.GOARCH, runtime.GOOS, n.HashNode())
-}
 func (b *Builder) buildpath(n *graph.Node) string {
 	return filepath.Join(
 		*b.config.Cache,
-		nodens(n),
+		nodeid(n),
 	)
 }
+
 func (b *Builder) cached(n *graph.Node) bool {
 	_, err := os.Lstat(b.buildpath(n))
 	n.Cached = !os.IsNotExist(err)

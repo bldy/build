@@ -19,7 +19,6 @@ import (
 
 	"bldy.build/build/executor"
 	"bldy.build/build/namespace"
-	"github.com/pkg/errors"
 
 	"sevki.org/pqueue"
 
@@ -123,20 +122,16 @@ func (b *Builder) Execute(ctx context.Context, r int) {
 	b.wg.Wait()
 }
 
-func (b *Builder) build(ctx context.Context, n *graph.Node) error {
-	executor := executor.New(ctx, b.buildpath(n))
+func (b *Builder) build(e *executor.Executor, n *graph.Node) error {
 	n.Start = time.Now().UnixNano()
-
-	err := n.Target.Build(executor)
-
-	n.End = time.Now().UnixNano()
-
 	n.Status = build.Fail
+	err := n.Target.Build(e)
 	if err == nil {
 		n.Status = build.Success
 	}
 
-	n.Output = executor.CombinedLog()
+	n.End = time.Now().UnixNano()
+	n.Output = e.CombinedLog()
 
 	b.saveLog(n)
 	if err != nil {
@@ -160,44 +155,45 @@ func (b *Builder) work(ctx context.Context, workerNumber int) {
 
 		b.notifier.Update(job)
 
+		finish := func(err error) {
+			b.notifier.Update(job)
+			if err != nil {
+				b.notifier.Error(err)
+			}
+			job.Once.Do(func() {
+				for _, parent := range job.Parents {
+					parent.WG.Done()
+				}
+			})
+			b.notifier.Update(job)
+
+			if job.IsRoot {
+				if job.Status == build.Success {
+					b.install(job)
+				}
+				b.notifier.Done(time.Now().Sub(b.start))
+				b.wg.Done()
+			}
+			job.Unlock()
+		}
+
 		if b.cached(job) {
-			if err := b.builderror(job); err != nil {
-				b.notifier.Update(job)
-				b.notifier.Error(err)
-			}
+			finish(b.builderror(job))
 		} else {
-			if err := b.prepare(job); err != nil {
-				b.notifier.Update(job)
-				b.notifier.Error(errors.Wrap(err, "build"))
-			}
-
 			if err := ctx.Err(); err != nil {
-				b.notifier.Update(job)
-				b.notifier.Error(err)
+				finish(err)
+				return
 			}
 
-			if err := b.build(ctx, job); err != nil {
-				b.notifier.Update(job)
-				b.notifier.Error(err)
-
+			ns, err := b.prepare(ctx, job)
+			if err != nil {
+				finish(err)
+				return
 			}
+			e := executor.New(ctx, ns)
+			finish(b.build(e, job))
 		}
-		job.Once.Do(func() {
-			for _, parent := range job.Parents {
-				parent.WG.Done()
-			}
-		})
 
-		b.notifier.Update(job)
-
-		if job.IsRoot {
-			if job.Status == build.Success {
-				b.install(job)
-			}
-			b.notifier.Done(time.Now().Sub(b.start))
-			b.wg.Done()
-		}
-		job.Unlock()
 	}
 
 }
@@ -294,7 +290,7 @@ func (b *Builder) createOutputDirs(n *graph.Node) error {
 	return nil
 }
 
-func (b *Builder) bindChildOutputs(n *graph.Node) error {
+func (b *Builder) bindChildOutputs(n *graph.Node, ns namespace.Namespace) error {
 	for _, c := range n.Children {
 		for _, output := range c.Target.Outputs() {
 
@@ -316,20 +312,27 @@ func (b *Builder) bindChildOutputs(n *graph.Node) error {
 			if err := os.MkdirAll(outputDir, 0755); err != nil {
 				return err
 			}
-			namespace.Bind(src, dst, namespace.MREPL)
+			ns.Bind(dst, src, namespace.MREPL)
 		}
 	}
 	return nil
 }
-func (b *Builder) prepare(n *graph.Node) error {
+func (b *Builder) prepare(ctx context.Context, n *graph.Node) (namespace.Namespace, error) {
 	// prepare
-	if err := namespace.New(b.buildpath(n)); err != nil {
-		return err
+	ns, err := b.newnamespace(n)
+	if err != nil {
+		return nil, err
 	}
-	if err := b.bindChildOutputs(n); err != nil {
-		return err
+	if ws, ok := ns.(namespace.Workspace); ok {
+		ws.MountWorkspace(n.Target.Workspace().AbsPath())
+	}
+	if err := b.bindChildOutputs(n, ns); err != nil {
+		return nil, err
 	}
 
-	return b.createOutputDirs(n)
+	if err := b.createOutputDirs(n); err != nil {
+		return nil, err
+	}
 
+	return ns, nil
 }
