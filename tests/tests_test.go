@@ -37,8 +37,13 @@ var tests = []struct {
 		err:   nil,
 	},
 	{
-		name:  "debian",
-		label: "//deb:clang",
+		name:  "uname",
+		label: "//docker:uname",
+		err:   nil,
+	},
+	{
+		name:  "filemount",
+		label: "//docker:filemount",
 		err:   nil,
 	},
 }

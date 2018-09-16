@@ -21,11 +21,10 @@ func (t *TestWS) Buildfile(label.Label) string {
 }
 
 func (t *TestWS) File(lbl label.Label) string {
-	pkg, name, err := lbl.Split()
-	if err != nil {
+	if err := lbl.Valid(); err != nil {
 		panic(err)
 	}
-	return filepath.Join(t.WD, pkg, name)
+	return filepath.Join(t.WD, lbl.Package(), lbl.Name())
 }
 
 func (t *TestWS) PackageDir(lbl label.Label) string {

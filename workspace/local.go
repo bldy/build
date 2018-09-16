@@ -15,19 +15,17 @@ func (lw *localWorkspace) AbsPath() string {
 	return lw.wd
 }
 func (lw *localWorkspace) PackageDir(lbl label.Label) string {
-	pkg, _, err := lbl.Split()
-	if err != nil {
+	if err := lbl.Valid(); err != nil {
 		panic(err)
 	}
-	return filepath.Join(lw.wd, pkg)
+	return filepath.Join(lw.wd, lbl.Package())
 }
 
 func (lw *localWorkspace) File(lbl label.Label) string {
-	pkg, name, err := lbl.Split()
-	if err != nil {
+	if err := lbl.Valid(); err != nil {
 		panic(err)
 	}
-	return filepath.Join(lw.wd, pkg, name)
+	return filepath.Join(lw.wd, lbl.Package(), lbl.Name())
 }
 
 func (lw *localWorkspace) Buildfile(lbl label.Label) string {
