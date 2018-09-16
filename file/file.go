@@ -28,18 +28,19 @@ func New(file, pkg label.Label, ws workspace.Workspace) *File {
 }
 
 func (f *File) Exists() bool {
-	return false
+	_, err := os.Stat(f.Path())
+	return err == nil
 }
 
 func (f *File) Path() string {
+
 	if f.file.IsAbs() {
 		return f.ws.File(f.file)
 	} else {
-		pkg, name, err := f.file.Split()
-		if err != nil {
+		if err := f.file.Valid(); err != nil {
 			panic(err)
 		}
-		return filepath.Join(f.ws.PackageDir(f.pkg), pkg, name)
+		return filepath.Join(f.ws.PackageDir(f.pkg), f.file.Package(), f.file.Name())
 	}
 }
 func (f *File) Name() string        { return f.file.Name() }
@@ -56,6 +57,8 @@ func (f *File) Attr(name string) (skylark.Value, error) {
 	case "is_source":
 		_, err := os.Stat(f.Path())
 		return !skylark.Bool(os.IsNotExist(err)), nil
+	case "name":
+		return skylark.String(f.file), nil
 	case "path":
 		return skylark.String(f.Path()), nil
 	default:

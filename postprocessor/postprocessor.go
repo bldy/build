@@ -28,12 +28,12 @@ type PostProcessor struct {
 // New returns a new PostProcessor
 func New(ws workspace.Workspace, l label.Label) PostProcessor {
 	pkg := ws.AbsPath()
-	lpkg, _, err := l.Split()
-	if err != nil {
-panic(err)
-}
+
+	if err := l.Valid(); err != nil {
+		panic(err)
+	}
 	if pkg != "" {
-		pkg = path.Join(pkg, lpkg)
+		pkg = path.Join(pkg, l.Package())
 	}
 	return PostProcessor{
 		packagePath: pkg,
