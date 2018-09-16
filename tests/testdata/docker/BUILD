@@ -9,6 +9,6 @@ load("file.sky", "file")
 file(
     name = "filemount",
     srcs = [
-        "docker/BUILD",
+        "BUILD",
     ],
 )
