@@ -1,7 +1,12 @@
 language: go
 go:
   - 1.10.x
+  - 1.11.x
   - master
+compiler: clang
+sudo: required
+services:
+  - docker
 matrix:
   allow_failures:
     - go: master
