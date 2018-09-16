@@ -1,9 +1,8 @@
 package namespace
 
 import (
+	"context"
 	"os"
-
-	"github.com/pkg/errors"
 )
 
 const (
@@ -12,17 +11,25 @@ const (
 	MAFTER
 )
 
-type Namespace string
-
-// Namespace is where builds are run, interface is the same as the plan9 namespaces
-func Bind(new, old string, flags int) {
-	os.Symlink(new, old)
+type Namespace interface {
+	Bind(new, old string, flags int)
+	Mount(new, old string, flags int)
+	Cmd(ctx context.Context, cmd string, args ...string) Cmd
+	Mkdir(name string) error
+	Open(name string) (*os.File, error)
+	OpenFile(name string, flag int, perm os.FileMode) (*os.File, error)
+	Create(name string) (*os.File, error)
 }
-func Mount(new, old string, flags int) {}
 
-func New(name string) error {
-	if err := os.MkdirAll(name, 0755); err != nil {
-		return errors.Wrap(err, "new namespace")
-	}
-	return nil
+type Workspace interface {
+	Namespace
+	MountWorkspace(s string)
+}
+
+type Cmd interface {
+	Run() error
+	Start() error
+	Wait() error
+	CombinedOutput() ([]byte, error)
+	Output() ([]byte, error)
 }
