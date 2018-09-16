@@ -3,7 +3,7 @@
 
 def _impl(ctx):
     ctx.actions.run(
-        arguments = [f.name.path for f in ctx.files.srcs],
+        arguments = [f.path for f in ctx.files.srcs],
         progress_message = "Running: file",
         executable = "cat",
     )
