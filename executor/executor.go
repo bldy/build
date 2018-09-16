@@ -9,12 +9,10 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"os/exec"
-	"path"
-	"path/filepath"
 	"strings"
 	"time"
 
+	"bldy.build/build/namespace"
 	"sevki.org/x/debug"
 )
 
@@ -34,7 +32,7 @@ type Action interface {
 // about stdout or stderr outputs.
 type Executor struct {
 	ctx context.Context
-	wd  string
+	ns  namespace.Namespace
 	run []*Run
 	log []fmt.Stringer
 }
@@ -84,9 +82,9 @@ func (e *Executor) Log() []fmt.Stringer {
 }
 
 // New initializes and returns a new executor.Executor
-func New(ctx context.Context, dir string) *Executor {
+func New(ctx context.Context, ns namespace.Namespace) *Executor {
 	return &Executor{
-		wd:  dir,
+		ns:  ns,
 		ctx: ctx,
 	}
 }
@@ -111,44 +109,8 @@ func (e *Executor) CombinedLog() string {
 }
 
 func (e *Executor) env() []string {
-	env := []string{}
-	for key, paths := range map[string][]string{
-		"PATH":           []string{"/usr/local/sbin", "/usr/local/bin", "/usr/sbin", "/usr/bin", "/sbin", "/bin", "usr/lib/llvm-3.8/bin/"},
-		"C_INCLUDE_PATH": []string{"/usr/local/include", "/usr/include", "/include"},
-		"LIBRARY_PATH":   []string{"/usr/local/lib", "/usr/lib", "/lib", "usr/lib/x86_64-linux-gnu"},
-	} {
-		namespaced := []string{}
-		for _, p := range paths {
-			namespaced = append(namespaced, path.Join(e.wd, p))
-		}
-		env = append(env, fmt.Sprintf("%s=%s", key, strings.Join(namespaced, ":")))
-	}
-	return env
+	return os.Environ()
 }
-
-/*
-	qids, err := syscall.Getgroups()
-	if err != nil {
-		return err
-	}
-	groups := []uint32{}
-	for _, qid := range qids {
-		groups = append(groups, uint32(qid))
-	}
-
-	x.SysProcAttr = &syscall.SysProcAttr{
-		Chroot: e.wd,
-		Credential: &syscall.Credential{
-			Uid:         uint32(syscall.Getuid()),
-			Gid:         uint32(syscall.Getgid()),
-			Groups:      groups,
-			NoSetGroups: true,
-		},
-		Setsid:  true,
-		Setpgid: true,
-		Pgid:    syscall.Getgid(),
-	}
-*/
 
 // Exec executes a command writing it's outputs to the context
 func (e *Executor) Exec(cmd string, env, args []string) error {
@@ -161,36 +123,26 @@ func (e *Executor) Exec(cmd string, env, args []string) error {
 		Env:  env,
 	}
 
-	x := exec.CommandContext(e.ctx, "true", args...)
-
-	if xPath, err := lookPath(cmd, env); err == nil {
-		x.Path = xPath
-	} else {
-		return err
-	}
-
-	x.Args = append([]string{cmd}, args...)
-	x.Dir = e.wd
-	x.Env = env
+	x := e.ns.Cmd(e.ctx, cmd, args...)
 
 	run.Output, run.Err = x.CombinedOutput()
-
+	envbuf := bytes.NewBufferString(strings.Join(env, "\n"))
 	e.run = append(e.run, &run)
 	e.log = append(e.log, &run)
 	if run.Err != nil {
 		errbuf := bytes.NewBuffer(run.Output)
 		debug.Indent(errbuf, 2)
+		debug.Indent(envbuf, 2)
 		return fmt.Errorf(`%s
 	command: %s
-	emv: %s
-	wd: %s
+ 	emv: 
+%s
 	output:
 %s
 `,
 			run.Err,
 			append([]string{cmd}, args...),
-			env,
-			e.wd,
+			envbuf.String(),
 			errbuf.String(),
 		)
 	}
@@ -198,52 +150,27 @@ func (e *Executor) Exec(cmd string, env, args []string) error {
 }
 
 // Run executes a command writing it's outputs to the namespace
-func (e *Executor) Run(ctx context.Context, cmd string, env, params []string) *exec.Cmd {
-	x := exec.CommandContext(ctx, cmd, params...)
-	x.Dir = e.wd
-	x.Env = env
-	return x
+func (e *Executor) Run(ctx context.Context, cmd string, args ...string) namespace.Cmd {
+	return e.ns.Cmd(e.ctx, cmd, args...)
+
 }
 
 // Create creates and returns a new file with the given name in the namespace
 func (e *Executor) Create(name string) (*os.File, error) {
-	return os.Create(filepath.Join(e.wd, name))
+	return e.ns.Create(name)
 }
 
 // OpenFile creates and returns a new file with the given name, flags and mode in the namespace
 func (e *Executor) OpenFile(name string, flag int, perm os.FileMode) (*os.File, error) {
-	return os.OpenFile(filepath.Join(e.wd, name), flag, perm)
+	return e.ns.OpenFile(name, flag, perm)
 }
 
 // Open creates and returns a new file with the given name in the namespace
 func (e *Executor) Open(name string) (*os.File, error) {
-	if filepath.IsAbs(name) {
-		return os.Open(name)
-	}
-	return os.Open(filepath.Join(e.wd, name))
+	return e.ns.Open(name)
 }
 
 // Mkdir creates a folder in the executor
 func (e *Executor) Mkdir(name string) error {
-	return os.MkdirAll(filepath.Join(e.wd, name), os.ModeDir|os.ModePerm)
+	return e.ns.Mkdir(name)
 }
-
-// Status represents a nodes status.
-type Status int
-
-const (
-	// Success is success
-	Success Status = iota
-	// Fail is a failed job
-	Fail
-	// Pending is a pending job
-	Pending
-	// Started is a started job
-	Started
-	// Fatal is a fatal crash
-	Fatal
-	// Warning is a job that has warnings
-	Warning
-	// Building is a job that's being built
-	Building
-)
