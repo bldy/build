@@ -8,7 +8,6 @@ import (
 	"os"
 
 	"bldy.build/build/cmd/build"
-	"bldy.build/build/cmd/deb"
 	"bldy.build/build/cmd/query"
 	"bldy.build/build/label"
 	"github.com/google/subcommands"
@@ -20,8 +19,7 @@ func main() {
 	subcommands.Register(subcommands.CommandsCommand(), "")
 	subcommands.Register(&build.BuildCmd{}, "")
 	subcommands.Register(&query.QueryCmd{}, "")
-	subcommands.Register(&deb.DebInspectCmd{}, "")
-	subcommands.Register(&deb.DebRuleCmd{}, "")
+	subcommands.Register(&query.HashCmd{}, "")
 
 	flag.Parse()
 	ctx := context.Background()
