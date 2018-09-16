@@ -20,15 +20,21 @@ import (
 )
 
 const (
-	skylarkKeyImpl    = "implementation"
-	skylarkKeyAttrs   = "attrs"
-	skylarkKeyDeps    = "deps"
-	skylarkKeyOutputs = "outputs"
-	skylarkKeyName    = "name"
-	threadKeyTargets  = "__targets"
-	threadKeyWD       = "__wd"
-	threadKeyContext  = "__ctx"
-	threadKeyPackage  = "__package"
+	skylarkKeyImpl           = "implementation"
+	skylarkKeyAttrs          = "attrs"
+	skylarkKeyDeps           = "deps"
+	skylarkKeyOutputs        = "outputs"
+	skylarkKeyName           = "name"
+	skylarkKeyCompatibleWith = "compatible_with"
+	skylarkKeyToolChains     = "toolchains"
+	skylarkKeyHost           = "host"
+	skylarkKeyRestrictedTo   = "restricted_to"
+	skylarkKeyTags           = "tags"
+
+	threadKeyTargets = "__targets"
+	threadKeyWD      = "__wd"
+	threadKeyContext = "__ctx"
+	threadKeyPackage = "__package"
 )
 
 var (
@@ -63,7 +69,6 @@ func New(ws workspace.Workspace) (build.VM, error) {
 		"rule":   skylark.NewBuiltin("rule", s.makeRule),
 		"native": skylarkstruct.FromStringDict(skylarkstruct.Default, natives),
 		"struct": skylark.NewBuiltin("struct", skylarkstruct.Make),
-		"deb":    skylark.NewBuiltin("deb", s.makeDebRule),
 	}
 	s.globals = globals
 	return s, nil
@@ -87,11 +92,10 @@ func (s *skylarkVM) GetTarget(l label.Label) (build.Rule, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "skylark.get_target:")
 	}
-	pkg, _, err := l.Split()
-	if err != nil {
+	if err := l.Valid(); err != nil {
 		return nil, errors.Wrap(err, "skylark.get_target:")
 	}
-	if pkg == "" {
+	if l.Package() == "" {
 		return nil, errors.New("skylark vm can't figure out labels without packages, for the root package please use '.'.")
 	}
 
@@ -99,12 +103,14 @@ func (s *skylarkVM) GetTarget(l label.Label) (build.Rule, error) {
 	t.Load = s.load
 	t.Print = print
 	initPkgStack(t)
-	pushPkg(t, pkg)
+	pushPkg(t, l.Package())
 
 	if _, err = skylark.ExecFile(t, s.ws.Buildfile(l), bytz, s.globals); err != nil {
 		return nil, errors.Wrap(err, "skylark: gettarget: exec")
 	}
 	if r, ok := s.rules[l.String()]; ok {
+		r.(*Rule).ws = s.ws // TODO: fix this
+
 		return r, nil
 	}
 

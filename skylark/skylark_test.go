@@ -43,12 +43,6 @@ func TestEval(t *testing.T) {
 			label: "//.:print",
 			err:   nil,
 		},
-		{
-			name:  "deb",
-			wd:    "deb",
-			label: "//.:clang",
-			err:   nil,
-		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

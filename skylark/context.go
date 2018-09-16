@@ -39,8 +39,8 @@ func newContext(name string, ruleAttrs *skylark.Dict, ruleOutputs *skylark.Dict,
 	if skyio.files, err = processFiles(ctx, ruleAttrs, kwargs, ws, lbl); err != nil {
 		return nil, nil, err
 	}
-
 	if skyio.outputs, err = processOutputs(ctx, ruleAttrs, ruleOutputs); err != nil {
+
 		return nil, nil, err
 	}
 	return ctx, skyio, nil

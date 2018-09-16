@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"sort"
 
 	"github.com/pkg/errors"
 	"sevki.org/x/debug"
@@ -13,6 +14,7 @@ import (
 	"bldy.build/build/executor"
 	"bldy.build/build/label"
 	"bldy.build/build/racy"
+	"bldy.build/build/workspace"
 	"github.com/google/skylark"
 )
 
@@ -20,6 +22,7 @@ import (
 type Rule struct {
 	name string
 	deps []label.Label
+	ws   workspace.Workspace
 
 	SkyFuncLabel string
 	skyThread    *skylark.Thread
@@ -29,9 +32,34 @@ type Rule struct {
 	FuncAttrs    *skylark.Dict
 	Attrs        *skylark.Dict
 
-	outputs []string
-	files   []string
-	Actions []executor.Action
+	host           label.Label
+	compatibleWith []label.Label
+	toolchains     []label.Label
+	restrictedTo   []label.Label
+	tags           []string
+	outputs        []string
+	files          []string
+	Actions        []executor.Action
+
+	ctx *context
+}
+
+func labelListToArray(labelList *skylark.List) ([]label.Label, error) {
+	if labelList != nil {
+		lbls := []label.Label{}
+		i := labelList.Iterate()
+		var p skylark.Value
+		for i.Next(&p) {
+			if l, ok := p.(label.Label); ok {
+				if err := l.Valid(); err != nil {
+					return nil, err
+				}
+				lbls = append(lbls, l)
+			}
+		}
+		return lbls, nil
+	}
+	panic("list can't be nil")
 }
 
 func normalDeps(deps *skylark.List, rulepkg string) ([]label.Label, error) {
@@ -41,12 +69,11 @@ func normalDeps(deps *skylark.List, rulepkg string) ([]label.Label, error) {
 		var p skylark.Value
 		for i.Next(&p) {
 			if dep, ok := p.(label.Label); ok {
-				_, name, err := dep.Split()
-				if err != nil {
+				if err := dep.Valid(); err != nil {
 					return nil, err
 				}
 				if !dep.IsAbs() {
-					dep = label.New(rulepkg, name)
+					dep = label.New(rulepkg, dep.Name())
 				}
 
 				deplbls = append(deplbls, dep)
@@ -104,6 +131,7 @@ func (f *lambdaFunc) makeSkylarkRule(thread *skylark.Thread, args skylark.Tuple,
 		Actions:      ctx.actionRecorder.calls,
 		outputs:      skyio.outputs,
 		files:        skyio.files,
+		ctx:          ctx,
 	}
 
 	if dps, ok := ctx.attrs[skylarkKeyDeps]; ok {
@@ -111,11 +139,18 @@ func (f *lambdaFunc) makeSkylarkRule(thread *skylark.Thread, args skylark.Tuple,
 			deps = d
 		}
 	}
+
+	if newRule.compatibleWith, err = labelListToArray(ctx.attrs[skylarkKeyCompatibleWith].(*skylark.List)); err != nil {
+		return nil, err
+	}
+	ok := false
+	if newRule.host, ok = ctx.attrs[skylarkKeyHost].(label.Label); !ok {
+		return nil, fmt.Errorf("host cannot be null, as it has a default value for all skylark rules")
+	}
 	if newRule.deps, err = normalDeps(deps, pkg); err != nil {
 		return nil, errors.Wrap(err, "makeSkylarkRule.normalDeps")
 	}
 	f.vm.rules[lbl.String()] = &newRule
-
 	return skylark.None, nil
 }
 
@@ -129,6 +164,9 @@ func (r *Rule) Build(e *executor.Executor) error {
 	return nil
 
 }
+
+func (r *Rule) Platform() label.Label          { return r.host }
+func (r *Rule) Workspace() workspace.Workspace { return r.ws }
 
 // Hash returns the calculated hash of a target
 func (r *Rule) Hash() []byte {
@@ -151,12 +189,23 @@ func (r *Rule) Hash() []byte {
 	if err := binary.Write(h, binary.BigEndian, funcHash); err != nil {
 		l.Fatal(err)
 	}
+	// sort Attributes
+	keys := []string{}
+	for k, _ := range r.ctx.attrs {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		v, ok := r.ctx.attrs[k].(skylark.Value)
+		if ok {
+			h.HashSkylarkValue(v)
+		}
+	}
 	x := h.Sum(nil)
 	WalkDict(r.FuncAttrs, func(kw skylark.Value, attr Attribute) error {
 		x = racy.XOR(x, r.hashArg(kw, attr))
 		return nil
 	})
-
 	return x
 }
 

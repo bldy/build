@@ -1,0 +1,18 @@
+"""toolchain"""
+
+def _my_toolchain_impl(ctx):
+    toolchain = platform_common.ToolchainInfo(
+        compiler = ctx.attr.compiler,
+        system_lib = ctx.attr.system_lib,
+        arch_flags = ctx.attr.arch_flags,
+    )
+    return [toolchain]
+
+my_toolchain = rule(
+    _my_toolchain_impl,
+    attrs = {
+        "compiler": attr.string(),
+        "system_lib": attr.string(),
+        "arch_flags": attr.string_list(),
+    },
+)

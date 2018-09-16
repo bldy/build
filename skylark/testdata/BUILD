@@ -18,3 +18,7 @@ printer(
     number = 1,
     deps = [":noop"],
 )
+
+empty(
+    name = "something",
+)

@@ -3,6 +3,7 @@ package skylark
 import (
 	"fmt"
 
+	"bldy.build/build"
 	"github.com/pkg/errors"
 
 	"github.com/google/skylark"
@@ -10,7 +11,10 @@ import (
 
 func processAttrs(ctx *context, name string, ruleAttrs *skylark.Dict, kwargs []skylark.Tuple, wd string) error {
 	ctx.attrs = skylark.StringDict{}
-	ctx.attrs["name"] = skylark.String(name) // this is added to all attrs https://github.com/bazelbuild/examples/blob/master/rules/attributes/printer.bzl#L20
+	ctx.attrs[skylarkKeyName] = skylark.String(name) // this is added to all attrs https://github.com/bazelbuild/examples/blob/master/rules/attributes/printer.bzl#L20
+
+	ctx.attrs[skylarkKeyCompatibleWith] = skylark.NewList([]skylark.Value{build.DefaultPlatform})
+	ctx.attrs[skylarkKeyHost] = build.DefaultPlatform
 
 	err := WalkDict(ruleAttrs, func(kw skylark.Value, attr Attribute) error { // check the attributes
 		arg, ok := findArg(kw, kwargs)
