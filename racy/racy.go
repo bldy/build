@@ -3,6 +3,7 @@ package racy
 
 import (
 	"crypto/sha512"
+	"encoding/binary"
 	"fmt"
 	"hash"
 	"io"
@@ -11,6 +12,8 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+
+	"github.com/google/skylark"
 )
 
 // NewHash returns a new hash.Hash
@@ -134,4 +137,27 @@ func (r *Racy) HashStrings(strs ...string) {
 	for _, str := range strs {
 		io.WriteString(r, str)
 	}
+}
+
+func (r *Racy) HashSkylarkValues(vals ...skylark.Value) {
+	for _, v := range vals {
+		r.HashSkylarkValue(v)
+	}
+}
+
+func (r *Racy) HashSkylarkValue(v skylark.Value) {
+	if iterable, ok := v.(skylark.Iterable); ok {
+		i := iterable.Iterate()
+		var p skylark.Value
+		for i.Next(&p) {
+			r.HashSkylarkValue(p)
+		}
+	} else {
+		if h, err := v.Hash(); err != nil {
+			b := make([]byte, 4)
+			binary.LittleEndian.PutUint32(b, h)
+			r.Write(b)
+		}
+	}
+
 }
