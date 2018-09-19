@@ -1,12 +1,20 @@
 language: go
 go:
-  - 1.7.x
-  - 1.8.x
+  - 1.10.x
+  - 1.11.x
   - master
+compiler: clang
+sudo: required
+services:
+  - docker
 matrix:
   allow_failures:
     - go: master
   fast_finish: true
+before_install:
+- sudo apt-get update -qq
+- sudo apt-get install -qq clang
+- docker pull debian:jessie
 go_import_path: bldy.build/build
 install:
   - go get -v -t -d bldy.build/build/...

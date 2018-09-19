@@ -9,65 +9,59 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path"
 	"path/filepath"
 	"reflect"
 	"strings"
 
 	"bldy.build/build"
+	"bldy.build/build/label"
 	"bldy.build/build/project"
+	"bldy.build/build/workspace"
 )
 
 type PostProcessor struct {
-	projectPath, packagePath string
+	packagePath string
+	ws          workspace.Workspace
 }
 
 // New returns a new PostProcessor
-func New(p string) PostProcessor {
+func New(ws workspace.Workspace, l label.Label) PostProcessor {
+	pkg := ws.AbsPath()
+
+	if err := l.Valid(); err != nil {
+		panic(err)
+	}
+	if pkg != "" {
+		pkg = path.Join(pkg, l.Package())
+	}
 	return PostProcessor{
-		packagePath: p,
-		projectPath: project.Root(),
+		packagePath: pkg,
+		ws:          ws,
 	}
 }
 
 // ProcessDependencies takes relative dependency paths and turns then in to
 // absolute paths.
-func (pp *PostProcessor) ProcessDependencies(t build.Target) error {
+func (pp *PostProcessor) ProcessDependencies(t build.Rule) error {
 
-	v := reflect.ValueOf(t)
-
-	deps := v.Elem().FieldByName("Dependencies").Interface().([]string)
+	deps := t.Dependencies()
 
 	seen := make(map[string]bool)
 
-	for i, d := range deps {
-		if _, ok := seen[d]; ok {
+	for _, d := range deps {
+		if _, ok := seen[d.String()]; ok {
 			return fmt.Errorf("post process dependencies: %s is duplicated", d)
-		} else {
-			seen[d] = true
 		}
-		switch {
-		case d[:2] == "//":
-			continue
-		case d[0] == ':':
-			deps[i] = fmt.Sprintf("//%s%s", pp.packagePath, d)
-			break
-		default:
-			errorf := `dependency '%s' in %s is not a valid URL for a target.
-		a target url can only start with a '//' or a ':' for relative targets.`
-
-			return fmt.Errorf(errorf, d, t.GetName())
-		}
-
-		seen[d] = true
+		seen[d.String()] = true
 	}
 
-	v.Elem().FieldByName("Dependencies").Set(reflect.ValueOf(deps))
 	return nil
 }
 
-// ProcesPaths takes paths relative to the target and absolutes them,
+// ProcessPaths takes paths relative to the target and absolutes them,
 // unless they are going to be exported in to the target folder from a dependency.
-func (pp *PostProcessor) ProcessPaths(t build.Target, deps []build.Target) error {
+func (pp *PostProcessor) ProcessPaths(t build.Rule, deps []build.Rule) error {
 	v := reflect.ValueOf(t)
 
 	r := reflect.TypeOf(t).Elem()
@@ -84,12 +78,17 @@ func (pp *PostProcessor) ProcessPaths(t build.Target, deps []build.Target) error
 
 		isExported := func(s string) bool {
 			for _, d := range deps {
-				if _, ok := d.Installs()[s]; ok {
-					return true
+				for _, output := range d.Outputs() {
+					if output == s {
+						return true
+					}
+
 				}
+
 			}
 			return false
 		}
+
 		exp := func(s string) string {
 			if tag == "path" {
 				return pp.absPath(s)
@@ -152,13 +151,13 @@ func (pp *PostProcessor) absPath(s string) string {
 	var r string
 	switch {
 	case s[:2] == "//":
-		r = filepath.Join(pp.projectPath, strings.Trim(s, "//"))
+		r = filepath.Join(pp.ws.AbsPath(), strings.Trim(s, "//"))
 	default:
 		r = os.Expand(s, project.Getenv)
 		if filepath.IsAbs(r) {
 			return r
 		}
-		r = filepath.Join(pp.projectPath, pp.packagePath, s)
+		r = filepath.Join(pp.ws.AbsPath(), pp.packagePath, s)
 	}
 	r = os.Expand(r, project.Getenv)
 	return r

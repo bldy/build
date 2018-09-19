@@ -1,0 +1,17 @@
+"""runs uname
+"""
+
+def _impl(ctx):
+    ctx.actions.run(
+        arguments = [f.path for f in ctx.files.srcs],
+        progress_message = "Running: file",
+        executable = "cat",
+    )
+
+file = rule(
+    attrs = {
+        "srcs": attr.label_list(allow_files = True),
+        "host": attr.label(default = "@docker//debian:stretch"),
+    },
+    implementation = _impl,
+)

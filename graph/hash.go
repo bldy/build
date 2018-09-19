@@ -19,7 +19,7 @@ func (n *Node) HashNode() []byte {
 	if len(n.hash) > 0 {
 		return n.hash
 	}
-	n.hash = racy.HashTarget(n.Target)
+	n.hash = n.Target.Hash()
 	var bn ByName
 	for _, e := range n.Children {
 		bn = append(bn, e)
@@ -38,5 +38,5 @@ type ByName []*Node
 func (a ByName) Len() int      { return len(a) }
 func (a ByName) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
 func (a ByName) Less(i, j int) bool {
-	return strings.Compare(a[i].Target.GetName(), a[j].Target.GetName()) > 0
+	return strings.Compare(a[i].Target.Name(), a[j].Target.Name()) > 0
 }

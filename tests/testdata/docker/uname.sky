@@ -1,0 +1,15 @@
+"""runs uname
+"""
+
+def _impl(ctx):
+    ctx.actions.run(
+        progress_message = "Running: uname",
+        executable = "hostname",
+    )
+
+uname = rule(
+    attrs = {
+        "host": attr.label(default = "@docker//debian:stretch"),
+    },
+    implementation = _impl,
+)

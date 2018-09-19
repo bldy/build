@@ -6,139 +6,119 @@
 package graph
 
 import (
-	"fmt"
 	"log"
 	"os"
 
-	"sync"
-
 	"bldy.build/build"
-	"bldy.build/build/blaze"
+	"bldy.build/build/label"
+	"bldy.build/build/skylark"
+	"bldy.build/build/workspace"
+	"github.com/pkg/errors"
+
+	"bldy.build/build/depset"
 	"bldy.build/build/postprocessor"
-	bldytrg "bldy.build/build/targets/build"
-	"bldy.build/build/url"
 )
 
 var (
 	l = log.New(os.Stdout, "graph: ", 0)
 )
 
-// Node encapsulates a target and represents a node in the build graph.
-type Node struct {
-	IsRoot        bool         `json:"-"`
-	Target        build.Target `json:"-"`
-	Type          string
-	Parents       map[string]*Node `json:"-"`
-	URL           url.URL
-	Worker        string
-	PriorityCount int
-	WG            sync.WaitGroup
-	Status        build.Status
-	Cached        bool
-	Start, End    int64
-	Hash          string
-	Output        string `json:"-"`
-	Once          sync.Once
-	sync.Mutex
-	Children map[string]*Node
-	hash     []byte
+// New returns a new build graph relatvie to the working directory
+func New(wd, target string) (*Graph, error) {
+	ws, err := workspace.New(wd)
+	if err != nil {
+		return nil, errors.Wrap(err, "graph: new")
+	}
+	vm, err := skylark.New(ws)
+	if err != nil {
+		return nil, errors.Wrap(err, "graph: new")
+	}
+	g := Graph{
+		ws:    ws,
+		vm:    vm,
+		Nodes: make(map[string]*Node),
+	}
+	label, err := label.Parse(target)
+	if err != nil {
+		return nil, errors.Wrap(err, "new graph")
+	}
+	g.Root = g.getTarget(label)
+	g.Root.IsRoot = true
+	return &g, nil
 }
 
 // Graph represents a build graph
 type Graph struct {
 	Root  *Node
 	vm    build.VM
+	ws    workspace.Workspace
 	Nodes map[string]*Node
 }
 
-// New returns a new build graph relatvie to the working directory
-func New(wd, target string) *Graph {
-	g := Graph{
-		vm:    blaze.NewVM(wd),
-		Nodes: make(map[string]*Node),
-	}
-	g.Root = g.getTarget(url.Parse(target))
-	g.Root.IsRoot = true
-	return &g
+// Workspace returns the Workspace in which this graph exists.
+func (g *Graph) Workspace() workspace.Workspace {
+	return g.ws
 }
 
-// CountDependents counts how many nodes directly and indirectly depend on
-// this node
-func (n *Node) Priority() int {
-	if n.PriorityCount < 0 {
-		p := 0
-		for _, c := range n.Parents {
-			p += c.Priority() + 1
-		}
-		n.PriorityCount = p
-	}
-	return n.PriorityCount
-}
-
-func (g *Graph) getTarget(u url.URL) (n *Node) {
-	if gnode, ok := g.Nodes[u.String()]; ok {
+func (g *Graph) getTarget(lbl label.Label) (n *Node) {
+	if gnode, ok := g.Nodes[lbl.String()]; ok {
 		return gnode
 	}
-	t, err := g.vm.GetTarget(u)
+
+	t, err := g.vm.GetTarget(lbl)
 	if err != nil {
-		log.Fatal(err)
-	}
-	xu := url.URL{
-		Package: u.Package,
-		Target:  t.GetName(),
+		l.Fatal(err)
 	}
 
-	node := Node{
-		Target:        t,
-		Type:          fmt.Sprintf("%T", t)[1:],
-		Children:      make(map[string]*Node),
-		Parents:       make(map[string]*Node),
-		Once:          sync.Once{},
-		WG:            sync.WaitGroup{},
-		Status:        build.Pending,
-		URL:           xu,
-		PriorityCount: -1,
-	}
+	nLbl := label.New(lbl.Package(), t.Name())
 
-	post := postprocessor.New(u.Package)
+	node := NewNode(nLbl, t)
+
+	post := postprocessor.New(g.ws, nLbl)
 
 	err = post.ProcessDependencies(node.Target)
 	if err != nil {
 		l.Fatal(err)
 	}
 
-	var deps []build.Target
+	var deps []build.Rule
 
 	//group is a special case
-	var group *bldytrg.Group
+	var group *depset.Depset
+
 	switch node.Target.(type) {
-	case *bldytrg.Group:
-		group = node.Target.(*bldytrg.Group)
-		group.Exports = make(map[string]string)
+	case *depset.Depset:
+		group = node.Target.(*depset.Depset)
+
 	}
-	for _, d := range node.Target.GetDependencies() {
-		c := g.getTarget(url.Parse(d))
+
+	for _, d := range node.Target.Dependencies() {
+		c := g.getTarget(d)
+		if err != nil {
+			l.Printf("%q is not a valid label", d.String())
+			continue
+		}
 		node.WG.Add(1)
 		if group != nil {
-			for dst := range c.Target.Installs() {
-				group.Exports[dst] = dst
+			for _, output := range c.Target.Outputs() {
+				group.AddOutput(output)
 			}
 		}
 		deps = append(deps, c.Target)
 
-		node.Children[d] = c
-		c.Parents[xu.String()] = &node
+		node.Children[d.String()] = c
+		c.Parents[nLbl.String()] = &node
 	}
 
 	if err := post.ProcessPaths(t, deps); err != nil {
 		l.Fatalf("path processing: %s", err.Error())
 	}
 
-	g.Nodes[xu.String()] = &node
-	if t.GetName() == u.Target {
+	g.Nodes[nLbl.String()] = &node
+	if t.Name() == lbl.Name() {
 		n = &node
 	} else {
-		l.Fatalf("target name %q and url target %q don't match", t.GetName(), u.Target)
+		l.Fatalf("target name %q and url target %q don't match", t.Name(), lbl.Name())
 	}
 	return n
 }

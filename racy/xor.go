@@ -1,10 +1,10 @@
-// Copyright 2017 Sevki <s@sevki.org>. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
+package racy
 
-package racy // import "bldy.build/build/racy"
-import "bytes"
+import (
+	"bytes"
+)
 
+// XORBytes takes two byte slices and XORs them
 func XORBytes(a, b []byte) []byte {
 	n := len(a)
 	if len(b) < n {
@@ -17,6 +17,7 @@ func XORBytes(a, b []byte) []byte {
 	return dst
 }
 
+// XOR takes 2 or more byte slices and xors them.
 func XOR(hs ...[]byte) []byte {
 	if len(hs) == 1 {
 		return hs[0]
@@ -37,10 +38,6 @@ func XOR(hs ...[]byte) []byte {
 		// this is a stupid hack and I'm ashamed of it
 		if bytes.Compare(a, b) == 0 {
 			a = hashString(string(a))
-		}
-		n := len(a)
-		if len(b) < n {
-			n = len(b)
 		}
 		dst = XORBytes(a, b)
 	}

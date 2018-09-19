@@ -5,33 +5,27 @@
 package builder
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/user"
 	"path"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"bldy.build/build/executor"
+	"bldy.build/build/namespace"
 
 	"sevki.org/pqueue"
-
-	"io/ioutil"
 
 	"strings"
 
 	"bldy.build/build"
 	"bldy.build/build/graph"
-	"bldy.build/build/project"
-)
-
-const (
-	SCSSLOG = "success"
-	FAILLOG = "fail"
 )
 
 type Update struct {
@@ -47,151 +41,111 @@ type Builder struct {
 	Wd          string
 	ProjectPath string
 	Total       int
-	Done        chan *graph.Node
-	Error       chan error
-	Timeout     chan bool
-	Updates     chan *graph.Node
+	Timeout     chan bool `json:"-"`
 	ptr         *graph.Node
 	graph       *graph.Graph
-	pq          *pqueue.PQueue
+	pq          *pqueue.PQueue `json:"-"`
+	config      *Config
+	notifier    Notifier `json:"-"`
+	start       time.Time
+
+	wg sync.WaitGroup
 }
 
-func New(g *graph.Graph) (c Builder) {
-	c.Error = make(chan error)
-	c.Done = make(chan *graph.Node)
-	c.Updates = make(chan *graph.Node)
+type Notifier interface {
+	Update(*graph.Node)
+	Error(error)
+	Done(time.Duration)
+}
+
+type Config struct {
+	Fresh    bool
+	BuildOut *string
+	Cache    *string
+}
+
+func New(g *graph.Graph, c *Config, n Notifier) (b Builder) {
 	var err error
-	c.Wd, err = os.Getwd()
+	b.Wd, err = os.Getwd()
 	if err != nil {
 		l.Fatal(err)
 	}
-	c.pq = pqueue.New()
-	c.graph = g
-	c.ProjectPath = project.Root()
+	b.pq = pqueue.New()
+	b.graph = g
+	b.notifier = n
+	if c.Fresh {
+		tmpDir, err := ioutil.TempDir("", fmt.Sprintf("bldy_tmp_%s_", g.Root.Label.Name()))
+		if err != nil {
+			log.Fatal(err)
+		}
+		c.Cache = &tmpDir
+	} else if c.Cache == nil {
+		c.Cache = bldyCache()
+	}
+	if c.BuildOut == nil {
+		x := path.Join(g.Workspace().AbsPath(), "build_out")
+		c.BuildOut = &x
+	}
+
+	b.config = c
+	b.ProjectPath = g.Workspace().AbsPath()
+
 	return
 }
 
 var (
-	BLDYCACHE = bldyCache()
-	l         = log.New(os.Stdout, "builder: ", 0)
+	l = log.New(os.Stdout, "builder: ", 0)
 )
 
-func bldyCache() string {
+func bldyCache() *string {
 	usr, err := user.Current()
 	if err != nil {
 		l.Fatal(err)
 	}
-	return path.Join(usr.HomeDir, "/.cache/bldy")
+	x := path.Join(usr.HomeDir, "/.cache/bldy")
+	return &x
 }
 
 func (b *Builder) Execute(ctx context.Context, r int) {
-
+	b.start = time.Now()
 	for i := 0; i < r; i++ {
 		go b.work(ctx, i)
 	}
-
 	if b.graph == nil {
-		l.Fatal("Couldn't find the build graph")
+		l.Fatal("couldn't find the build graph")
 	}
+	if b.graph.Root == nil {
+		l.Fatal("couldn't find the graph root")
+	}
+	b.wg.Add(1)
 	b.visit(b.graph.Root)
+	b.wg.Wait()
 }
 
-func (b *Builder) build(ctx context.Context, n *graph.Node) (err error) {
-	buildErr := ctx.Err()
+func (b *Builder) build(e *executor.Executor, n *graph.Node) error {
+	n.Start = time.Now().UnixNano()
+	n.Status = build.Fail
+	err := n.Target.Build(e)
+	if err == nil {
+		n.Status = build.Success
+	}
+
+	n.End = time.Now().UnixNano()
+	n.Output = e.CombinedLog()
+
+	b.saveLog(n)
 	if err != nil {
 		return err
 	}
-	nodeHash := fmt.Sprintf("%s-%x", n.Target.GetName(), n.HashNode())
-	outDir := filepath.Join(
-		BLDYCACHE,
-		nodeHash,
-	)
-	// check if this node was build before
-	if _, err := os.Lstat(outDir); !os.IsNotExist(err) {
-		n.Cached = true
-		if file, err := os.Open(filepath.Join(outDir, FAILLOG)); err == nil {
-			errString, _ := ioutil.ReadAll(file)
-			return fmt.Errorf("%s", errString)
-		} else if _, err := os.Lstat(filepath.Join(outDir, SCSSLOG)); err == nil {
-			return nil
-		}
-	}
-
-	os.MkdirAll(outDir, os.ModeDir|os.ModePerm)
-
-	// check failed builds.
-	for _, e := range n.Children {
-		if e.Status == build.Fail {
-			buildErr = fmt.Errorf("dependency %s failed to build", e.Target.GetName())
-		} else {
-			for dst, src := range e.Target.Installs() {
-
-				target := filepath.Base(dst)
-				targetDir := strings.TrimRight(dst, target)
-
-				if targetDir != "" {
-					if err := os.MkdirAll(
-						filepath.Join(
-							outDir,
-							targetDir,
-						),
-						os.ModeDir|os.ModePerm,
-					); err != nil {
-						l.Fatalf("installing dependency %s for %s: %s", e.Target.GetName(), n.Target.GetName(), err.Error())
-					}
-				}
-				os.Symlink(
-					filepath.Join(
-						BLDYCACHE,
-						fmt.Sprintf("%s-%x", e.Target.GetName(), e.HashNode()),
-						src,
-					),
-					filepath.Join(
-						outDir,
-						targetDir,
-						target),
-				)
-
-			}
-		}
-	}
-
-	runner := executor.New(ctx, outDir)
-	n.Start = time.Now().UnixNano()
-
-	buildErr = n.Target.Build(runner)
-	n.End = time.Now().UnixNano()
-
-	logName := FAILLOG
-	if buildErr == nil {
-		logName = SCSSLOG
-	}
-	if logFile, err := os.Create(filepath.Join(outDir, logName)); err != nil {
-		l.Fatalf("error creating log for %s: %s", n.Target.GetName(), err.Error())
-	} else {
-		log := runner.Log()
-		buf := bytes.Buffer{}
-		for _, logEntry := range log {
-			buf.WriteString(logEntry.String())
-		}
-		n.Output = buf.String()
-		_, err = logFile.Write(buf.Bytes())
-		if err != nil {
-			l.Fatalf("error writing log for %s: %s", n.Target.GetName(), err.Error())
-		}
-		if buildErr != nil {
-			return fmt.Errorf("%s: \n%s", buildErr, buf.Bytes())
-		}
-	}
-
-	return buildErr
+	return nil
 }
 
 func (b *Builder) work(ctx context.Context, workerNumber int) {
-
 	for {
 		job := b.pq.Pop().(*graph.Node)
+
 		job.Worker = fmt.Sprintf("%d", workerNumber)
+
 		if job.Status != build.Pending {
 			continue
 		}
@@ -199,100 +153,115 @@ func (b *Builder) work(ctx context.Context, workerNumber int) {
 
 		job.Status = build.Building
 
-		b.Updates <- job
-		buildErr := b.build(ctx, job)
+		b.notifier.Update(job)
 
-		if buildErr != nil {
-			job.Status = build.Fail
-			b.Updates <- job
-			b.Error <- buildErr
-			return
-		} else {
-			job.Status = build.Success
-
-			b.Updates <- job
-		}
-
-		if !job.IsRoot {
-			b.Done <- job
+		finish := func(err error) {
+			b.notifier.Update(job)
+			if err != nil {
+				b.notifier.Error(err)
+			}
 			job.Once.Do(func() {
 				for _, parent := range job.Parents {
 					parent.WG.Done()
 				}
 			})
-		} else {
-			install(job)
+			b.notifier.Update(job)
 
-			b.Done <- job
-			close(b.Done)
-			return
+			if job.IsRoot {
+				if job.Status == build.Success {
+					b.install(job)
+				}
+				b.notifier.Done(time.Now().Sub(b.start))
+				b.wg.Done()
+			}
+			job.Unlock()
 		}
-		defer job.Unlock()
+
+		if b.cached(job) {
+			finish(b.builderror(job))
+		} else {
+			if err := ctx.Err(); err != nil {
+				finish(err)
+				return
+			}
+
+			ns, err := b.prepare(ctx, job)
+			if err != nil {
+				finish(err)
+				return
+			}
+			e := executor.New(ctx, ns)
+			finish(b.build(e, job))
+		}
 
 	}
 
 }
 
 func (b *Builder) visit(n *graph.Node) {
-
 	// This is not an airplane so let's make sure children get their masks on before the parents.
 	for _, child := range n.Children {
 		// Visit children first
 		go b.visit(child)
 	}
-
 	n.WG.Wait()
 	n.Priority()
 	b.pq.Push(n)
 }
 
-func install(job *graph.Node) error {
-	buildOut := project.BuildOut()
+func (b *Builder) install(job *graph.Node) error {
 	if err := os.MkdirAll(
-		buildOut,
+		*b.config.BuildOut,
 		os.ModeDir|os.ModePerm,
 	); err != nil {
-		l.Fatalf("copying job %s failed: %s", job.Target.GetName(), err.Error())
+		l.Fatalf("copying job %s failed: %s", job.Target.Name(), err.Error())
 	}
 
-	for dst, src := range job.Target.Installs() {
-
-		target := filepath.Base(dst)
-		targetDir := strings.TrimRight(dst, target)
-
+	for _, output := range job.Target.Outputs() {
+		target := filepath.Base(output)
+		targetDir := strings.TrimRight(output, target)
 		buildOutTarget := filepath.Join(
-			buildOut,
+			*b.config.BuildOut,
 			targetDir,
+		)
+
+		src := filepath.Join(
+			b.buildpath(job),
+			output,
+		)
+		dst := filepath.Join(
+			buildOutTarget,
+			target,
 		)
 		if err := os.MkdirAll(
 			buildOutTarget,
 			os.ModeDir|os.ModePerm,
 		); err != nil {
-			l.Fatalf("linking job %s failed: %s", job.Target.GetName(), err.Error())
+			l.Fatalf("linking job %s failed: %s", job.Target.Name(), err.Error())
 		}
-		srcp, _ := filepath.EvalSymlinks(
-			filepath.Join(
-				BLDYCACHE,
-				fmt.Sprintf("%s-%x", job.Target.GetName(), job.HashNode()),
-				src,
-			))
 
 		dstp := filepath.Join(
 			buildOutTarget,
 			target,
 		)
+		d, err := filepath.EvalSymlinks(src)
+		stat, err := os.Stat(d)
 
-		in, err := os.Open(srcp)
-		if err != nil {
-			l.Fatalf("copy: can't finiliaze %s. copying %q to %q failed: %s\n", job.Target.GetName(), srcp, dstp, err)
+		if os.IsNotExist(err) {
+			return fmt.Errorf("cannot install %s: file %s doesn't exist", job.Target.Name(), src)
 		}
-		out, err := os.Create(dstp)
+		in, err := os.Open(d)
+		if err != nil {
+			l.Fatalf("copy: can't finiliaze %s. copying %q to %q failed: %s\n", job.Target.Name(), src, dstp, err)
+		}
+
+		out, err := os.OpenFile(dstp, os.O_RDWR|os.O_CREATE, stat.Mode())
 		if err != nil {
 			l.Fatal(err)
 		}
 
 		if _, err := io.Copy(out, in); err != nil {
-			l.Fatalf("copy: can't finiliaze %s. copying from %q to %q failed: %s\n", job.Target.GetName(), src, dst, err)
+			l.Fatalf("copy: can't finiliaze %s. copying from %q to %q failed: %s\n", job.Target.Name(), src, dst, err)
 		}
 		if err := in.Close(); err != nil {
 			l.Fatal(err)
@@ -303,4 +272,67 @@ func install(job *graph.Node) error {
 	}
 
 	return nil
+}
+
+func (b *Builder) createOutputDirs(n *graph.Node) error {
+	for _, output := range n.Target.Outputs() {
+		target := filepath.Base(output)
+		targetDir := strings.TrimRight(output, target)
+		outputDir := filepath.Join(
+			b.buildpath(n),
+			targetDir,
+		)
+
+		if err := os.MkdirAll(outputDir, 0755); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (b *Builder) bindChildOutputs(n *graph.Node, ns namespace.Namespace) error {
+	for _, c := range n.Children {
+		for _, output := range c.Target.Outputs() {
+
+			src := filepath.Join(
+				b.buildpath(c),
+				output,
+			)
+			dst := filepath.Join(
+				b.buildpath(n),
+				output,
+			)
+			target := filepath.Base(output)
+			targetDir := strings.TrimRight(output, target)
+			outputDir := filepath.Join(
+				b.buildpath(n),
+				targetDir,
+			)
+
+			if err := os.MkdirAll(outputDir, 0755); err != nil {
+				return err
+			}
+			ns.Bind(dst, src, namespace.MREPL)
+		}
+	}
+	return nil
+}
+func (b *Builder) prepare(ctx context.Context, n *graph.Node) (namespace.Namespace, error) {
+	// prepare
+	ns, err := b.newnamespace(n)
+	if err != nil {
+		return nil, err
+	}
+	if ws, ok := ns.(namespace.Workspace); ok {
+		ws.MountWorkspace(n.Target.Workspace().AbsPath())
+	}
+	if err := b.bindChildOutputs(n, ns); err != nil {
+		return nil, err
+	}
+
+	if err := b.createOutputDirs(n); err != nil {
+		return nil, err
+	}
+
+	return ns, nil
 }

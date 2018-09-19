@@ -7,33 +7,49 @@ package build
 
 import (
 	"bldy.build/build/executor"
-	"bldy.build/build/url"
+	"bldy.build/build/label"
+	"bldy.build/build/workspace"
 )
 
-// Target defines the interface that rules must implement for becoming build targets.
-type Target interface {
-	GetName() string
-	GetDependencies() []string
+//go:generate stringer -type=Status
+// Status represents a nodes status.
+type Status int
+
+const (
+	// Success is success
+	Success Status = iota
+	// Fail is a failed job
+	Fail
+	// Pending is a pending job
+	Pending
+	// Started is a started job
+	Started
+	// Fatal is a fatal crash
+	Fatal
+	// Warning is a job that has warnings
+	Warning
+	// Building is a job that's being built
+	Building
+)
+
+var (
+	HostPlatform    = label.Label("@bldy//platforms:host")
+	DefaultPlatform = HostPlatform
+)
+
+// Rule defines the interface that rules must implement for becoming build targets.
+type Rule interface {
+	Name() string
+	Dependencies() []label.Label
+	Outputs() []string
 	Hash() []byte
 	Build(*executor.Executor) error
-	Installs() map[string]string
+	Platform() label.Label
+	Workspace() workspace.Workspace
 }
 
 // VM seperate the parsing and evauluating targets logic from rest of bldy
 // so we can implement and use new grammars like jsonnet or go it self.
 type VM interface {
-	GetTarget(url.URL) (Target, error)
+	GetTarget(label.Label) (Rule, error)
 }
-
-// Status represents a nodes status.
-type Status int
-
-const (
-	Success Status = iota
-	Fail
-	Pending
-	Started
-	Fatal
-	Warning
-	Building
-)

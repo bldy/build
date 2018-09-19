@@ -5,79 +5,34 @@
 package project // import "bldy.build/build/project"
 
 import (
-	"flag"
-	"fmt"
 	"log"
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
 
+	"bldy.build/build/workspace"
 	"github.com/vaughan0/go-ini"
 )
 
 var (
 	file ini.File
-
-	pp = ""
-
-	copyToRoot = flag.Bool("r", false, "set root of the project as build out")
+	l    = log.New(os.Stdout, "project", 0)
 )
 
-func init() {
-	wd, _ := os.Getwd()
-	pp = GetGitDir(wd)
-	var err error
-	if file, err = ini.LoadFile(filepath.Join(Root(), "bldy.cfg")); err == nil {
+func loadFile() {
+	wd, err := os.Getwd()
+	if err != nil {
+		log.Fatal(err)
+	}
+	s, err := workspace.FindWorkspace(wd, os.Stat)
+	if err != nil {
+		l.Println(err)
+	}
+	if file, err = ini.LoadFile(filepath.Join(s, "bldy.cfg")); err == nil {
 		if err != nil {
-			log.Fatalf("error: %v", err)
+			l.Printf("error: %v", err)
 		}
 	}
-}
-func SideLoad(wd string) {
-	pp = GetGitDir(wd)
-	var err error
-	if file, err = ini.LoadFile(filepath.Join(Root(), "bldy.cfg")); err == nil {
-		if err != nil {
-			log.Fatalf("error: %v", err)
-		}
-	}
-}
-func Root() (ProjectPath string) {
-	return pp
-}
-func RelPPath(p string) string {
-	rel, _ := filepath.Rel(Root(), p)
-	return rel
-}
-
-func BuildOut() string {
-	if *copyToRoot {
-		return Root()
-	}
-
-	if Getenv("BUILD_OUT") != "" {
-		return Getenv("BUILD_OUT")
-	} else {
-		return filepath.Join(
-			Root(),
-			"build_out",
-		)
-	}
-}
-
-func GetGitDir(p string) string {
-	dirs := strings.Split(p, "/")
-	for i := len(dirs) - 1; i > 0; i-- {
-		frags := append([]string{"/"}, dirs[0:i+1]...)
-		path := filepath.Join(frags...)
-		try := fmt.Sprintf("%s/.git", path)
-		if _, err := os.Lstat(try); os.IsNotExist(err) {
-			continue
-		}
-		return path
-	}
-	return ""
 }
 
 // Getenv returns the envinroment variable. It looks for the envinroment
@@ -85,13 +40,15 @@ func GetGitDir(p string) string {
 // an envinroment variable, checks if it's set in the OS specific section in
 // the .build file, and checks it for common in the .build config file.
 func Getenv(s string) string {
+	if file == nil {
+		loadFile()
+	}
 	if os.Getenv(s) != "" {
 		return os.Getenv(s)
 	} else if val, exists := file.Get(runtime.GOOS, s); exists {
 		return val
 	} else if val, exists := file.Get("", s); exists {
 		return val
-	} else {
-		return ""
 	}
+	return ""
 }

@@ -1,248 +1,163 @@
-// Copyright 2017 Sevki <s@sevki.org>. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
+// Package racy deals with file cryptography
+package racy
 
-package racy // import "bldy.build/build/racy"
 import (
-	"crypto/sha1"
-	"crypto/sha256"
+	"crypto/sha512"
+	"encoding/binary"
+	"fmt"
+	"hash"
 	"io"
 	"log"
 	"os"
-	"path"
 	"path/filepath"
-	"reflect"
 	"strings"
 	"sync"
 
-	"bldy.build/build"
-	"bldy.build/build/project"
+	"github.com/google/skylark"
 )
 
-type cacheMap struct {
+// NewHash returns a new hash.Hash
+var NewHash = sha512.New
+
+var (
+	cacheMutex = new(sync.Mutex)
+	hashCache  = make(map[string][]byte)
+)
+
+// Racy is used in hashing targets.
+// https://www.kernel.org/pub/software/scm/git/docs/technical/racy-git.txt
+type Racy struct {
+	hash.Hash
+
+	exts []string
+
 	mu *sync.Mutex
 	m  map[string][]byte
 }
 
-var hashCache = newCacheMap()
+type Option func(*Racy)
 
-func newCacheMap() *cacheMap {
-	return &cacheMap{
-		m:  make(map[string][]byte),
-		mu: &sync.Mutex{},
+// New takes nothing and returns a new Racy
+func New(options ...Option) *Racy {
+	x := &Racy{
+		NewHash(),
+
+		[]string{}, // by default we'll hash everything checkout `AllowExtension` option to limit the files hashed
+		&sync.Mutex{},
+		make(map[string][]byte),
 	}
-}
-
-func hashFile(f *os.File) []byte {
-	h := sha1.New()
-	io.Copy(h, f)
-	f.Close()
-	t := h.Sum(nil)
-	hashCache.set(f.Name(), t)
-	return t
-}
-
-func hashFolder(f *os.File, ext string) []byte {
-	dst := make([]byte, sha1.Size)
-	fs, _ := f.Readdir(-1)
-	f.Close()
-	for _, x := range fs {
-		if x.IsDir() {
-			dst = XOR(dst, hashFolder(f, ext))
-		} else {
-			if filepath.Ext(x.Name()) == ext || filepath.Ext(x.Name()) == "" {
-				dst = XOR(dst, hashFile(f))
-			}
-		}
+	for _, option := range options {
+		option(x)
 	}
-	hashCache.set(f.Name(), dst)
-
-	return dst
-}
-func (cp *cacheMap) get(file string) ([]byte, bool) {
-	hashCache.mu.Lock() // synchronize with other potential writers
-	defer hashCache.mu.Unlock()
-	h, ok := hashCache.m[file]
-	return h, ok
-}
-func (cp *cacheMap) set(file string, hash []byte) {
-	hashCache.mu.Lock() // synchronize with other potential writers
-	defer hashCache.mu.Unlock()
-	hashCache.m[file] = hash
+	return x
 }
 
-// HashFilesWithExt will hash files collecetion represented as a string array,
-// If the string in the array is directory it will the directory contents to the array
-// if the string isn't an absolute path, it will assume that it's a export from a dependency
-// and skip that.
-func HashFilesForExt(files []string, ext string) []byte {
-	var dst []byte
-	for _, file := range files {
-		if !filepath.IsAbs(file) {
-			continue
-		}
-		if filepath.Base(file) == project.BuildOut() {
-			continue
-		}
-		if filepath.Ext(file) != ext || filepath.Ext(file) == "" {
-			continue
-		}
-
-		var tmp []byte
-		if h, cached := hashCache.get(file); cached {
-			tmp = h
-		} else {
-			f, err := os.Open(file)
-			if err != nil {
-				log.Fatalf("hash files: %s\n", err.Error())
-			}
-			stat, _ := f.Stat()
-			if stat.IsDir() {
-				tmp = hashFolder(f, ext)
-			} else {
-				tmp = hashFile(f)
-			}
-
-		}
-		if len(dst) == 0 {
-			dst = tmp
-		} else {
-			dst = XOR(dst, tmp)
-		}
-	}
-
-	return dst
+func AllowExtension(ext string) Option {
+	ext = strings.TrimLeft(ext, ".")
+	return func(r *Racy) { r.exts = append(r.exts, ext) }
 }
 
-func hashFiles(files []string, exts []string) []byte {
-
-	var dst []byte
-	for _, file := range files {
-		if !filepath.IsAbs(file) {
-			continue
-		}
-		if filepath.Base(file) == project.BuildOut() {
-			continue
-		}
-		stat, err := os.Stat(file)
-		if err != nil {
-			log.Fatalf("stating file %q: %s\n", file, err.Error())
-		}
-
-		fileExt := filepath.Ext(file)
-		// Is there a extension filter?
-		if !stat.IsDir() && len(exts) > 0 {
-			validExtension := false
-			for _, ext := range exts {
-				if fileExt == ext {
-					validExtension = true
-				}
-			}
-			if !validExtension {
-				continue
-			}
-		}
-
-		var tmp []byte
-		if h, cached := hashCache.get(file); cached {
-			tmp = h
-		} else {
-			f, err := os.Open(file)
-			if err != nil {
-				log.Fatalf("hash files: %s\n", err.Error())
-			}
-			if stat.IsDir() {
-				fs, _ := f.Readdirnames(-1)
-				f.Close()
-				for i, s := range fs {
-					fs[i] = path.Join(file, s)
-				}
-
-				tmp = hashFiles(fs, exts)
-			} else {
-				tmp = hashFile(f)
-			}
-
-		}
-		if len(dst) == 0 {
-			dst = tmp
-		} else {
-			dst = XOR(dst, tmp)
-		}
-	}
-
-	return dst
-}
-
-func HashTarget(target build.Target) []byte {
-	var dst []byte
-	typ := reflect.TypeOf(target).Elem()
-	val := reflect.ValueOf(target).Elem()
-
-	if typ.Kind() != reflect.Struct {
-		return nil
-	}
-	for i := 0; i < typ.NumField(); i++ {
-		field := typ.Field(i)
-
-		dst = XOR(dst, hashString(field.PkgPath))
-		dst = XOR(dst, hashString(field.Name))
-
-		tag := field.Tag.Get("build")
-		if !(tag == "path" || tag == "expand") {
-			continue
-		}
-		extTag := field.Tag.Get("ext")
-		splitTags := []string{}
-		if extTag != "" {
-			splitTags = strings.Split(extTag, ",")
-		}
-		dst = XOR(dst, hashPath(val.Field(i), splitTags))
-	}
-
-	dst = XOR(dst, hashValue(val))
-
-	return dst
-}
-func hashPath(v reflect.Value, exts []string) []byte {
-	var dst []byte
-
-	switch v.Kind() {
-	case reflect.String:
-		file := v.String()
-		dst = XOR(dst, hashFiles([]string{file}, exts))
-	case reflect.Slice:
-		for i := 0; i < v.Len(); i++ {
-			dst = XOR(dst, hashPath(v.Index(i), exts))
-		}
-	}
-	return dst
-}
-func hashValue(v reflect.Value) []byte {
-	var dst []byte
-
-	switch v.Kind() {
-	case reflect.String:
-		dst = XOR(dst, hashString(v.String()))
-	case reflect.Struct:
-		for i := 0; i < v.NumField(); i++ {
-			f := v.Field(i)
-			dst = XOR(dst, hashValue(f))
-		}
-	case reflect.Slice:
-		for i := 0; i < v.Len(); i++ {
-			dst = XOR(dst, hashValue(v.Index(i)))
-		}
-	}
-	return dst
-}
 func hashString(s string) []byte {
-	h := sha256.New()
+	h := NewHash()
 	io.WriteString(h, s)
 	return h.Sum(nil)
 }
-func HashStrings(h io.Writer, strs []string) {
-	for _, str := range strs {
-		io.WriteString(h, str)
+
+func hashFile(file string) []byte {
+CHECK:
+	if sum, ok := hashCache[file]; ok {
+		return sum
 	}
+	// For speediness, we'll cache the hash of the file
+	// and hash that instead of opening the file,
+	// reading it's contents everytime
+	cacheMutex.Lock()
+	f, err := os.Open(file)
+	if err != nil {
+		log.Fatalf("racy.hashFile: error opening file %q: %v", file, err)
+	}
+	tmpHash := NewHash()
+	io.Copy(tmpHash, f)
+	hashCache[file] = tmpHash.Sum(nil)
+	f.Close()
+	cacheMutex.Unlock()
+	goto CHECK
+}
+
+func (r *Racy) hashDir(dir string) {
+	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			fmt.Printf("prevent panic by handling failure accessing a path %q: %v\n", dir, err)
+			return err
+		}
+		if info.IsDir() {
+			r.hashDir(path)
+		} else {
+			r.hashFile(path)
+		}
+		return nil
+	})
+	log.Fatalf("racy.hashDir: error walking dir %q: %v", dir, err)
+}
+
+func (r *Racy) hashFile(file string) {
+	if !r.allowedExt(file) {
+		return
+	}
+	r.Write(hashFile(file))
+}
+
+func (r *Racy) allowedExt(file string) bool {
+	ext := strings.TrimLeft(filepath.Ext(file), ".")
+	for _, allowedExt := range r.exts {
+		if ext == allowedExt {
+			return true
+		}
+	}
+	return false
+}
+
+func (r *Racy) HashFiles(files ...string) error {
+	for _, file := range files {
+		stat, err := os.Stat(file)
+		if err != nil {
+			return fmt.Errorf("racy.HashFiles: error opening file: %v", err)
+		}
+		if !stat.IsDir() {
+			r.hashFile(file)
+		} else {
+			r.hashDir(file)
+		}
+	}
+	return nil
+}
+
+// HashStrings hashes strings written to Racy
+func (r *Racy) HashStrings(strs ...string) {
+	for _, str := range strs {
+		io.WriteString(r, str)
+	}
+}
+
+func (r *Racy) HashSkylarkValues(vals ...skylark.Value) {
+	for _, v := range vals {
+		r.HashSkylarkValue(v)
+	}
+}
+
+func (r *Racy) HashSkylarkValue(v skylark.Value) {
+	if iterable, ok := v.(skylark.Iterable); ok {
+		i := iterable.Iterate()
+		var p skylark.Value
+		for i.Next(&p) {
+			r.HashSkylarkValue(p)
+		}
+	} else {
+		if h, err := v.Hash(); err != nil {
+			b := make([]byte, 4)
+			binary.LittleEndian.PutUint32(b, h)
+			r.Write(b)
+		}
+	}
+
 }
