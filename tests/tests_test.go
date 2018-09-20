@@ -3,7 +3,6 @@ package integration
 import (
 	"context"
 	"fmt"
-	gobuild "go/build"
 	"io/ioutil"
 	"log"
 	"os"
@@ -49,7 +48,8 @@ var tests = []struct {
 }
 
 func setup(t *testing.T) string {
-	wd := path.Join(gobuild.Default.GOPATH, "src", "bldy.build", "build", "tests", "testdata")
+	workdir, _ := os.Getwd()
+	wd := path.Join(workdir, "testdata")
 	os.Chdir(wd)
 	return wd
 }
