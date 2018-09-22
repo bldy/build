@@ -30,12 +30,11 @@ steps:
   displayName: 'Get dependencies'
 
   
-- script: |
-    ./test.sh
+- script: ./test.sh
   workingDirectory: '$(modulePath)'
   displayName: 'Test'
 
-- script: |
-    go get bldy.build/build/bmd/bldy
+- script: go get bldy.build/build/bmd/bldy
   workingDirectory: '$(modulePath)'
   displayName: 'Build'
+  
