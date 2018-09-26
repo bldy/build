@@ -24,6 +24,7 @@ type Label string
 func New(pkg, name string) Label {
 	return Label(fmt.Sprintf("//%s:%s", pkg, name))
 }
+
 func (l Label) Repo() string {
 	if f, err := l.Split(); err == nil {
 		if r, ok := f["repo"]; ok {
@@ -171,11 +172,11 @@ func (l Label) Split() (map[string]string, error) {
 	return frags, nil
 }
 
-func (lbl Label) Type() string        { return "label" }
-func (lbl Label) Freeze()             {}
-func (lbl Label) Truth() skylark.Bool { return skylark.Bool(true) }
-func (lbl Label) Hash() (uint32, error) {
-	s := lbl.String()
+func (l Label) Type() string        { return "label" }
+func (l Label) Freeze()             {}
+func (l Label) Truth() skylark.Bool { return skylark.Bool(true) }
+func (l Label) Hash() (uint32, error) {
+	s := l.String()
 	var h uint32
 	for i := 0; i < len(s); i++ {
 		h ^= uint32(s[i])
@@ -183,24 +184,22 @@ func (lbl Label) Hash() (uint32, error) {
 	}
 	return h, nil
 }
-func (lbl Label) String() string {
+func (l Label) String() string {
 
-	return string(lbl)
+	return string(l)
 }
 
-func (lbl Label) Attr(attr string) (skylark.Value, error) {
+func (l Label) Attr(attr string) (skylark.Value, error) {
 	if attr == "name" {
 		attr = "target"
 	}
-	if frags, err := lbl.Split(); err == nil {
+	if frags, err := l.Split(); err == nil {
 		if a, ok := frags[attr]; ok {
 			return skylark.String(a), nil
 		}
 	}
 
-	return nil, fmt.Errorf("label(%q) has no attribute called %q", lbl, attr)
+	return nil, fmt.Errorf("label(%q) has no attribute called %q", l, attr)
 }
 
-func (lbl Label) AttrNames() []string {
-	panic("not implemented")
-}
+func (l Label) AttrNames() []string { panic("not implemented") }
