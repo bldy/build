@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"bldy.build/build/skylark/skylarkutils"
+
 	"github.com/google/skylark"
 	"github.com/google/skylark/skylarkstruct"
 )
@@ -37,7 +39,7 @@ func format(s skylark.String, attrs *skylarkstruct.Struct) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		val, err := skylarkToGo(key)
+		val, err := skylarkutils.ValueToGo(key)
 		if err != nil {
 			return "", err
 		}

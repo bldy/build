@@ -33,7 +33,6 @@ func (f *File) Exists() bool {
 }
 
 func (f *File) Path() string {
-
 	if f.file.IsAbs() {
 		return f.ws.File(f.file)
 	} else {
