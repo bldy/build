@@ -1,36 +1,36 @@
 package workspace
 
 import (
-	"go/build"
+	"os"
 	"path"
 	"testing"
 )
 
-var tests = []struct {
-	name string
-	dir  string
-	wd   string
-	err  bool
-}{
-	{
-		name: "testdata",
-		dir:  path.Join(build.Default.GOPATH, "src", "bldy.build", "build", "tests", "testdata"),
-		wd:   path.Join(build.Default.GOPATH, "src", "bldy.build", "build", "tests", "testdata"),
-	},
-	{
-		name: "testdatafromempty",
-		dir:  path.Join(build.Default.GOPATH, "src", "bldy.build", "build", "tests", "testdata", "empty"),
-		wd:   path.Join(build.Default.GOPATH, "src", "bldy.build", "build", "tests", "testdata"),
-	},
-	{
-		name: "temp",
-		dir:  "/tmp/",
-		err:  true,
-		wd:   "",
-	},
-}
-
 func TestNew(t *testing.T) {
+	wd, _ := os.Getwd()
+	var tests = []struct {
+		name string
+		dir  string
+		wd   string
+		err  bool
+	}{
+		{
+			name: "testdata",
+			dir:  path.Join(wd, "..", "tests", "testdata"),
+			wd:   path.Join(wd, "..", "tests", "testdata"),
+		},
+		{
+			name: "testdatafromempty",
+			dir:  path.Join(wd, "..", "tests", "testdata", "empty"),
+			wd:   path.Join(wd, "..", "tests", "testdata"),
+		},
+		{
+			name: "temp",
+			dir:  "/tmp/",
+			err:  true,
+			wd:   "",
+		},
+	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			ws, err := New(test.dir)
