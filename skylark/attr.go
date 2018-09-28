@@ -208,6 +208,7 @@ func (l *labelListAttr) Empty() skylark.Value {
 		return nil
 	}
 }
+
 func (l *labelListAttr) Convert(arg skylark.Value) (skylark.Value, error) {
 	lblList, ok := arg.(*skylark.List)
 	if !ok {
@@ -219,7 +220,7 @@ func (l *labelListAttr) Convert(arg skylark.Value) (skylark.Value, error) {
 	for i.Next(&p) {
 		val, ok := skylark.AsString(p)
 		if !ok {
-			return nil, fmt.Errorf("%v is not a valid skylark string", val)
+			return nil, fmt.Errorf("convert: (type=%T %q) is not a skylark.String", p, val)
 		}
 		if lbl, err := label.Parse(val); err == nil {
 			list = append(list, lbl)

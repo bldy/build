@@ -67,6 +67,7 @@ func New(ws workspace.Workspace) (build.VM, error) {
 	}
 	globals := skylark.StringDict{
 		"rule":   skylark.NewBuiltin("rule", s.makeRule),
+		"glob":   skylark.NewBuiltin("glob", s.glob),
 		"native": skylarkstruct.FromStringDict(skylarkstruct.Default, natives),
 		"struct": skylark.NewBuiltin("struct", skylarkstruct.Make),
 	}

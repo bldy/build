@@ -27,7 +27,7 @@ type Rule struct {
 	SkyFuncLabel string
 	skyThread    *skylark.Thread
 	Args         skylark.Tuple
-	Kwargs       []skylark.Tuple
+	KWArgs       []skylark.Tuple
 	SkyFunc      *skylark.Function
 	FuncAttrs    *skylark.Dict
 	Attrs        *skylark.Dict
@@ -123,7 +123,7 @@ func (f *lambdaFunc) makeSkylarkRule(thread *skylark.Thread, args skylark.Tuple,
 	newRule := Rule{
 		name:         name,
 		Args:         args,
-		Kwargs:       kwargs,
+		KWArgs:       kwargs,
 		SkyFunc:      f.skyFunc,
 		skyThread:    thread,
 		SkyFuncLabel: f.skyFunc.Name(),
@@ -222,7 +222,7 @@ func findArg(kw skylark.Value, kwargs []skylark.Tuple) (skylark.Value, bool) {
 
 func (r *Rule) hashArg(kw skylark.Value, a Attribute) []byte {
 	h := racy.New()
-	v, ok := findArg(kw, r.Kwargs)
+	v, ok := findArg(kw, r.KWArgs)
 	if !ok {
 		return nil
 	}
