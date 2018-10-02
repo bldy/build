@@ -25,9 +25,10 @@ func (a *action) Type() string          { return fmt.Sprintf("actions.%s", a.nam
 func (a *action) Hash() (uint32, error) { return hashString(a.name), nil }
 
 func (a *action) Call(thread *skylark.Thread, args skylark.Tuple, kwargs []skylark.Tuple) (skylark.Value, error) {
-
 	var i executor.Action
 	switch a.name {
+	case "expand_template":
+		i = &expand_template{}
 	case "run":
 		i = &run{}
 	case "do_nothing":

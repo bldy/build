@@ -94,7 +94,7 @@ func TestEvalGlob(t *testing.T) {
 }
 
 func compareLists(a *skylark.List, b []string) (bool, error) {
-	i, err := skylarkutils.ListToGo(a)
+	i, err := skylarkutils.ListToSlice(a)
 	if err != nil {
 		return false, err
 	}

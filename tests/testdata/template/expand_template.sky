@@ -1,0 +1,27 @@
+"""test expand template
+"""
+
+def _impl(ctx):
+    ctx.actions.expand_template(
+        template = ctx.files.template,
+        output = ctx.outputs.generated,
+        substitutions = {
+            "topics": "something something",
+        },
+    )
+    ctx.actions.run(
+        arguments = [ctx.files.reference, ctx.outputs.generated],
+        progress_message = "generating %s" % ctx.outputs.generated,
+        executable = "diff",
+    )
+
+template_test = rule(
+    attrs = {
+        "template": attr.label(allow_files = True, default = "//template:test.tmpl"),
+        "reference": attr.label(allow_files = True, default = "//template:reference.txt"),
+    },
+    outputs = {
+        "generated": "generated.txt",
+    },
+    implementation = _impl,
+)

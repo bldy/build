@@ -1,9 +1,10 @@
 package skylark
 
 import (
+	"bldy.build/build/file"
+	"bldy.build/build/label"
 	"github.com/google/skylark"
 	"github.com/google/skylark/skylarkstruct"
-	"github.com/pkg/errors"
 )
 
 // inconsistent behaviour described here
@@ -18,7 +19,7 @@ func processOutputs(ctx *context, ruleAttrs *skylark.Dict, ruleOutputs *skylark.
 				outputs = append(outputs, formatted)
 				if name, ok := skylark.AsString(tup[0]); ok {
 					_ = name
-					outs[name] = output(formatted)
+					outs[name] = file.New(label.Label(formatted), label.Label(""), nil)
 				}
 			}
 		}
@@ -26,25 +27,4 @@ func processOutputs(ctx *context, ruleAttrs *skylark.Dict, ruleOutputs *skylark.
 		return outputs, nil
 	}
 	return outputs, nil
-}
-
-type output string
-
-func (f output) String() string        { return string(f) }
-func (f output) Type() string          { return "file" }
-func (f output) Freeze()               {}
-func (f output) Truth() skylark.Bool   { return true }
-func (f output) Hash() (uint32, error) { return hashString(string(f)), nil }
-
-func (f output) Attr(name string) (skylark.Value, error) {
-	switch name {
-	case "path":
-		return skylark.String(string(f)), nil
-	default:
-		return nil, errors.New("not implemented")
-	}
-}
-
-func (f output) AttrNames() []string {
-	panic("not implemented")
 }

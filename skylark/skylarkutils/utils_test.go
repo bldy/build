@@ -29,7 +29,7 @@ func TestListToGo(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			s, _ := ListToGo(test.l)
+			s, _ := ListToSlice(test.l)
 			if eqStringSlice(test.i, s) {
 				t.Logf("test != i\n%s", pretty.Diff(test.i, s))
 				t.Fail()

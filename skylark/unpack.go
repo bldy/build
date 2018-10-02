@@ -56,6 +56,11 @@ func unpackStruct(i interface{}, kwargs []skylark.Tuple) error {
 		} else {
 			val = value
 		}
+		valType := reflect.TypeOf(val)
+		fieldType := field.Type()
+		if !valType.AssignableTo(fieldType) {
+			return fmt.Errorf("%q is not assignable to %q", valType.String(), fieldType.String())
+		}
 		field.Set(reflect.ValueOf(val))
 	}
 

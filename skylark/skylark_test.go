@@ -43,6 +43,12 @@ func TestEval(t *testing.T) {
 			label: "//.:print",
 			err:   nil,
 		},
+		{
+			name:  "expand template",
+			wd:    "template",
+			label: "//.:expand",
+			err:   nil,
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

@@ -45,6 +45,11 @@ var tests = []struct {
 		label: "//docker:filemount",
 		err:   nil,
 	},
+	{
+		name:  "template",
+		label: "//template:expand",
+		err:   nil,
+	},
 }
 
 func setup(t *testing.T) string {
@@ -76,9 +81,7 @@ type testNotifier struct {
 func (t *testNotifier) Update(n *graph.Node) {
 	switch n.Status {
 	case build.Building:
-		t.t.Logf("Started building %s ", n.Label.String())
 	default:
-		t.t.Logf("Started %d %s ", n.Status, n.Label.String())
 
 	}
 
@@ -90,7 +93,6 @@ func (t *testNotifier) Error(err error) {
 }
 
 func (t *testNotifier) Done(d time.Duration) {
-	t.t.Logf("Finished building in %s\n", d)
 
 }
 

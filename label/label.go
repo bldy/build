@@ -19,7 +19,7 @@ var (
 
 // Label represents a perforce label
 // we plan on adding more providers
-type Label string
+type Label skylark.String
 
 func New(pkg, name string) Label {
 	return Label(fmt.Sprintf("//%s:%s", pkg, name))

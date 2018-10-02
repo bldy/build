@@ -20,15 +20,17 @@ func newContext(name string, ruleAttrs *skylark.Dict, ruleOutputs *skylark.Dict,
 	ac := new(actionRecorder)
 	actionsDict := skylark.StringDict{}
 	for _, actionName := range []string{
-		"run", "do_nothing",
+		"run", "do_nothing", "expand_template",
 	} {
 		actionsDict[actionName] = newAction(actionName, ac)
 	}
+
 	ctx := &context{
-		label:          name,
+		label:          lbl,
 		buf:            bytes.NewBuffer(nil),
 		actions:        skylarkstruct.FromStringDict(skylarkstruct.Default, actionsDict),
 		actionRecorder: ac,
+		ws:             ws,
 	}
 	skyio := &skyIO{}
 	var err error
@@ -48,7 +50,7 @@ func newContext(name string, ruleAttrs *skylark.Dict, ruleOutputs *skylark.Dict,
 }
 
 type context struct {
-	label string
+	label label.Label
 	buf   *bytes.Buffer
 
 	attrs   skylark.StringDict
@@ -57,6 +59,8 @@ type context struct {
 
 	actions        *skylarkstruct.Struct
 	actionRecorder *actionRecorder
+
+	ws workspace.Workspace
 }
 
 func (ctx *context) Name() string                             { return "ctx" }

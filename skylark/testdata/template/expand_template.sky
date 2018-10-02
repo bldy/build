@@ -1,0 +1,19 @@
+"""test expand template
+"""
+
+def _impl(ctx):
+    ctx.actions.expand_template(
+        template = ctx.files.template,
+        output = ctx.outputs.config,
+        substitutions = {
+            "topics": "asdasd",
+        },
+    )
+
+template_test = rule(
+    attrs = {
+        "template": attr.label(allow_files = True, default = "//.:test.tmpl"),
+    },
+    outputs = {"config": "config.ld"},
+    implementation = _impl,
+)
