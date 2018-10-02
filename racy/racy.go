@@ -86,6 +86,12 @@ CHECK:
 
 func (r *Racy) hashDir(dir string) {
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if strings.Contains(path, ".git/") {
+			return nil
+		}
+		if path == dir {
+			return nil
+		}
 		if err != nil {
 			fmt.Printf("prevent panic by handling failure accessing a path %q: %v\n", dir, err)
 			return err
@@ -97,7 +103,9 @@ func (r *Racy) hashDir(dir string) {
 		}
 		return nil
 	})
-	log.Fatalf("racy.hashDir: error walking dir %q: %v", dir, err)
+	if err != nil {
+		log.Fatalf("racy.hashDir: error walking dir %q: %v", dir, err)
+	}
 }
 
 func (r *Racy) hashFile(file string) {
