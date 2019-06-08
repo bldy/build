@@ -1,0 +1,11 @@
+"""Example of a rule that accesses its build context."""
+
+def _impl(ctx):
+    # Print debug information about the target.
+    print("Building {}_{}_{} ".format(ctx.name, ctx.os, ctx.arch))
+
+printer = rule(
+    implementation = _impl,
+)
+
+export(printer(name = "context_tester"))

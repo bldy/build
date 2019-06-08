@@ -1,0 +1,16 @@
+"""Example of a rule that runs a thing."""
+
+def _impl(ctx):
+    ctx.exec.run(
+        progress_message = "Building {}_{}_{} ".format(ctx.name, ctx.os, ctx.arch),
+        executable = "clang",
+        arguments = [
+            "hello.c",
+        ],
+    )
+
+runner = rule(
+    implementation = _impl,
+)
+
+export(runner(name = "run_test"))

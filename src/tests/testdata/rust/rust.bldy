@@ -1,0 +1,5 @@
+load("rust/toolchain", "rust")
+
+export(
+    rust.binary(name = "rust-bin"),
+)

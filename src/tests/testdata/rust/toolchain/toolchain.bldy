@@ -1,0 +1,17 @@
+"""Rust toolchain"""
+
+def _impl(ctx):
+    ctx.exec.run(
+        progress_message = "Building {}_{}_{} ".format(ctx.name, ctx.os, ctx.arch),
+        executable = "clang",
+        arguments = [
+            "hello.c",
+        ],
+    )
+
+rust = module(
+    "rust",
+    binary = rule(
+        implementation = _impl,
+    ),
+)
